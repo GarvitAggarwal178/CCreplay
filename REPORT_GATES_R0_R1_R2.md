@@ -77,9 +77,15 @@ transfers, `kernel.bpf_stats_enabled=1` set before every run.
 
 | run | invocations | emitted | drops | seq gaps | trace size | events/s | ssthresh calls | cong_avoid calls | undo_cwnd calls | cong_avoid ns/callback |
 |---|---|---|---|---|---|---|---|---|---|---|
-| rep1 | 37,260 | 37,260 | 0 | 0 | 3,279,024 B | ~414 | 6 | 37,254 | 0 | 21,768 |
-| rep2 | 37,391 | 37,391 | 0 | 0 | 3,290,552 B | ~416 | 6 | 37,385 | 0 | 24,975 |
-| rep3 | 37,400 | 37,400 | 0 | 0 | 3,291,344 B | ~416 | 6 | 37,394 | 0 | 19,922 |
+| rep1 | 37,260 | 37,260 | 0 | 0 | 3,279,024 B | ~414 | 6 | 37,254 | 0 (†) | 21,768 |
+| rep2 | 37,391 | 37,391 | 0 | 0 | 3,290,552 B | ~416 | 6 | 37,385 | 0 (†) | 24,975 |
+| rep3 | 37,400 | 37,400 | 0 | 0 | 3,291,344 B | ~416 | 6 | 37,394 | 0 (†) | 19,922 |
+
+(†) `undo_cwnd` did not fire on any real R0 run — real drop-tail loss is rarely spurious, so the
+kernel's undo path was never entered. This does not affect R0's PASS (`docs/GATES.md`: "R0
+validates every invocation of that declared surface," and the manifest's declared coverage was
+fully captured — zero invocations occurred, zero were lost). Closed separately for ABI purposes via
+the auxiliary reorder capture, section B above and section G item 7 below.
 
 All three: real loss present (bfifo dropped 207/208/209 packets), throughput ≈9.87 Mbit/s (within
 the topology's validated envelope), `bfifo` limit readback exactly matched 250,000 B every run,
@@ -101,15 +107,21 @@ Mode A (`user/replay_r1.py`): for each event independently, recorded shared PRE 
 
 | trace | events checked | fields compared | mismatches |
 |---|---|---|---|
-| rep1 | 37,260 | 74,514 | 0 |
-| rep2 | 37,391 | 74,776 | 0 |
-| rep3 | 37,400 | 74,794 | 0 |
-| **total** | **112,051** | **224,084** | **0** |
+| rep1 | 37,260 | 74,526 | 0 |
+| rep2 | 37,391 | 74,788 | 0 |
+| rep3 | 37,400 | 74,806 | 0 |
+| **total** | **112,051** | **224,120** | **0** |
 
-**First mismatch: none.** Comparison schema: `ssthresh` → `result`; `undo_cwnd` → `result`;
-`cong_avoid` → `post_snd_cwnd`, `post_snd_cwnd_cnt` (`docs/GATES.md` R1's example schema, confirmed
-as the actual and complete schema by the capability audit). 100% exact equality on every declared
-field of every valid event across all three R0 traces — the literal PASS condition, not "close."
+**First mismatch: none.** Comparison schema: `ssthresh` → `result`, `post_snd_cwnd`,
+`post_snd_cwnd_cnt`; `undo_cwnd` → `result`, `post_snd_cwnd`, `post_snd_cwnd_cnt`; `cong_avoid` →
+`post_snd_cwnd`, `post_snd_cwnd_cnt`. `ssthresh`/`undo_cwnd`'s POST fields are included, not just
+their scalar result — the capability audit's claim that they are pure functions (POST==PRE) is
+checked against every real R0 event this way, not merely asserted from the smaller audit captures
+that originally established it (5/5 and 8/8 events respectively). All 18 real `ssthresh`
+invocations across the three R0 traces confirm purity exactly; `undo_cwnd` had zero R0 invocations
+to check (see section D footnote) — its purity remains backed only by the 8-event auxiliary
+capture. 100% exact equality on every declared field of every valid event across all three R0
+traces — the literal PASS condition, not "close."
 
 ## F. R2 — Reno stateful-controller exact semantic self-replay: **PASS**
 
@@ -169,6 +181,14 @@ Every correction made during this task, in the order discovered:
    structurally: every `EventRecord` carries a socket-identity discriminator, and the parser
    selects/reports the dominant connection explicitly rather than silently pooling sockets
    (ADR-016). Did not recur on any of the three real R0 runs (100% single-socket on all three).
+9. **`COMPARISON_FIELDS` initially checked only the scalar `result` for `ssthresh`/`undo_cwnd`**,
+   not their (claimed-pure) POST state — so the report's "POST equals PRE" claim for those two
+   callbacks was true of the audit captures but had never actually been checked against the R0
+   traces reported as gate evidence. Caught before finalizing this report; fixed by adding
+   `post_snd_cwnd`/`post_snd_cwnd_cnt` to both callbacks' comparison schema and re-running R1/R2
+   against all three real traces (still 0 mismatches, first divergence still NONE — field count
+   rose from 224,084 to 224,120). Sections D–F and the terminal summary below reflect the
+   corrected numbers.
 
 No compile failure, verifier rejection (beyond item 4, immediately worked around), trace-integrity
 failure, or experiment failure occurred beyond what is listed above. No correctness assertion was
@@ -254,7 +274,7 @@ R0 SEQUENCE GAPS:                      0
 TRACE SIZE / 90s:                      ~3.28-3.29 MB
 RECORDER NS/CALLBACK:                  cong_avoid ~20-25us; ssthresh ~17-31us (bpf_stats_enabled=1, all 3 runs)
 
-R1 EVENTS CHECKED:                     112,051 (224,084 fields)
+R1 EVENTS CHECKED:                     112,051 (224,120 fields)
 R1 FIRST MISMATCH:                     NONE
 
 R2 FIRST DIVERGENCE:                   NONE

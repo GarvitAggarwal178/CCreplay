@@ -140,9 +140,13 @@ def transition(event, private_state):
 
 # Declared exact semantic comparison schema (docs/CORRECTNESS_ORACLES.md
 # "Every R1/R2/R3 report lists: ... fields compared per callback").
+# ssthresh/undo_cwnd also assert POST==PRE (they are pure functions per
+# capability audit section E) -- post_snd_cwnd/post_snd_cwnd_cnt are
+# included here so that purity claim is actually checked against every
+# real R0 event, not merely asserted from the smaller audit captures.
 COMPARISON_FIELDS = {
-    CCR_CB_SSTHRESH: ["result"],
+    CCR_CB_SSTHRESH: ["result", "post_snd_cwnd", "post_snd_cwnd_cnt"],
     CCR_CB_CONG_AVOID: ["post_snd_cwnd", "post_snd_cwnd_cnt"],
-    CCR_CB_UNDO_CWND: ["result"],
+    CCR_CB_UNDO_CWND: ["result", "post_snd_cwnd", "post_snd_cwnd_cnt"],
 }
 CALLBACK_NAMES = {CCR_CB_SSTHRESH: "ssthresh", CCR_CB_CONG_AVOID: "cong_avoid", CCR_CB_UNDO_CWND: "undo_cwnd"}
