@@ -6,7 +6,7 @@ this table follows.
 | Phase | Status | Duration | Report | Commit | Continue? |
 | ----- | ------ | -------: | ------ | ------ | --------- |
 | Phase 1 — recorder viability + Reno replay (R0/R1/R2) | **PASS** | one session | [REPORT_PHASE1_RENO_REPLAY_VALIDATION.md](REPORT_PHASE1_RENO_REPLAY_VALIDATION.md) | `9ebe25a` (report), `a9253dc` (purity-check fix) | Stopped by design — [docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.md](docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.md) §23: "Once R0/R1/R2 are complete, STOP. Do not continue automatically into R3." |
-| N0 — recorder overhead sanity investigation | **COMPLETE** | 22:22–22:39 UTC (17 min, budget 1h) | [REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md](REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md) | *(this phase's commit)* | Yes — proceed to N1 (CUBIC capability + contract audit) |
+| N0 — recorder overhead sanity investigation | **COMPLETE** | 22:22–22:39 UTC (17 min, budget 1h) | [REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md](REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md) | `a89a39c` | Yes — proceed to N1 (CUBIC capability + contract audit) |
 
 ## Phase 1 summary
 
