@@ -28,7 +28,7 @@ ccreplay/
 ├── README.md
 ├── CLAUDE.md
 ├── INSTRUCTIONS.md
-├── REPORT_OVERNIGHT_INDEX.md
+├── REPORT_DEVELOPMENT_SESSION_INDEX.md
 │
 ├── docs/
 │   ├── PROJECT.md
@@ -394,7 +394,7 @@ Chronology belongs in:
 
 * reports;
 * commits;
-* `REPORT_OVERNIGHT_INDEX.md`.
+* `REPORT_DEVELOPMENT_SESSION_INDEX.md`.
 
 ---
 
@@ -490,7 +490,7 @@ This protects the project against accusations of fitting the model to the data.
 
 Maintain:
 
-`REPORT_OVERNIGHT_INDEX.md`
+`REPORT_DEVELOPMENT_SESSION_INDEX.md`
 
 Suggested table:
 
@@ -766,3 +766,4 @@ What *was* safely renamed on adoption, with every reference updated in the same 
 
 Future phases (CUBIC replay, differential debugger, regression case studies) follow this document
 from their first commit.
+

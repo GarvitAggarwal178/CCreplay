@@ -58,6 +58,13 @@ material — recorded in `data/readonly_repo_baseline.txt`, not caused by CCRepl
 - reproducibility baselines;
 - experiment/run-log discipline.
 
+## Repository self-provenance
+
+The original Phase-1 (R0/R1/R2) implementation task brief was archived verbatim from the former
+root-level `INSTRUCTIONS.md` to `docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.md` (`git mv`,
+contents byte-identical — a path change only). Root `INSTRUCTIONS.md` was then replaced with the
+permanent unattended-work operating rules document that governs all sessions from Phase 1 onward.
+
 ## Rules
 
 1. Record source commit at copy time.
