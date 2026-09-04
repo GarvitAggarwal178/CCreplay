@@ -7,7 +7,7 @@ this table follows.
 | ----- | ------ | -------: | ------ | ------ | --------- |
 | Phase 1 — recorder viability + Reno replay (R0/R1/R2) | **PASS** | one session | [REPORT_PHASE1_RENO_REPLAY_VALIDATION.md](REPORT_PHASE1_RENO_REPLAY_VALIDATION.md) | `9ebe25a` (report), `a9253dc` (purity-check fix) | Stopped by design — [docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.md](docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.md) §23: "Once R0/R1/R2 are complete, STOP. Do not continue automatically into R3." |
 | N0 — recorder overhead sanity investigation | **COMPLETE** | 22:22–22:39 UTC (17 min, budget 1h) | [REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md](REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md) | `a89a39c` | Yes — proceed to N1 (CUBIC capability + contract audit) |
-| N1 — CUBIC capability + contract audit | **COMPLETE** | 22:41–23:01 UTC (20 min, budget 3h) | [data/cubic_replay_capability_audit.md](data/cubic_replay_capability_audit.md), [data/cubic_replay_contract_predictions.md](data/cubic_replay_contract_predictions.md), [data/cubic_replay_callback_manifest.md](data/cubic_replay_callback_manifest.md), [data/cubic_replay_callback_coverage_plan.md](data/cubic_replay_callback_coverage_plan.md) | `958ea88`, `9b51caf` | Yes — proceed to N2/N3 (Replay ABI v1 + CUBIC recorder) |
+| N1 — CUBIC capability + contract audit | **COMPLETE** | 22:41–23:10 UTC (29 min, budget 3h) | [data/cubic_replay_capability_audit.md](data/cubic_replay_capability_audit.md), [data/cubic_replay_contract_predictions.md](data/cubic_replay_contract_predictions.md), [data/cubic_replay_callback_manifest.md](data/cubic_replay_callback_manifest.md), [data/cubic_replay_callback_coverage_plan.md](data/cubic_replay_callback_coverage_plan.md), [data/cubic_replay_kernel_source_correction.md](data/cubic_replay_kernel_source_correction.md) | `958ea88`, `9b51caf`, `346ed0d` | Yes — proceed to N2/N3 (Replay ABI v1 + CUBIC recorder) |
 
 ## Phase 1 summary
 
@@ -61,3 +61,14 @@ regression (26 tests + R1/R2 on all three `raw/r0/rep*.ccr` traces) reverified c
 reverified unmodified (git-tracked state identical, zero files under `~/cn-spike` with an mtime
 after this session's start — see `data/readonly_repo_n1_check.txt` for the one methodology caveat:
 the original aggregate tree-checksum command could not be exactly reproduced this session).
+
+**Correction (same phase, before N2 began):** an advisor-flagged gap — the kfunc-callability probe
+had tested six of seven CUBIC callbacks, omitting `pkts_acked` — was closed (`cubictcp_acked`
+confirmed callable, program ID 276). Separately, the actual kernel source for this exact kernel
+version was fetched from a matched public GitHub tag and found to diverge from the `bpf_cubic.c`
+port in three load-bearing ways (time-math rounding order, HyStart round-reset relocated to
+`pkts_acked` keyed on `snd_una` rather than `cong_avoid`'s `ack`, a real `sk_gso_max_size` field read
+where the port hardcodes a constant) — reversing Prediction #1 (`snd_una`) from NOT REQUIRED to
+REQUIRED. Documented transparently in `data/cubic_replay_kernel_source_correction.md` rather than
+silently edited into the original files. The real kernel source is now the sole authoritative
+reference for the N2/N3 replay model.
