@@ -55,3 +55,13 @@ Do not claim production-Internet portability or overhead without evidence.
 ## 12. Kernel portability is not guaranteed
 
 BTF, kfunc availability, verifier behavior, and instrumentation capabilities can vary by kernel.
+
+## 13. Reno R2 did not exercise non-trivial private-state propagation
+
+Reno R2 did not independently validate non-trivial private-state propagation because Reno has no
+private controller state under ABI v0 (ADR-014). Mode B's private-state thread-through was proven
+to work mechanically (the sentinel is carried unchanged across all 112,051 sequential transitions,
+`tests/test_reno_model.py::TestPrivateStateThreading`), but no controller exercised in Phase 1 ever
+had a private field actually change value between events. Stateful private-state replay in the
+sense of "does a nonzero, evolving field propagate correctly" remains an R3/CUBIC question — see
+`REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md` N0.5.

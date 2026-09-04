@@ -1,0 +1,6 @@
+label,rc,wall_s,iperf3_reported_s
+control_reno_stats0,0,1.0216,1.003446
+baseline_stats0,0,1.0142,1.001482
+baseline_stats1,0,1.0093,1.001864
+noktime_stats1,0,2.0205,2.004591
+nowakeup_stats1,0,1.0208,1.002477

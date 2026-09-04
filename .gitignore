@@ -3,3 +3,9 @@
 *.tmp
 __pycache__/
 *.pyc
+
+# Diagnostic-only build products (N0 and later ad hoc investigations):
+# regeneratable from the committed .c/.bpf.c sources, never gate evidence.
+# (build/reno_wrapper.bpf.o, the production recorder object, predates this
+# rule and stays committed -- not retroactively removed.)
+build/diagnostic/

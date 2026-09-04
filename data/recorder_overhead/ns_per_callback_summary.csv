@@ -1,0 +1,9 @@
+variant,rep,clocksource,bpf_stats_enabled,cong_avoid_run_cnt,cong_avoid_run_time_ns,ns_per_callback,notes
+baseline_production,1,tsc,1,31934,218617334,6847.0,production bpf/reno_wrapper.bpf.c; loopback; ringbuf wakeup default (flags=0)
+baseline_production,2,tsc,1,26401,233304886,8837.0,same
+baseline_production,3,tsc,1,27957,226830564,8113.6,same
+noktime_variant,1,tsc,1,23628,233252191,9872.0,bpf/diagnostic/reno_wrapper_noktime.bpf.c; bpf_ktime_get_ns() call removed, ts_ns=0
+noktime_variant,2,tsc,1,27925,230690489,8261.1,same
+nowakeup_variant,1,tsc,1,20278,6443475,317.8,bpf/diagnostic/reno_wrapper_nowakeup.bpf.c; BPF_RB_NO_WAKEUP on every submit; consumer uses ring_buffer__consume() busy-polled at 2ms
+nowakeup_variant,2,tsc,1,20878,4000658,191.6,same
+nowakeup_variant,3,tsc,1,22293,4166947,186.9,same

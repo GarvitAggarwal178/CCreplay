@@ -151,6 +151,10 @@ Mode B's honest behavior for a stateless controller: initialization is trivial a
 vacuous, not a workaround around the gate. What R2 additionally exercises beyond R1 is genuine
 sequential replay — each event is fed the actual state carried out of the previous event's call,
 not a fresh reset — so the harness would still catch a future controller's state-threading bug.
+
+See `docs/LIMITATIONS.md` #13: R2 did not exercise *non-trivial* private-state propagation (a
+field that actually changes value across events), since Reno has none to exercise. That question
+is deferred to R3/CUBIC.
 No state-propagation issues occurred.
 
 ## G. Failures / deviations

@@ -1,0 +1,16 @@
+ATTACHED
+{
+  "struct_ops": "ccr_reno_nk",
+  "mode": "poll",
+  "duration_s": 30,
+  "counters_read_ok": true,
+  "invocations": 27925,
+  "emitted": 27925,
+  "drops": 0,
+  "events_seen_userspace": 27925,
+  "bpf_stats": {
+    "ccr_reno_nk_ssthresh": {"run_time_ns": 0, "run_cnt": 0}
+    ,"ccr_reno_nk_cong_avoid": {"run_time_ns": 230690489, "run_cnt": 27925}
+    ,"ccr_reno_nk_undo_cwnd": {"run_time_ns": 0, "run_cnt": 0}
+  }
+}
