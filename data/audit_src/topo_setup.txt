@@ -1,0 +1,34 @@
+net.ipv4.ip_forward = 1
+=== setup done ===
+-- ns_h1 addr/route --
+28: vh1@if27: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 5a:a4:a5:97:4e:b8 brd ff:ff:ff:ff:ff:ff link-netns ns_r
+    inet 10.0.0.1/24 scope global vh1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::58a4:a5ff:fe97:4eb8/64 scope link tentative proto kernel_ll 
+       valid_lft forever preferred_lft forever
+10.0.0.0/24 dev vh1 proto kernel scope link src 10.0.0.1 
+10.0.1.0/24 via 10.0.0.2 dev vh1 
+-- ns_r addr/route/forward --
+27: vr1@if28: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 42:65:60:e8:c9:96 brd ff:ff:ff:ff:ff:ff link-netns ns_h1
+    inet 10.0.0.2/24 scope global vr1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::4065:60ff:fee8:c996/64 scope link tentative proto kernel_ll 
+       valid_lft forever preferred_lft forever
+30: vr2@if29: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 42:a7:6e:50:b8:1a brd ff:ff:ff:ff:ff:ff link-netns ns_h2
+    inet 10.0.1.2/24 scope global vr2
+       valid_lft forever preferred_lft forever
+    inet6 fe80::40a7:6eff:fe50:b81a/64 scope link tentative proto kernel_ll 
+       valid_lft forever preferred_lft forever
+net.ipv4.ip_forward = 1
+-- ns_h2 addr/route --
+29: vh2@if30: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether da:38:5c:62:b0:dc brd ff:ff:ff:ff:ff:ff link-netns ns_r
+    inet 10.0.1.1/24 scope global vh2
+       valid_lft forever preferred_lft forever
+    inet6 fe80::d838:5cff:fe62:b0dc/64 scope link tentative proto kernel_ll 
+       valid_lft forever preferred_lft forever
+10.0.0.0/24 via 10.0.1.2 dev vh2 
+10.0.1.0/24 dev vh2 proto kernel scope link src 10.0.1.1 
