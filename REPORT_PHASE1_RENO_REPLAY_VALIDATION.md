@@ -1,4 +1,12 @@
-# CCReplay — Gates R0/R1/R2 Report
+# Phase 1 — Reno Replay Validation
+
+**Gates:** R0 (recorder viability), R1 (Reno event-local exact semantic self-replay), R2 (Reno
+stateful-controller exact semantic self-replay).
+
+## Status
+
+**PASS** — R0 PASS, R1 PASS, R2 PASS. See the terminal summary at the end of this report for the
+full machine-readable verdict block.
 
 **Scope:** recorder viability (R0), Reno event-local exact semantic self-replay (R1), Reno
 stateful-controller exact semantic self-replay (R2). No CUBIC, Vegas, BBR, or case-study work is
@@ -289,5 +297,5 @@ READY FOR R3: NO (not started; see section H for concrete next steps)
 
 MAIN BLOCKER:                          none yet -- CUBIC capability audit (kfunc availability, private-state
                                         field-mutation discovery, clock semantics) has not been attempted
-REPORT PATH:                           ~/ccreplay/REPORT_GATES_R0_R1_R2.md
+REPORT PATH:                           ~/ccreplay/REPORT_PHASE1_RENO_REPLAY_VALIDATION.md
 ```

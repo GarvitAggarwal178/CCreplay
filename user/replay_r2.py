@@ -15,7 +15,7 @@ shortcut around Mode B -- it is Mode B's actual, honestly-reported
 behavior for a controller that carries no private history: initialization
 is trivial and propagation is vacuous, and this is stated explicitly
 rather than silently treated as "the same as R1" (see
-docs/REPORT_GATES_R0_R1_R2.md discussion). The per-event computation is
+REPORT_PHASE1_RENO_REPLAY_VALIDATION.md discussion). The per-event computation is
 identical to Mode A's because the only stateful ingredient Mode B could
 have changed here does not exist for this controller; what R2 additionally
 exercises that R1 does not is genuinely sequential replay: each event's
