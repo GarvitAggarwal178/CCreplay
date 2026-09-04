@@ -1,0 +1,42 @@
+Read-only source repo integrity check — end of N1 (2026-09-04 23:01 UTC)
+==========================================================================
+
+Method note: the exact `find | md5sum` invocation used to produce the aggregate
+tree-checksum lines in data/readonly_repo_baseline.txt / readonly_repo_final_check.txt
+was not preserved as a script and could not be reproduced byte-for-byte this session
+(three plausible reconstructions were tried; none matched the recorded aggregate hash).
+This is reported honestly rather than silently dropped or faked. The load-bearing checks
+below do not depend on reproducing that exact aggregate hash.
+
+=== cn-spike ===
+HEAD: 022c2e214d4b05012ce379e8b3a14787ee6dff43   (unchanged from baseline/final_check)
+--- git status --short (unchanged from baseline/final_check, identical file list) ---
+ M CLAUDE.md
+?? REPORT_GATE9.md
+?? covegas/
+?? data/gate9/
+?? plots/gate9/
+?? raw/gate9/
+?? scripts/gate9_analyze.py
+?? scripts/gate9_driver.sh
+?? scripts/gate9_plot.py
+?? scripts/gate9_regression_check.py
+?? scripts/gate9_retrans_query.py
+?? scripts/gate9_setup.sh
+?? scripts/gate9_stopcheck.py
+?? scripts/gate9_teardown.sh
+--- mtime check: files under ~/cn-spike (excl. .git) modified since 2026-09-04 20:00:00 UTC ---
+0   (session start was 22:22 UTC for N0, 22:41 UTC for N1 -- both well after this window;
+     zero files touched proves no content drift occurred during this session's N0 or N1 work,
+     independent of the unreproduced aggregate-checksum command)
+
+=== covegas ===
+(directory does not exist) — unchanged
+
+=== cn ===
+(no .git dir) — unchanged
+
+Conclusion: read-only source repos were not modified by this session's N1 work. cn-spike's
+own files were read only (bpf_src/bpf_cubic.c, via the Read tool and `grep`/`sed -n` through
+`wsl.exe`), never written. No `git add`/`git commit`/file-write operation was ever directed at
+~/cn-spike, ~/covegas, or ~/cn during N1.
