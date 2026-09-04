@@ -7,6 +7,7 @@ this table follows.
 | ----- | ------ | -------: | ------ | ------ | --------- |
 | Phase 1 — recorder viability + Reno replay (R0/R1/R2) | **PASS** | one session | [REPORT_PHASE1_RENO_REPLAY_VALIDATION.md](REPORT_PHASE1_RENO_REPLAY_VALIDATION.md) | `9ebe25a` (report), `a9253dc` (purity-check fix) | Stopped by design — [docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.md](docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.md) §23: "Once R0/R1/R2 are complete, STOP. Do not continue automatically into R3." |
 | N0 — recorder overhead sanity investigation | **COMPLETE** | 22:22–22:39 UTC (17 min, budget 1h) | [REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md](REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md) | `a89a39c` | Yes — proceed to N1 (CUBIC capability + contract audit) |
+| N1 — CUBIC capability + contract audit | **COMPLETE** | 22:41–23:01 UTC (20 min, budget 3h) | [data/cubic_replay_capability_audit.md](data/cubic_replay_capability_audit.md), [data/cubic_replay_contract_predictions.md](data/cubic_replay_contract_predictions.md), [data/cubic_replay_callback_manifest.md](data/cubic_replay_callback_manifest.md), [data/cubic_replay_callback_coverage_plan.md](data/cubic_replay_callback_coverage_plan.md) | `958ea88`, `9b51caf` | Yes — proceed to N2/N3 (Replay ABI v1 + CUBIC recorder) |
 
 ## Phase 1 summary
 
@@ -37,3 +38,26 @@ any adoption. Full detail: `REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md`.
 Mandatory Phase-1 regression re-verified clean immediately before and after N0 (production recorder
 was never touched — all N0 variants are separate files under `bpf/diagnostic/`). Source repos
 re-verified unmodified.
+
+## N1 summary
+
+Determined the CUBIC reference strategy empirically rather than assuming it: the kernel's own
+`cubictcp_init/cong_avoid/recalc_ssthresh/state/cwnd_event` (plus shared `tcp_reno_undo_cwnd`) are
+verifier-load-confirmed callable as kfuncs on this kernel (real program IDs assigned, not just
+BTF-present) — a stronger oracle than the read-only `bpf_cubic.c` port's own reimplemented cubic
+math, which is used only as the structural reference for field/clock usage. Ground-truthed
+`struct bictcp`'s private-state layout via compiled `offsetof`/`sizeof` against a BTF-sourced field
+list (17 fields, 16 semantic, corrects a flagged prior "15 fields / 16 names" transcription error).
+Found CUBIC depends on two independent, previously-untracked clocks (`tcp_jiffies32` global,
+`tp->tcp_mstamp` per-socket) and that `pkts_acked` directly mutates `snd_ssthresh` outside the
+`ssthresh` callback's return value — both load-bearing for the Replay ABI v1 design. Precommitted
+five named contract-field predictions plus several additional surfaced-but-unlisted fields
+(`lsndtime`, `sk_pacing_rate/status`, `CONFIG_HZ`, the `delay_min` cross-callback dependency) before
+any empirical recording, per the predictions-before-results rule — no CUBIC trace exists yet. Full
+seven-callback manifest and a pre-registration of which callbacks are predicted thin under the
+primary Gate-3-R2 workload (`ssthresh`, `set_state`'s loss branch, `cwnd_event`'s idle-resume
+branch, `undo_cwnd`) are recorded for later comparison against actual coverage. Mandatory Phase-1
+regression (26 tests + R1/R2 on all three `raw/r0/rep*.ccr` traces) reverified clean; source repos
+reverified unmodified (git-tracked state identical, zero files under `~/cn-spike` with an mtime
+after this session's start — see `data/readonly_repo_n1_check.txt` for the one methodology caveat:
+the original aggregate tree-checksum command could not be exactly reproduced this session).
