@@ -1,5 +1,10 @@
 # CUBIC Replay Contract Predictions (N1.4) — precommitted before empirical field discovery
 
+> **Correction notice:** Prediction #1 (`snd_una`) below was reasoned from `bpf_cubic.c` and is
+> reversed by the real kernel source obtained later this session — NOT REQUIRED → REQUIRED. See
+> `data/cubic_replay_kernel_source_correction.md`. Left unedited below per the evidence-preservation
+> rule; the correction file is the record of what changed and why.
+
 Pipeline mapping: this is `data/r3_contract_predictions.md`. See
 `data/cubic_replay_capability_audit.md`'s naming table.
 

@@ -1,5 +1,10 @@
 # CUBIC Callback Manifest (N1.5)
 
+> **Correction notice:** the `cong_avoid` and `pkts_acked` rows below were derived from
+> `bpf_cubic.c` and contain two now-corrected inaccuracies (the HyStart round-reset trigger and its
+> `snd_una`/`sk_gso_max_size` dependencies). See `data/cubic_replay_kernel_source_correction.md` for
+> the corrected attribution. Rows left unedited below per the evidence-preservation rule.
+
 Pipeline mapping: this file is new relative to the pipeline doc's four named N1 deliverables — the
 pipeline folds the manifest into the same investigation as N1.3/N1.4 but doesn't name a standalone
 output file for it. It is split out here (rather than inlined into the capability audit) because

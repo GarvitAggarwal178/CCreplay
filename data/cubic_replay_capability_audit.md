@@ -1,5 +1,12 @@
 # CUBIC Capability + Reference Audit (N1.1 / N1.2 / N1.3 / clock-window hazard)
 
+> **Correction notice:** this file was written using `~/cn-spike/bpf_src/bpf_cubic.c` as the
+> field/clock-usage reference (N1.1's stated, hedged limitation). The real kernel source for this
+> exact kernel version was subsequently obtained and found to differ in several load-bearing ways.
+> See `data/cubic_replay_kernel_source_correction.md` for the full correction — this file's N1.2 and
+> N1.3 (private-state layout) findings stand unchanged; some N1.1/clock-hazard field-usage claims are
+> superseded. Not edited in place per `INSTRUCTIONS.md`'s evidence-preservation rule.
+
 **Naming note:** this file is `docs/session/OVERNIGHT_EVIDENCE_PIPELINE.md`'s `data/r3_cubic_capability_audit.md`,
 renamed to match `docs/REPO_WORKFLOW.md`'s public-facing naming convention. The other three N1
 deliverables follow the same mapping:

@@ -65,6 +65,19 @@ root-level `INSTRUCTIONS.md` to `docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.
 contents byte-identical — a path change only). Root `INSTRUCTIONS.md` was then replaced with the
 permanent unattended-work operating rules document that governs all sessions from Phase 1 onward.
 
+## External (non-read-only-repo) source reference
+
+`data/kernel_source_ref/tcp_cubic.c` — fetched from
+`https://raw.githubusercontent.com/microsoft/WSL2-Linux-Kernel/linux-msft-wsl-6.18.33.2/net/ipv4/tcp_cubic.c`
+(public GitHub tag matched to this machine's exact `uname -r`, confirmed via the repo's Releases
+API, not guessed), 2026-09-04, sha256
+`730015587ab59bc17fa725c5167c8cf4a828d04e630fae7267e7df2c4ee84191`. Read-only reference material for
+the N2/N3 CUBIC replay model design — never executed, never linked into the CCReplay build. Not
+subject to the `~/cn-spike`/`~/covegas`/`~/cn` read-only-repo rules above (it is not one of those
+repos), but held to the same "record source and treat as authoritative, do not silently alter"
+standard. See `data/cubic_replay_kernel_source_correction.md` for why it superseded
+`~/cn-spike/bpf_src/bpf_cubic.c` as the CUBIC algorithm reference.
+
 ## Rules
 
 1. Record source commit at copy time.
