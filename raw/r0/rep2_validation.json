@@ -1,0 +1,78 @@
+{
+  "pass": true,
+  "checks": {
+    "magic_ok": true,
+    "trace_version_known": true,
+    "callback_manifest_matches": true,
+    "counters_read_ok": true,
+    "invocations_eq_emitted_plus_drops": true,
+    "zero_drops": true,
+    "emitted_eq_events_in_file": true,
+    "events_written_userspace_eq_events_in_file": true,
+    "global_sequence_gapless": true,
+    "global_sequence_spans_invocations": true,
+    "result_present_where_required": true,
+    "single_dominant_connection": true
+  },
+  "dominant_connection": {
+    "sock_cookie": "18446618593846167872",
+    "n_events": 37391,
+    "n_other_events": 0,
+    "other_events_sample": []
+  },
+  "header": {
+    "trace_version": 0,
+    "recorder_version": 1,
+    "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+    "reference_impl_id": "linux_tcp_reno_kfunc",
+    "callback_manifest": 7
+  },
+  "meta": {
+    "trace_version": 0,
+    "recorder_version": 1,
+    "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+    "invocations": 37391,
+    "emitted": 37391,
+    "drops": 0,
+    "counters_read_ok": true,
+    "events_written_userspace": 37391,
+    "trace_file_bytes": 3290552,
+    "duration_s_requested": 95,
+    "bpf_stats": {
+      "ssthresh": {
+        "run_time_ns": 150185,
+        "run_cnt": 6
+      },
+      "cong_avoid": {
+        "run_time_ns": 933706585,
+        "run_cnt": 37385
+      },
+      "undo_cwnd": {
+        "run_time_ns": 0,
+        "run_cnt": 0
+      }
+    }
+  },
+  "n_events": 37391,
+  "callback_counts": {
+    "cong_avoid": 37385,
+    "ssthresh": 6
+  },
+  "global_sequence": {
+    "n": 37391,
+    "min_seq": 0,
+    "max_seq": 37390,
+    "gaps": []
+  },
+  "per_cookie": {
+    "distinct_sock_cookies": 1,
+    "per_cookie": {
+      "18446618593846167872": {
+        "count": 37391,
+        "min_seq": 0,
+        "max_seq": 37390,
+        "internal_gaps": 0
+      }
+    }
+  }
+}

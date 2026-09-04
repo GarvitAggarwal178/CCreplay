@@ -1,0 +1,17 @@
+{
+  "trace_version": 0,
+  "recorder_version": 1,
+  "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+  "invocations": 37391,
+  "emitted": 37391,
+  "drops": 0,
+  "counters_read_ok": true,
+  "events_written_userspace": 37391,
+  "trace_file_bytes": 3290552,
+  "duration_s_requested": 95,
+  "bpf_stats": {
+    "ssthresh": {"run_time_ns": 150185, "run_cnt": 6},
+    "cong_avoid": {"run_time_ns": 933706585, "run_cnt": 37385},
+    "undo_cwnd": {"run_time_ns": 0, "run_cnt": 0}
+  }
+}
