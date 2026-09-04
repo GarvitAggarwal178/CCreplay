@@ -1,0 +1,28 @@
+=== cn-spike ===
+HEAD: 022c2e214d4b05012ce379e8b3a14787ee6dff43
+--- git status ---
+ M CLAUDE.md
+?? REPORT_GATE9.md
+?? covegas/
+?? data/gate9/
+?? plots/gate9/
+?? raw/gate9/
+?? scripts/gate9_analyze.py
+?? scripts/gate9_driver.sh
+?? scripts/gate9_plot.py
+?? scripts/gate9_regression_check.py
+?? scripts/gate9_retrans_query.py
+?? scripts/gate9_setup.sh
+?? scripts/gate9_stopcheck.py
+?? scripts/gate9_teardown.sh
+--- checksum of tree (find + md5sum) ---
+87644798351247c8ec97350ddea69848  -
+
+=== covegas ===
+(directory does not exist)
+
+=== cn ===
+(no .git dir)
+--- checksum of tree (find + md5sum) ---
+e7a1807e0ec3bea2a3827d2beb7f925c  -
+
