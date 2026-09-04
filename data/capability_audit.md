@@ -128,13 +128,22 @@ struct tcp_congestion_ops {
 Cross-confirmed by `bpftool struct_ops dump` on the registered `audit_reno`/`audit_sks` objects,
 which echoed this exact field set back (unpopulated fields shown as `0`/`(nil)`).
 
-**Reno wrapper's declared callback capability manifest** (the subset native `tcp_reno` itself
-implements, per upstream Linux `tcp_cong.c`/`tcp_input.c` convention — `init` is added because the
-wrapper needs it to set up `SK_STORAGE`, not because Reno's own logic requires it):
+**Reno wrapper's declared callback capability manifest** — revised after section F's finding that
+Reno needs no controller-private state (everything it reads/writes lives in already-classified
+`SharedTcpPreState`/`ControllerOwnedPostState` fields): native `tcp_reno` itself implements no
+`.init` (confirmed absent from upstream `tcp_reno.c`'s `tcp_congestion_ops` initializer), and since
+this wrapper does not need `SK_STORAGE` for Reno (no private state to allocate), there is no
+remaining reason to invent an `.init` callback the real algorithm doesn't have. **Manifest
+finalized as exactly the three callbacks real Reno implements:**
 
 ```
-init, ssthresh, cong_avoid, undo_cwnd
+ssthresh, cong_avoid, undo_cwnd
 ```
+
+`SK_STORAGE` usability (section B) remains a validated, available capability — relevant to a
+future CUBIC/Vegas wrapper that does carry private history — but per `RECORDER.md` ("do not
+invent private state merely because the generic schema supports it"), the Reno wrapper does not
+use it.
 
 `set_state`, `cwnd_event`, `in_ack_event`, `pkts_acked`, `min_tso_segs`, `cong_control`,
 `sndbuf_expand`, `get_info`, `release` are all legal hook points on this kernel but are **not**
@@ -185,21 +194,64 @@ needs to be treated as controller-owned.
 confirmed exactly on every real invocation observed; no `ControllerOwnedPostState` beyond the
 returned scalar.
 
-### Limitation: `undo_cwnd` not empirically exercised
+### `undo_cwnd` — closed via a separate ABI-validation-only auxiliary capture
 
-Zero `undo_cwnd` invocations occurred in the 60 s audit run. Real drop-tail loss under this
-topology is (as expected) rarely spurious, so the kernel's undo path (typically triggered by
-DSACK/F-RTO detecting a retransmission was unnecessary) was never entered. `undo_cwnd`'s BTF
-prototype (`u32 (*)(struct sock *)`) and the register/dump evidence in section A confirm it is
-callable and wired correctly, and `bpf_src/spike_ctrl.bpf.c`/`spike_probe.bpf.c` in `~/cn-spike`
-both also declare and wire it without incident — but this session has **not** empirically confirmed
-which fields it reads/mutates or its exact return formula on real traffic on this kernel. This is
-recorded here rather than papered over. If R0/R1/R2's actual recorded traces also contain zero
-`undo_cwnd` events, the gates' PASS determination is scoped to the manifest events that did occur
-(consistent with `GATES.md`'s "every valid event," not a fixed required count per callback type);
-if `undo_cwnd` never fires across all three R0 traces, R1/R2 simply carry no evidence either way
-for that one callback, and this will be stated explicitly in the final report rather than
-implied as covered.
+Zero `undo_cwnd` invocations occurred in the primary 60 s audit run (real drop-tail loss is
+rarely spurious, so the kernel's DSACK/F-RTO-triggered undo path was never entered there). Rather
+than leave this unexercised, or weaken the R0 topology to force it (forbidden by `CLAUDE.md` §11:
+"Use only the validated Gate 3-R2 topology"), a **separate, clearly-labeled auxiliary capture**
+was run: the same `audit_fields` program against a **deliberately modified, non-Gate-3-R2**
+variant (`vh1`'s `netem` given `reorder 50% 50%` in addition to the usual 20 ms delay, to induce
+DSACK-detected spurious retransmissions). This trace is *not* one of the three R0 traces and is
+not used for any R1/R2 comparison — it exists solely to determine `undo_cwnd`'s field/formula
+contract for the ABI, per this section's mandate.
+
+**8 real `undo_cwnd` events captured** (`data/audit_src/fields_undo_out.csv`, 23,552 total events,
+30 s run):
+
+| pre `snd_cwnd` | pre `prior_cwnd` | returned | post `snd_cwnd` |
+|---|---|---|---|
+| 11 | 20 | 20 | 11 (unchanged) |
+| 14 | 22 | 22 | 14 (unchanged) |
+| 25 | 27 | 27 | 25 (unchanged) |
+| 17 | 28 | 28 | 17 (unchanged) |
+| 18 | 28 | 28 | 18 (unchanged) |
+| 108 | 110 | 110 | 108 (unchanged) |
+| 105 | 110 | 110 | 105 (unchanged) |
+| 102 | 110 | 110 | 102 (unchanged) |
+
+**`ret == max(pre_snd_cwnd, pre_prior_cwnd)` on all 8/8 events, zero field mutations** (pure
+function, exactly like `ssthresh`). **Conclusion: `undo_cwnd`'s required input is `{snd_cwnd,
+prior_cwnd}`; its `CallbackResult` is the returned scalar; it has no `ControllerOwnedPostState`.**
+
+## F. Mode-A dry-run validation (performed before writing the recorder)
+
+Before any trace format, parser, or recorder code was written, a userspace Reno model
+(`data/audit_src/reno_model_dryrun.py`, implementing `tcp_is_cwnd_limited`/`tcp_slow_start`/
+`tcp_cong_avoid_ai` against the fields captured in section E) was run directly against
+`fields_out.csv`'s 24,651 real `cong_avoid` events, using **only** the PRE fields `{snd_cwnd,
+snd_ssthresh, snd_cwnd_cnt, snd_cwnd_clamp, max_packets_out, is_cwnd_limited}` plus callback
+inputs `{ack, acked}`.
+
+**Result: 24,651/24,651 exact matches (100.0000%) on both `snd_cwnd` and `snd_cwnd_cnt`.**
+
+This dry run also **found a load-bearing field the Replay ABI doc's example list does not
+mention**: `is_cwnd_limited` (and, transitively, `max_packets_out`, needed to compute it during
+slow start). Direct evidence — two real events with identical `snd_cwnd`, `snd_ssthresh`, and
+`acked`, but opposite outcomes:
+
+```
+ack=683933477: pre_cwnd=10 ssthresh=MAX max_packets_out=1 is_cwnd_limited=0 -> post_cwnd=10 (no growth)
+ack=683934925: pre_cwnd=10 ssthresh=MAX max_packets_out=10 is_cwnd_limited=1 -> post_cwnd=11 (grew)
+```
+
+`tcp_is_cwnd_limited` gates `cong_avoid` entirely: in slow start it evaluates `snd_cwnd < 2 *
+max_packets_out`; outside slow start it reads the raw `is_cwnd_limited` bitfield. Without this
+field, replay would silently apply growth to sender-limited windows that the real kernel left
+untouched. **`is_cwnd_limited` and `max_packets_out` are added to Replay ABI v0's required
+`cong_avoid` input set, not left as optional/diagnostic** (see `docs/REPLAY_ABI.md` v0 update).
+This is exactly the kind of contract-discovery `GATES.md`/`IMPLEMENTATION_HANDOFF.md` anticipate,
+found here at zero re-record cost rather than after R1 traces already existed.
 
 ## Summary
 
@@ -209,9 +261,10 @@ implied as covered.
 | `BPF_MAP_TYPE_SK_STORAGE` from struct_ops CC context | **PASS** |
 | Callback surface (BTF) | `init, ssthresh, cong_avoid, set_state, cwnd_event, in_ack_event, pkts_acked, min_tso_segs, cong_control, undo_cwnd, sndbuf_expand, get_info, release` all legal; Reno manifest = `{init, ssthresh, cong_avoid, undo_cwnd}` |
 | Timebase | `bpf_ktime_get_ns()` available and validated; Reno itself has no clock dependency |
-| `cong_avoid` mutated-field set | `{snd_cwnd, snd_cwnd_cnt}` — empirically confirmed, 24,651 real events |
+| `cong_avoid` mutated-field set | `{snd_cwnd, snd_cwnd_cnt}` — empirically confirmed, 24,651 real events; **gated by `{is_cwnd_limited, max_packets_out}`, both now required inputs** |
+| `cong_avoid` full replay model | **100.0000% exact match, 24,651/24,651 real events** (section F) |
 | `ssthresh` formula | `max(snd_cwnd >> 1, 2)` — empirically confirmed, 5/5 real events |
-| `undo_cwnd` | callable and wired; **not empirically exercised** this session |
+| `undo_cwnd` formula | `max(snd_cwnd, prior_cwnd)`, no mutation — empirically confirmed, 8/8 real events (auxiliary reorder capture, section E) |
 
 **Reference implementation chosen: target-kernel `tcp_reno_*` kfuncs (Oracle C, independent
 reference), delegated to from a `struct_ops` wrapper — per `RECORDER.md`'s preferred order,
