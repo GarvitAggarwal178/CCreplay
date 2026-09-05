@@ -1,0 +1,82 @@
+{
+  "per_trace": [
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "n_events": 78688,
+      "n_divergences": 2,
+      "divergences": [
+        {
+          "event_index": 51322,
+          "seq": 51323,
+          "callback": "cong_avoid",
+          "clock": "CLOCK_AMBIGUOUS",
+          "diff_fields": [
+            "priv_post_cnt",
+            "priv_post_last_cwnd",
+            "priv_post_last_time"
+          ],
+          "exact_events_since_previous_resync_or_start": 51322
+        },
+        {
+          "event_index": 57116,
+          "seq": 57117,
+          "callback": "cong_avoid",
+          "clock": "CLOCK_AMBIGUOUS",
+          "diff_fields": [
+            "priv_post_cnt",
+            "priv_post_last_time"
+          ],
+          "exact_events_since_previous_resync_or_start": 5793
+        }
+      ],
+      "unexplained_clock_stable_divergence": null,
+      "all_divergences_clock_ambiguous": true,
+      "min_exact_events_between_divergences": 5793
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "n_events": 78768,
+      "n_divergences": 1,
+      "divergences": [
+        {
+          "event_index": 75602,
+          "seq": 75603,
+          "callback": "cong_avoid",
+          "clock": "CLOCK_AMBIGUOUS",
+          "diff_fields": [
+            "priv_post_last_time"
+          ],
+          "exact_events_since_previous_resync_or_start": 75602
+        }
+      ],
+      "unexplained_clock_stable_divergence": null,
+      "all_divergences_clock_ambiguous": true,
+      "min_exact_events_between_divergences": 75602
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "n_events": 78632,
+      "n_divergences": 1,
+      "divergences": [
+        {
+          "event_index": 61728,
+          "seq": 61729,
+          "callback": "cong_avoid",
+          "clock": "CLOCK_AMBIGUOUS",
+          "diff_fields": [
+            "post_snd_cwnd",
+            "post_snd_cwnd_cnt",
+            "priv_post_cnt",
+            "priv_post_last_time"
+          ],
+          "exact_events_since_previous_resync_or_start": 61728
+        }
+      ],
+      "unexplained_clock_stable_divergence": null,
+      "all_divergences_clock_ambiguous": true,
+      "min_exact_events_between_divergences": 61728
+    }
+  ],
+  "any_unexplained_clock_stable_divergence": false,
+  "all_divergences_are_clock_ambiguous_in_every_trace": true
+}

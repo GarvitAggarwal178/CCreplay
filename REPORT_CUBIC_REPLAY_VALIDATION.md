@@ -203,9 +203,13 @@ unchanged below) does not treat callback-coverage completeness as sufficient for
 ## Limitations
 
 See `docs/LIMITATIONS.md` #7 (controller-visible time), #12 (kernel portability), #13 (closed by
-this report), and new #14 (clock-ambiguity residual). Additionally: the reference-strategy caveat
-from `data/cubic_replay_capability_audit.md` N1.1 applies unchanged — this oracle validates
-CCReplay's replay architecture, not independently the correctness of CUBIC's algorithm itself.
+this report), and #14 (clock-ambiguity residual — see `REPORT_CUBIC_CLOCK_BOUNDARY_INVESTIGATION.md`
+for the full characterization: quantitative consistency check, two-sided attribution diagnostic,
+stateful resynchronization diagnostic, and a bounded feasibility check for finer instrumentation;
+verdict `ATTRIBUTED_AND_CHARACTERIZED`, which does not change the R3 verdict below). Additionally:
+the reference-strategy caveat from `data/cubic_replay_capability_audit.md` N1.1 applies unchanged —
+this oracle validates CCReplay's replay architecture, not independently the correctness of CUBIC's
+algorithm itself.
 
 ## Gate verdict: R3 = **PARTIAL**
 

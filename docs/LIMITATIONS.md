@@ -79,7 +79,10 @@ exact value the real kernel's internal computation actually read is not always r
 diagnostic substitution (`data/cubic_replay_model_changes.md` Investigation 2) found that neither
 "always use the before value" nor "always use the after value" resolves every `CLOCK_AMBIGUOUS`
 event — different individual events are each consistent with a different single-read timing, with
-no universal rule. This is a genuine measurement-boundary property of the replay contract for any
-CC implementation that reads a global (non-per-socket) clock, not a recorder or model defect, and
-is not "fixed" by picking a different snapshot convention — see `REPORT_GATE_R3_CUBIC.md`'s R3
-verdict for how this was scored.
+no universal rule. This is a characterized clock-boundary limitation under the current recorder
+architecture for any CC implementation that reads a global (non-per-socket) clock, not a recorder
+or model defect, and is not "fixed" by picking a different snapshot convention — see
+`REPORT_CUBIC_REPLAY_VALIDATION.md`'s R3 verdict for how this was scored, and
+`REPORT_CUBIC_CLOCK_BOUNDARY_INVESTIGATION.md` for the full quantitative-consistency, two-sided
+attribution, and stateful-resynchronization characterization (verdict
+`ATTRIBUTED_AND_CHARACTERIZED` — which does not upgrade R3 to PASS).

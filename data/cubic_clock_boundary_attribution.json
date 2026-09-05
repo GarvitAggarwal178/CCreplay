@@ -1,0 +1,67 @@
+{
+  "scope": "CLOCK_AMBIGUOUS events that currently mismatch under the production clock_jiffies32_before convention, across all three primary traces",
+  "n_events_classified": 4,
+  "counts": {
+    "MATCHES_BEFORE_ONLY": 0,
+    "MATCHES_AFTER_ONLY": 4,
+    "MATCHES_BOTH": 0,
+    "MATCHES_NEITHER": 0
+  },
+  "attribution_closed": true,
+  "rows": [
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 51323,
+      "callback": "cong_avoid",
+      "clock_before": 16612603,
+      "clock_after": 16612604,
+      "classification": "MATCHES_AFTER_ONLY",
+      "diff_fields_under_before": [
+        "priv_post_cnt",
+        "priv_post_last_cwnd",
+        "priv_post_last_time"
+      ],
+      "diff_fields_under_after": []
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 57117,
+      "callback": "cong_avoid",
+      "clock_before": 16614269,
+      "clock_after": 16614270,
+      "classification": "MATCHES_AFTER_ONLY",
+      "diff_fields_under_before": [
+        "priv_post_cnt",
+        "priv_post_last_time"
+      ],
+      "diff_fields_under_after": []
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 75603,
+      "callback": "cong_avoid",
+      "clock_before": 16643546,
+      "clock_after": 16643547,
+      "classification": "MATCHES_AFTER_ONLY",
+      "diff_fields_under_before": [
+        "priv_post_last_time"
+      ],
+      "diff_fields_under_after": []
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 61729,
+      "callback": "cong_avoid",
+      "clock_before": 16663506,
+      "clock_after": 16663507,
+      "classification": "MATCHES_AFTER_ONLY",
+      "diff_fields_under_before": [
+        "post_snd_cwnd",
+        "post_snd_cwnd_cnt",
+        "priv_post_cnt",
+        "priv_post_last_time"
+      ],
+      "diff_fields_under_after": []
+    }
+  ]
+}
