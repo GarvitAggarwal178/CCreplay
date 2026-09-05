@@ -18,6 +18,8 @@ this table follows.
 | Part D — CoVegas selection + predictions + Replay Contract audit | **COMPLETE** | 10:31–10:38 UTC | [data/historical_regression_selection.md](data/historical_regression_selection.md), [data/historical_regression_predictions.md](data/historical_regression_predictions.md), [data/covegas_replay_capability_audit.md](data/covegas_replay_capability_audit.md) | `1fd158e`, `d1998e4`, `e58339f`, `b0aac41` | Yes — proceed to Part E (CoVegas self-replay gate) |
 | Part E — CoVegas self-replay fidelity gate | **PASS** | 10:38–11:09 UTC | [REPORT_COVEGAS_REPLAY_FIDELITY.md](REPORT_COVEGAS_REPLAY_FIDELITY.md) | `84efbe3`, `9e4f155` | Yes — unqualified PASS, proceed to Part F |
 | Part 8 / Part F — historical trigger verification + differential case | **INCOMPLETE** (blocker: `TRIGGER NOT REPRODUCED`) | 11:03–11:09 UTC | [REPORT_HISTORICAL_COVEGAS_REGRESSION.md](REPORT_HISTORICAL_COVEGAS_REGRESSION.md), [data/historical_trigger_validation.md](data/historical_trigger_validation.md) | `5798816` | No — 3 bounded attempts exhausted per the addendum; not a FAIL, Part E's PASS unaffected |
+| Current-state handoff + evidence reconciliation (round 1) | **COMPLETE** (docs only) | 2026-09-05 | [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) (new authoritative status doc) | `bb0fb3e` | Yes — no gate verdict changed; recomputed full-46 CUBIC clock attribution, corrected historical trigger denominators, classified CoVegas `undo_cwnd` as Outcome A, traced CoVegas ktime dataflow |
+| Evidence reconciliation (round 2) + A3 divergence predicate audit | **COMPLETE** (docs + 2 offline scanners) | 2026-09-05 | [REPORT_EVIDENCE_RECONCILIATION_AND_A3_PREDICATE_AUDIT.md](REPORT_EVIDENCE_RECONCILIATION_AND_A3_PREDICATE_AUDIT.md), [data/historical_a3_predicate_audit.md](data/historical_a3_predicate_audit.md), [data/historical_a3_existing_trace_scan.md](data/historical_a3_existing_trace_scan.md) | (this commit) | STOP for project-level review — existing traces are interpretation **CASE 4** (neither Predicate H nor Predicate D present); no historical diff candidate; obtaining a trigger-positive v2 trace is a separate decision |
 
 ## Phase 1 summary
 
@@ -138,10 +140,15 @@ these traces, a genuinely different outcome from CUBIC's characterized residual.
 
 Attempted the historical trigger (spurious off-period COMPETE entry) across 3 bounded captures, per
 the addendum's explicit pre-diff verification requirement — all 3 clean, all 3 showing the trigger
-absent (statistically expected: `REPORT_COVEGAS_V4.md`'s own historical rate is ~11%/run,
-`P(0/3)≈70%`). Per the addendum, did not run the diff and report "no divergence," did not retry
-further, and did not manufacture a different trigger. **Part F: `INCOMPLETE`**, blocker
-`TRIGGER NOT REPRODUCED` — not a `FAIL`; Part E's `PASS` is unaffected.
+absent (statistically expected). **Denominator correction (later reconciliation, see
+`REPORT_EVIDENCE_RECONCILIATION_AND_A3_PREDICATE_AUDIT.md`):** `REPORT_COVEGAS_V4.md`'s historical
+`HOLD_MS=500` evidence is **3 runs / 9 off-period boundaries / 1 spurious entry**, not "1 of 9
+runs"; the current campaign is **3 runs / 9 off-period boundaries / 0 spurious entries**; a rough
+binomial sensitivity figure under an independence assumption is `P(0 in 9) = (8/9)^9 ≈ 34.6%` (the
+earlier `~11%/run`, `P(0/3)≈70%` wording used the wrong denominator). Per the addendum, did not run
+the diff and report "no divergence," did not retry further, and did not manufacture a different
+trigger. **Part F: `INCOMPLETE`**, blocker `TRIGGER NOT REPRODUCED` — not a `FAIL`; Part E's `PASS`
+is unaffected.
 
 Mandatory Phase-1/CUBIC/CoVegas regression reverified clean throughout Parts A–F (40 automated
 tests + Reno v0 R1/R2 on all three `raw/r0/` traces + CUBIC v1 R3A/R3B on all three

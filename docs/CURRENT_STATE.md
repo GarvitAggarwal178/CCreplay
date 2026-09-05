@@ -101,8 +101,11 @@ and ADR-017 through ADR-024 in `docs/DECISIONS.md`) — not duplicated here. Per
 
 **v2 — CoVegas**
 - Callback manifest: `{init, cong_avoid, ssthresh, undo_cwnd, pkts_acked}` (no `set_state`/`cwnd_event`).
-- Controller-private state: 17 dedicated fields + a mode-dependent `union` (6 `delay`-arm / 7
-  `cubic`-arm fields, genuinely memory-aliased across mode transitions) = 30 semantic fields total;
+- Controller-private state: 17 dedicated fields + a mode-dependent `union` (6 DELAY-arm / 7
+  COMPETE-arm fields — the union's two source members are literally named `delay` and `cubic`; the
+  `cubic` member is the COMPETE-mode arm because COMPETE mode borrows CUBIC's growth law, so
+  "COMPETE-arm" is the semantic name and `u.cubic.*` the code identifier — genuinely
+  memory-aliased across mode transitions) = 30 semantic fields total;
   comparison schema is `f(callback, controller_mode, replay_phase)` (ADR-023), not a flat schema.
 - Clock dependencies: two independent clock brackets — `tcp_jiffies32` (global) and
   `bpf_ktime_get_ns()` (computed fresh by the controller itself each invocation, ADR-024) — both
@@ -121,7 +124,7 @@ and ADR-017 through ADR-024 in `docs/DECISIONS.md`) — not duplicated here. Per
 | Reno R1 (event-local self-replay) | **PASS** | 112,051 events checked, 224,120 field comparisons, 0 mismatches | none |
 | Reno R2 (stateful self-replay) | **PASS** | 112,051 events replayed sequentially, first divergence = NONE | Reno has no controller-private state (ADR-014); R2 did not exercise *non-trivial* private-state propagation — that question is closed for CUBIC by R3B, not by R2 itself |
 | CUBIC R3 (event-local + stateful self-replay) | **PARTIAL — do not upgrade to PASS** | R3A: 236,088 events checked, 4,485,714 field comparisons; 236,042 `CLOCK_STABLE` events, 0 mismatches; 46 `CLOCK_AMBIGUOUS` events, 4 mismatches. R3B: first divergence in every trace lands on a `CLOCK_AMBIGUOUS` `cong_avoid` event (rep1 at 51,323/78,688; rep2 at 75,603/78,768; rep3 at 61,729/78,632) — all sequential transitions before that point are exact. All 16 semantic private fields changed value nontrivially in every trace. `undo_cwnd`: originally 0 events / UNVALIDATED in the primary traces; **subsequently VALIDATED** using a targeted auxiliary trace (12 `undo_cwnd` invocations, 0 mismatches, first divergence = NONE across the full 75,415-event auxiliary sequence) — this does not change the R3 verdict. | R3's literal PASS criterion (R3B first divergence = NONE on all primary traces) is not met; the residual is fully attributed and characterized (§7, clock verdict `ATTRIBUTED_AND_CHARACTERIZED`) but not resolved |
-| CUBIC clock-boundary characterization | `ATTRIBUTED_AND_CHARACTERIZED` | See §7 for the full arithmetic, two-sided attribution, and stateful-resync evidence | Does not upgrade R3 to PASS; not closed by any available non-invasive instrumentation on this kernel (bounded feasibility check: NOT CLOSED) |
+| CUBIC clock-boundary characterization | `ATTRIBUTED_AND_CHARACTERIZED` | See §7 for the full arithmetic, two-sided attribution, and stateful-resync evidence. Full-46 two-sided attribution (all `CLOCK_AMBIGUOUS` events, not only the 4 production mismatches): `MATCHES_BEFORE_ONLY=2`, `MATCHES_AFTER_ONLY=4`, `MATCHES_BOTH=40`, `MATCHES_NEITHER=0`. | Does not upgrade R3 to PASS; not closed by any available non-invasive instrumentation on this kernel (bounded feasibility check: NOT CLOSED). No event requires a value outside the recorded bracket, but the reference is not claimed to have "necessarily" read either endpoint. |
 | Differential debugger (N4) | **COMPLETE / PASS** | Hard-negative sanity oracle: Reno (37,260 events) and CUBIC (78,688 events), both NO DIVERGENCE against themselves | Only proves the tool doesn't report a false divergence; N5 proves it reports a true one |
 | Controlled seeded regression (N5) | **PASS** | 4 seeded bugs: 3 positive controls (2 exact, 1 partial-magnitude miss, correctly localized to callback/field in all 3) + 1 required dormant negative control (exact NO DIVERGENCE, 78,688/78,768/78,632 events, no false positive) | Predictions committed (`4d2972e`) before bug code existed; the one partial miss is disclosed, not rounded up |
 | Checkpoint + suffix reproducer (N6) | **COMPLETE** | Bug 1 demo: checkpoint@event 1500, divergence@event 1704, 204-event suffix replayed in full, reproduced the identical divergence | Reproducer, not minimizer — no event in the suffix is skipped or deleted, by design |
@@ -426,7 +429,7 @@ COVEGAS (v2)
   E1: 3 primary traces, 0 drops each, dominant connection >=99.99% each
   E2: 190,277 events checked, 4,982,990 field comparisons, 0 mismatches
   E3: first divergence = NONE, 190,277 sequential transitions (3 independent all-exact runs)
-  All 30 semantic private fields (17 dedicated + 6 delay-arm + 7 cubic-arm) changed nontrivially
+  All 30 semantic private fields (17 dedicated + 6 DELAY-arm + 7 COMPETE-arm / `u.cubic.*`) changed nontrivially
   undo_cwnd: 0 events in primary traces -- Outcome A (function semantics independently supported
        via the shared tcp_reno_undo_cwnd helper; CoVegas ABI-v2 recorder/model path itself
        unexercised); does not affect the PASS verdict or the historical case study's readiness

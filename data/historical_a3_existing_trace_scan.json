@@ -1,0 +1,305 @@
+[
+  {
+    "trace": "raw/covegas_replay/primary/rep1.ccr",
+    "label": "rep1",
+    "on_periods_rel": [
+      [
+        0.33,
+        21.01
+      ],
+      [
+        41.02,
+        61.69
+      ],
+      [
+        81.71,
+        102.3
+      ]
+    ],
+    "total_dominant_events": 63329,
+    "total_cong_avoid": 31348,
+    "delay_to_compete_transitions": [
+      {
+        "seq": 418,
+        "rel_s": 1.487907436,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 0,
+        "post_mode": 1
+      },
+      {
+        "seq": 19995,
+        "rel_s": 42.230383175,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 0,
+        "post_mode": 1
+      },
+      {
+        "seq": 44100,
+        "rel_s": 84.288074056,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 0,
+        "post_mode": 1
+      }
+    ],
+    "compete_to_delay_transitions": [
+      {
+        "seq": 2656,
+        "rel_s": 11.770489716,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 1,
+        "post_mode": 0
+      },
+      {
+        "seq": 26096,
+        "rel_s": 61.274056636,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 1,
+        "post_mode": 0
+      },
+      {
+        "seq": 47885,
+        "rel_s": 99.688755089,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 1,
+        "post_mode": 0
+      }
+    ],
+    "predicate_H_events": [],
+    "compete_episodes": [
+      {
+        "entry_seq": 418,
+        "entry_rel_s": 1.487907436,
+        "entry_phase": "ON",
+        "exit_seq": 2656
+      },
+      {
+        "entry_seq": 19995,
+        "entry_rel_s": 42.230383175,
+        "entry_phase": "ON",
+        "exit_seq": 26096
+      },
+      {
+        "entry_seq": 44100,
+        "entry_rel_s": 84.288074056,
+        "entry_phase": "ON",
+        "exit_seq": 47885
+      }
+    ],
+    "compete_dispatch_events": 5733,
+    "settle_block_entered": 312,
+    "settle_latch_evaluations_reached": 3,
+    "guard_passing_evaluations": 3,
+    "guard_failing_evaluations": [],
+    "PREDICATE_H_PRESENT": false,
+    "PREDICATE_D_PRESENT": false,
+    "H_AND_D_IN_SAME_EPISODE": false
+  },
+  {
+    "trace": "raw/covegas_replay/primary/rep2.ccr",
+    "label": "rep2",
+    "on_periods_rel": [
+      [
+        0.8,
+        21.41
+      ],
+      [
+        41.42,
+        61.96
+      ],
+      [
+        81.96,
+        102.63
+      ]
+    ],
+    "total_dominant_events": 62899,
+    "total_cong_avoid": 31151,
+    "delay_to_compete_transitions": [
+      {
+        "seq": 418,
+        "rel_s": 2.024577535,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 0,
+        "post_mode": 1
+      },
+      {
+        "seq": 19694,
+        "rel_s": 42.904526641,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 0,
+        "post_mode": 1
+      },
+      {
+        "seq": 41478,
+        "rel_s": 83.073233998,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 0,
+        "post_mode": 1
+      }
+    ],
+    "compete_to_delay_transitions": [
+      {
+        "seq": 1508,
+        "rel_s": 9.895884941,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 1,
+        "post_mode": 0
+      },
+      {
+        "seq": 24122,
+        "rel_s": 58.657979959,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 1,
+        "post_mode": 0
+      },
+      {
+        "seq": 47437,
+        "rel_s": 101.756915348,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 1,
+        "post_mode": 0
+      }
+    ],
+    "predicate_H_events": [],
+    "compete_episodes": [
+      {
+        "entry_seq": 418,
+        "entry_rel_s": 2.024577535,
+        "entry_phase": "ON",
+        "exit_seq": 1508
+      },
+      {
+        "entry_seq": 19694,
+        "entry_rel_s": 42.904526641,
+        "entry_phase": "ON",
+        "exit_seq": 24122
+      },
+      {
+        "entry_seq": 41478,
+        "entry_rel_s": 83.073233998,
+        "entry_phase": "ON",
+        "exit_seq": 47437
+      }
+    ],
+    "compete_dispatch_events": 5441,
+    "settle_block_entered": 319,
+    "settle_latch_evaluations_reached": 3,
+    "guard_passing_evaluations": 3,
+    "guard_failing_evaluations": [],
+    "PREDICATE_H_PRESENT": false,
+    "PREDICATE_D_PRESENT": false,
+    "H_AND_D_IN_SAME_EPISODE": false
+  },
+  {
+    "trace": "raw/covegas_replay/primary/rep3.ccr",
+    "label": "rep3",
+    "on_periods_rel": [
+      [
+        0.6,
+        21.33
+      ],
+      [
+        41.34,
+        62.01
+      ],
+      [
+        82.02,
+        102.57
+      ]
+    ],
+    "total_dominant_events": 64049,
+    "total_cong_avoid": 31683,
+    "delay_to_compete_transitions": [
+      {
+        "seq": 424,
+        "rel_s": 1.48688746,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 0,
+        "post_mode": 1
+      },
+      {
+        "seq": 21021,
+        "rel_s": 42.404106681,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 0,
+        "post_mode": 1
+      },
+      {
+        "seq": 44373,
+        "rel_s": 84.151534247,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 0,
+        "post_mode": 1
+      }
+    ],
+    "compete_to_delay_transitions": [
+      {
+        "seq": 2607,
+        "rel_s": 11.92948679,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 1,
+        "post_mode": 0
+      },
+      {
+        "seq": 26753,
+        "rel_s": 61.305756061,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 1,
+        "post_mode": 0
+      },
+      {
+        "seq": 48619,
+        "rel_s": 100.358266,
+        "phase": "ON",
+        "callback": "cong_avoid",
+        "pre_mode": 1,
+        "post_mode": 0
+      }
+    ],
+    "predicate_H_events": [],
+    "compete_episodes": [
+      {
+        "entry_seq": 424,
+        "entry_rel_s": 1.48688746,
+        "entry_phase": "ON",
+        "exit_seq": 2607
+      },
+      {
+        "entry_seq": 21021,
+        "entry_rel_s": 42.404106681,
+        "entry_phase": "ON",
+        "exit_seq": 26753
+      },
+      {
+        "entry_seq": 44373,
+        "entry_rel_s": 84.151534247,
+        "entry_phase": "ON",
+        "exit_seq": 48619
+      }
+    ],
+    "compete_dispatch_events": 5716,
+    "settle_block_entered": 300,
+    "settle_latch_evaluations_reached": 3,
+    "guard_passing_evaluations": 3,
+    "guard_failing_evaluations": [],
+    "PREDICATE_H_PRESENT": false,
+    "PREDICATE_D_PRESENT": false,
+    "H_AND_D_IN_SAME_EPISODE": false
+  }
+]

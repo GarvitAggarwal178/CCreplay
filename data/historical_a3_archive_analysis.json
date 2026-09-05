@@ -1,0 +1,138 @@
+{
+  "archive_csv": "/root/cn-spike/covegas/raw/partC_v4/Ph500_B5x_rep2_ringbuf.csv",
+  "on_periods_rel_s": [
+    [
+      0.0,
+      20.69
+    ],
+    [
+      40.7,
+      61.41
+    ],
+    [
+      81.41,
+      102.09
+    ]
+  ],
+  "total_rows": 33912,
+  "all_transitions": [
+    {
+      "t_rel_s": 1.552,
+      "phase": "ON",
+      "dir": "DELAY->COMPETE",
+      "dlv_rate_bps": 308358,
+      "dlv_rate_compete": 0,
+      "dlv_rate_max": 662797,
+      "cwnd": 21,
+      "mode_after": 1
+    },
+    {
+      "t_rel_s": 20.578,
+      "phase": "ON",
+      "dir": "COMPETE->DELAY",
+      "dlv_rate_bps": 480263,
+      "dlv_rate_compete": 289599,
+      "dlv_rate_max": 662797,
+      "cwnd": 16,
+      "mode_after": 0
+    },
+    {
+      "t_rel_s": 43.623,
+      "phase": "ON",
+      "dir": "DELAY->COMPETE",
+      "dlv_rate_bps": 300042,
+      "dlv_rate_compete": 0,
+      "dlv_rate_max": 1121895,
+      "cwnd": 31,
+      "mode_after": 1
+    },
+    {
+      "t_rel_s": 53.889,
+      "phase": "ON",
+      "dir": "COMPETE->DELAY",
+      "dlv_rate_bps": 414845,
+      "dlv_rate_compete": 274908,
+      "dlv_rate_max": 1121895,
+      "cwnd": 16,
+      "mode_after": 0
+    },
+    {
+      "t_rel_s": 57.495,
+      "phase": "ON",
+      "dir": "DELAY->COMPETE",
+      "dlv_rate_bps": 131126,
+      "dlv_rate_compete": 0,
+      "dlv_rate_max": 1051777,
+      "cwnd": 16,
+      "mode_after": 1
+    },
+    {
+      "t_rel_s": 61.34,
+      "phase": "ON",
+      "dir": "COMPETE->DELAY",
+      "dlv_rate_bps": 545846,
+      "dlv_rate_compete": 362959,
+      "dlv_rate_max": 1051777,
+      "cwnd": 30,
+      "mode_after": 0
+    },
+    {
+      "t_rel_s": 65.514,
+      "phase": "OFF",
+      "dir": "DELAY->COMPETE",
+      "dlv_rate_bps": 1191791,
+      "dlv_rate_compete": 0,
+      "dlv_rate_max": 1194061,
+      "cwnd": 43,
+      "mode_after": 1
+    },
+    {
+      "t_rel_s": 66.512,
+      "phase": "OFF",
+      "dir": "COMPETE->DELAY",
+      "dlv_rate_bps": 1194436,
+      "dlv_rate_compete": 0,
+      "dlv_rate_max": 1197147,
+      "cwnd": 37,
+      "mode_after": 0
+    },
+    {
+      "t_rel_s": 83.236,
+      "phase": "ON",
+      "dir": "DELAY->COMPETE",
+      "dlv_rate_bps": 403688,
+      "dlv_rate_compete": 0,
+      "dlv_rate_max": 1195886,
+      "cwnd": 32,
+      "mode_after": 1
+    },
+    {
+      "t_rel_s": 101.985,
+      "phase": "ON",
+      "dir": "COMPETE->DELAY",
+      "dlv_rate_bps": 611846,
+      "dlv_rate_compete": 384693,
+      "dlv_rate_max": 1195886,
+      "cwnd": 20,
+      "mode_after": 0
+    }
+  ],
+  "predicate_H_candidates": [
+    {
+      "entry_t_rel_s": 65.514,
+      "entry_phase": "OFF",
+      "revert_t_rel_s": 66.512,
+      "revert_minus_entry_s": 0.998,
+      "dlv_rate_compete_ever_latched_in_episode": 0,
+      "settle_row_approx": {
+        "t_rel_s": 66.512,
+        "dlv_rate_bps": 1194436,
+        "dlv_rate_max": 1197147,
+        "three_quarter_max": 897860,
+        "v4_guard_passes_latch": false,
+        "v4_guard_fails_revert": true,
+        "dlv_rate_compete": 0
+      }
+    }
+  ]
+}
