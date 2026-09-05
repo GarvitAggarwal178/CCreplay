@@ -1,0 +1,120 @@
+kernel.bpf_stats_enabled = 1
+topology setup exit=0
+=== R3 (CUBIC) primary run rep=1 ===
+bfifo limit (readback) = 250000B, expected = 250000B
+OK
+offloads applied to vh1/vr1/vr2/vh2, log at raw/cubic_replay/primary/rep1_offloads.txt
+recorder attached
+iperf3 exit=0
+recorder exit=0
+=== qdisc show after transfer (ns_r, vr2) ===
+qdisc htb 1: root refcnt 17 r2q 10 default 0x10 direct_packets_stat 0 direct_qlen 1000
+ Sent 112952197 bytes 74636 pkt (dropped 60, overlimits 74601 requeues 0) 
+ backlog 0b 0p requeues 0
+qdisc bfifo 20: parent 1:10 limit 250000b
+ Sent 112952197 bytes 74636 pkt (dropped 60, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0
+=== recorder meta ===
+{
+  "trace_version": 1,
+  "recorder_version": 1,
+  "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+  "invocations": 78690,
+  "emitted": 78690,
+  "drops": 0,
+  "clock_stable": 78672,
+  "clock_ambiguous": 18,
+  "counters_read_ok": true,
+  "events_written_userspace": 78690,
+  "trace_file_bytes": 38400864,
+  "duration_s_requested": 95,
+  "bpf_stats": {
+    "init": {"run_time_ns": 973672, "run_cnt": 2},
+    "cong_avoid": {"run_time_ns": 64475389, "run_cnt": 37183},
+    "ssthresh": {"run_time_ns": 24279, "run_cnt": 14},
+    "set_state": {"run_time_ns": 61152, "run_cnt": 42},
+    "cwnd_event": {"run_time_ns": 34377, "run_cnt": 15},
+    "pkts_acked": {"run_time_ns": 925001604, "run_cnt": 41434},
+    "undo_cwnd": {"run_time_ns": 0, "run_cnt": 0}
+  }
+}
+DONE rep=1
+=== R3 (CUBIC) primary run rep=2 ===
+bfifo limit (readback) = 250000B, expected = 250000B
+OK
+offloads applied to vh1/vr1/vr2/vh2, log at raw/cubic_replay/primary/rep2_offloads.txt
+recorder attached
+iperf3 exit=0
+recorder exit=0
+=== qdisc show after transfer (ns_r, vr2) ===
+qdisc htb 1: root refcnt 17 r2q 10 default 0x10 direct_packets_stat 0 direct_qlen 1000
+ Sent 112949965 bytes 74626 pkt (dropped 61, overlimits 74597 requeues 0) 
+ backlog 0b 0p requeues 0
+qdisc bfifo 20: parent 1:10 limit 250000b
+ Sent 112949965 bytes 74626 pkt (dropped 61, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0
+=== recorder meta ===
+{
+  "trace_version": 1,
+  "recorder_version": 1,
+  "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+  "invocations": 78770,
+  "emitted": 78770,
+  "drops": 0,
+  "clock_stable": 78754,
+  "clock_ambiguous": 16,
+  "counters_read_ok": true,
+  "events_written_userspace": 78770,
+  "trace_file_bytes": 38439904,
+  "duration_s_requested": 95,
+  "bpf_stats": {
+    "init": {"run_time_ns": 68883, "run_cnt": 2},
+    "cong_avoid": {"run_time_ns": 63850742, "run_cnt": 37236},
+    "ssthresh": {"run_time_ns": 20660, "run_cnt": 14},
+    "set_state": {"run_time_ns": 297952, "run_cnt": 42},
+    "cwnd_event": {"run_time_ns": 191819, "run_cnt": 15},
+    "pkts_acked": {"run_time_ns": 941302494, "run_cnt": 41461},
+    "undo_cwnd": {"run_time_ns": 0, "run_cnt": 0}
+  }
+}
+DONE rep=2
+=== R3 (CUBIC) primary run rep=3 ===
+bfifo limit (readback) = 250000B, expected = 250000B
+OK
+offloads applied to vh1/vr1/vr2/vh2, log at raw/cubic_replay/primary/rep3_offloads.txt
+recorder attached
+iperf3 exit=0
+recorder exit=0
+=== qdisc show after transfer (ns_r, vr2) ===
+qdisc htb 1: root refcnt 17 r2q 10 default 0x10 direct_packets_stat 0 direct_qlen 1000
+ Sent 112953137 bytes 74628 pkt (dropped 61, overlimits 74603 requeues 0) 
+ backlog 0b 0p requeues 0
+qdisc bfifo 20: parent 1:10 limit 250000b
+ Sent 112953137 bytes 74628 pkt (dropped 61, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0
+=== recorder meta ===
+{
+  "trace_version": 1,
+  "recorder_version": 1,
+  "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+  "invocations": 78634,
+  "emitted": 78634,
+  "drops": 0,
+  "clock_stable": 78622,
+  "clock_ambiguous": 12,
+  "counters_read_ok": true,
+  "events_written_userspace": 78634,
+  "trace_file_bytes": 38373536,
+  "duration_s_requested": 95,
+  "bpf_stats": {
+    "init": {"run_time_ns": 55252, "run_cnt": 2},
+    "cong_avoid": {"run_time_ns": 49142565, "run_cnt": 37156},
+    "ssthresh": {"run_time_ns": 21609, "run_cnt": 14},
+    "set_state": {"run_time_ns": 119149, "run_cnt": 42},
+    "cwnd_event": {"run_time_ns": 38665, "run_cnt": 15},
+    "pkts_acked": {"run_time_ns": 867030923, "run_cnt": 41405},
+    "undo_cwnd": {"run_time_ns": 0, "run_cnt": 0}
+  }
+}
+DONE rep=3
+ALL R3 PRIMARY RUNS COMPLETE

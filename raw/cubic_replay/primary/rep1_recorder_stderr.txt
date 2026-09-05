@@ -1,0 +1,1 @@
+DONE invocations=78690 emitted=78690 drops=0 clock_stable=78672 clock_ambiguous=18 events_written=78690
