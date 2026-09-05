@@ -86,9 +86,25 @@ scope).
 
 Working from the recorded PRE state of a `cong_avoid` event and the recorded controller-visible
 clocks (`clock_ktime_ns_before` as `now`, `clock_jiffies32_before` as `tcp_jiffies32` — the ktime
-value is the *exact* one the controller consumes, see §7 of
-`REPORT_COVEGAS_REPLAY_FIDELITY.md`; jiffies is bracketed, see the ambiguity note in §7 below):
+value is the *exact* one the controller consumes, see the CoVegas-ktime section of
+`REPORT_COVEGAS_REPLAY_FIDELITY.md`; jiffies is bracketed, see the ambiguity note below):
 
+0. **`tcp_is_cwnd_limited(...)` is true.** `~/cn-spike/covegas/src/covegas.bpf.c` `covegas_cong_avoid`
+   dispatches to `handle_minrtt_probe`/`handle_compete_mode` only for a cwnd-limited ACK; the
+   CCReplay recorder makes this explicit as an early `if (!tcp_is_cwnd_limited(sk)) return;` at the
+   very top of `ccr_covegas_cong_avoid` (`bpf/covegas_wrapper.bpf.c` line ~746, *before* sequence
+   allocation and recording), and `user/covegas_model.py` cong_avoid (lines 523–524) checks the same
+   before `handle_minrtt_probe`. Model form
+   (`user/covegas_model.py` `tcp_is_cwnd_limited`, lines 226–229):
+   `cwnd < ssthresh ? cwnd < 2*max_packets_out : bool(is_cwnd_limited)`.
+   Required ABI-v2 inputs: `pre_snd_cwnd`, `pre_snd_ssthresh`, `pre_max_packets_out`,
+   `pre_is_cwnd_limited`.
+   *Because the recorder applies the kernel's own `tcp_is_cwnd_limited(sk)` before emitting any
+   `cong_avoid` record, every recorded `cong_avoid` event is already cwnd-limited; the model's
+   reimplementation agrees on all of them (0 mismatches, all 3 traces — round-2 scan). This gate
+   therefore removes 0 events from the current traces, but the scanner must apply it in the correct
+   position so that its control flow matches the real implementation and so it stays correct on any
+   future trace.*
 1. **`handle_minrtt_probe(tp, ca, now)` returns 0.** From `covegas.bpf.c` lines 606–662: returns
    non-zero if `ca->minrtt_probing` (PRE) is set, or if
    `now - ca->last_minrtt_probe_ns >= period_ns` where
@@ -102,8 +118,9 @@ value is the *exact* one the controller consumes, see §7 of
    `(u32)(clock_jiffies32_before − priv_pre_compete_enter_jiffies) >= (1000 · 250) / 1000 = 250`.
 5. **`ca->dlv_rate_bps != 0`** (`priv_pre_dlv_rate_bps != 0`).
 
-If 1–5 hold, the **v4 guard is evaluated**. If any of 1–5 fails, v3 and v4 do the same thing on
-this event (either both skip the latch, or both take the rate-jump branch, or both probe).
+If 0–5 hold, the **v4 guard is evaluated**. If any of 0–5 fails, v3 and v4 do the same thing on
+this event (either both early-return, both skip the latch, both take the rate-jump branch, or both
+probe).
 
 ## 5. Exact v4 guard and the two outcomes
 
@@ -119,7 +136,7 @@ PRE values (`priv_pre_dlv_rate_bps`, `priv_pre_dlv_rate_max`).
 
 > **Predicate D holds for an observed `cong_avoid` event iff, evaluating the deterministic control
 > flow on that event's recorded PRE state and recorded controller-visible clocks:
-> conditions §4.1–§4.5 all hold, AND the guard §5 is FALSE
+> conditions §4.0–§4.5 all hold, AND the guard §5 is FALSE
 > (`priv_pre_dlv_rate_bps >= (priv_pre_dlv_rate_max * 3) / 4`).**
 
 On a Predicate-D event, replaying the recorded PRE state through the reconstructed-v3 model and the
@@ -131,6 +148,7 @@ field `revert_to_delay` writes vs. every field `cubic_growth` writes.
 
 | needed | ABI v2 field | present |
 | --- | --- | --- |
+| cwnd-limited inputs (§4.0) | `pre_snd_cwnd`, `pre_snd_ssthresh`, `pre_max_packets_out`, `pre_is_cwnd_limited` | yes |
 | mode (PRE) | `priv_pre_mode` | yes |
 | `dlv_rate_compete` (PRE) | `priv_pre_dlv_rate_compete` | yes |
 | `compete_enter_jiffies` (PRE) | `priv_pre_compete_enter_jiffies` | yes |
@@ -139,23 +157,65 @@ field `revert_to_delay` writes vs. every field `cubic_growth` writes.
 | `minrtt_probing` (PRE) | `priv_pre_minrtt_probing` | yes |
 | `last_minrtt_probe_ns` (PRE) | `priv_pre_last_minrtt_probe_ns` | yes |
 | `probe_action_start_ns` (PRE) | `priv_pre_probe_action_start_ns` | yes |
-| `tcp_jiffies32` | `clock_jiffies32_before` (`_after` for ambiguity check) | yes |
+| `tcp_jiffies32` | `clock_jiffies32_before` **and** `clock_jiffies32_after` (bracketed, not injected) | yes |
 | controller `now` (ktime) | `clock_ktime_ns_before` (exact consumed value) | yes |
 | `srtt_us` (PRE) | `pre_srtt_us` | yes |
 | `RATE_SETTLE_MS`, `HZ`, `MINRTT_PERIOD_MS` | build constants (1000 / 250 / 10000) | yes |
 
-```text
-PREDICATE_D_DIRECTLY_OBSERVABLE_FROM_TRACE = YES
-```
+### Clock qualification (do not overstate)
 
-### Jiffies-ambiguity caveat on condition §4.4
+Predicate D's required controller state/inputs are **represented** by ABI v2. It is **not**
+"universally exactly observable" merely because every field is present: `tcp_jiffies32` remains a
+*bracketed* quantity (`clock_jiffies32_before` / `_after`), not an injected exact value.
 
-`tcp_jiffies32` is the global clock CCReplay can only bracket (`clock_jiffies32_before` /
-`_after`), same hazard as CUBIC (ADR-018). Condition §4.4 compares `elapsed_jiffies` against a fixed
-250-jiffy threshold; a 1-jiffy before/after difference matters only for an event whose
-`elapsed_jiffies` is exactly 249 vs 250 at the bracket. The scanner
-(`user/scan_historical_a3.py`) recomputes §4.4 with `clock_jiffies32_after` and flags any event
-whose settle-gate result flips — none did (see `data/historical_a3_existing_trace_scan.md`).
+> A scanned event is **exactly classifiable** with respect to the settle-time gate (§4.4) when the
+> predicate has the same truth value under **both** recorded jiffies bracket endpoints. No scanned
+> classification may silently choose whichever endpoint produces the desired answer.
+
+The scanner (`user/scan_historical_a3.py`) evaluates §4.4 under **both** `clock_jiffies32_before`
+and `clock_jiffies32_after` and reports `settle_gate_jiffies_bracket_flips`. In the round-2 scan of
+all three primary traces this count is **0** — every scanned settle-gate classification is exactly
+resolved. All other Predicate-D conditions (§4.0, §4.1, §4.2, §4.3, §4.5, §5) use recorded PRE
+state or the exact controller-consumed `clock_ktime_ns_before`, so they carry no bracket ambiguity.
+
+## 7. Predicate-H time alignment (event clock vs cross-traffic schedule)
+
+Classifying a DELAY→COMPETE transition as ON- or OFF-period requires placing an event on the
+cross-traffic wall-clock timeline. The two clocks differ:
+
+| quantity | clock | source |
+| --- | --- | --- |
+| event `ts_ns` | `CLOCK_MONOTONIC` | `bpf_ktime_get_ns()` in the recorder |
+| header `creation_ts_ns` | `CLOCK_MONOTONIC` | `clock_gettime(CLOCK_MONOTONIC)` (`user/ccr_recorder_covegas.c` line 60) |
+| `cubic_rep{1,2,3}_{start,stop}_ts.txt` | `CLOCK_REALTIME` | `date +%s.%N` in `scripts/covegas_run_intermittent.sh` |
+| covegas iperf3 `start.timestamp.timesecs` | `CLOCK_REALTIME` | iperf3, **1-second-quantized** (`timemillisecs` is finer) |
+
+**No artifact records both clock domains at one instant → there is no exact common anchor.**
+`data/audit_src/check_historical_trigger.py` implicitly assumed the two zero points coincide (and
+used the 1-second-quantized `timesecs`); that assumption is now made explicit and bracketed.
+
+**Artifact-derived offset bracket (current traces).** Anchor the schedule to
+`cubic_rep1_start_ts.txt` (`date +%s.%N`, captured in the driver script immediately after the
+covegas iperf3 client is backgrounded, before cross-traffic rep1). An event at monotonic-relative
+time `t_e = (ev.ts_ns − first_dominant_event.ts_ns)/1e9` sits at schedule position `t_e + Δ`,
+`Δ = first_dominant_event_wall − cubic_rep1_start_wall`.
+
+- **Upper bound (rigorous):** `Δ < (first_dominant_event.ts_ns − header.creation_ts_ns)/1e9`. The
+  recorder starts (captures `creation_ts_ns`, monotonic) *before* the covegas iperf3 process is
+  launched, and the first `init` callback is *after* that; both clocks advance at the same rate to
+  within ~0.5 ms/s. Measured: **0.30 s / 0.29 s / 0.28 s** for rep1/rep2/rep3.
+- **Lower bound:** `Δ ≥ 0` — the first `init` callback (connection setup) occurs after
+  `cubic_rep1_start_ts` was captured (one `date` exec after the covegas process was backgrounded).
+  A −0.05 s pad absorbs `date` exec time and slew.
+
+So the current-trace bracket is **Δ ∈ [−0.05, +0.30] s**. A DELAY→COMPETE transition is classified
+ON/OFF only if `[t_e − 0.05, t_e + 0.30]` lies entirely within one phase; otherwise
+`ALIGNMENT-LIMITED`.
+
+**Historical archive (`Ph500_B5x_rep2`).** The archived CSV carries **no** monotonic header
+timestamp, so no rigorous upper bound on `Δ'` is available. Classification robustness is reported
+as distance-to-nearest-boundary vs. a deliberately generous ±4.0 s allowance (the physical offset
+is sub-second — first telemetry row after connection setup).
 
 ---
 
@@ -163,9 +223,12 @@ whose settle-gate result flips — none did (see `data/historical_a3_existing_tr
 
 > **Predicate H holds for an observed `cong_avoid` event iff `priv_pre_mode == DELAY` and
 > `priv_post_mode == COMPETE` (a real DELAY→COMPETE transition on that event) AND the event's
-> wall-clock time falls in a cross-traffic OFF period** (derived from the run's own
-> `*_cubic_rep{1,2,3}_{start,stop}_ts.txt` schedule vs. the covegas connection start, exactly as
-> `data/audit_src/check_historical_trigger.py` does).
+> wall-clock time falls in a cross-traffic OFF period, *robustly over the §7 offset bracket*.** If
+> the phase is not invariant over that bracket the classification is `ALIGNMENT-LIMITED`, not H.
+
+The schedule is derived from the run's own `*_cubic_rep{1,2,3}_{start,stop}_ts.txt` files (anchor:
+`cubic_rep1_start_ts.txt`). This supersedes `data/audit_src/check_historical_trigger.py`'s
+implicit "zero points coincide" assumption and its use of the 1-second-quantized iperf3 `timesecs`.
 
 ## Relationship between H and D
 

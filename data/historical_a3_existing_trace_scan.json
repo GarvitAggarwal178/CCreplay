@@ -2,27 +2,48 @@
   {
     "trace": "raw/covegas_replay/primary/rep1.ccr",
     "label": "rep1",
-    "on_periods_rel": [
+    "offset_bracket_s": [
+      -0.05,
+      0.2976
+    ],
+    "offset_hi_source": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9 -- recorder-start to first-callback, monotonic; rigorous upper bound on the covegas-start -> first-callback offset",
+    "schedule_anchor": "cubic_rep1_start_ts.txt (date +%s.%N)",
+    "on_periods_rel_cubic_rep1_start": [
       [
-        0.33,
-        21.01
+        0.0,
+        20.683
       ],
       [
-        41.02,
-        61.69
+        40.691,
+        61.368
       ],
       [
-        81.71,
-        102.3
+        81.38,
+        101.974
       ]
     ],
-    "total_dominant_events": 63329,
-    "total_cong_avoid": 31348,
+    "n_dominant_events": 63329,
+    "n_other_events": 1,
+    "counts": {
+      "cong_avoid": 31348,
+      "cwnd_limited_pass": 31348,
+      "not_cwnd_limited": 0,
+      "minrtt_probe_skipped": 31089,
+      "compete_dispatch": 5733,
+      "dlv_rate_compete_zero_block": 312,
+      "settle_time_gate_reached": 3,
+      "guard_passes": 3,
+      "guard_failures": 0
+    },
+    "settle_gate_jiffies_bracket_flips": 0,
     "delay_to_compete_transitions": [
       {
         "seq": 418,
         "rel_s": 1.487907436,
-        "phase": "ON",
+        "sched_lo": 1.437907436,
+        "sched_hi": 1.78551231,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 1.611709873,
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -30,7 +51,10 @@
       {
         "seq": 19995,
         "rel_s": 42.230383175,
-        "phase": "ON",
+        "sched_lo": 42.180383175,
+        "sched_hi": 42.527988049,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 1.662749082840456,
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -38,7 +62,10 @@
       {
         "seq": 44100,
         "rel_s": 84.288074056,
-        "phase": "ON",
+        "sched_lo": 84.238074056,
+        "sched_hi": 84.58567893,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 3.032254033588373,
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -48,7 +75,10 @@
       {
         "seq": 2656,
         "rel_s": 11.770489716,
-        "phase": "ON",
+        "sched_lo": 11.720489716,
+        "sched_hi": 12.06809459,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 8.789185248733398,
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -56,7 +86,10 @@
       {
         "seq": 26096,
         "rel_s": 61.274056636,
-        "phase": "ON",
+        "sched_lo": 61.224056636,
+        "sched_hi": 61.57166151,
+        "phase_bracketed": "ALIGNMENT-LIMITED",
+        "nearest_boundary_s": 0.029776311235472974,
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -64,66 +97,86 @@
       {
         "seq": 47885,
         "rel_s": 99.688755089,
-        "phase": "ON",
+        "sched_lo": 99.638755089,
+        "sched_hi": 99.986359963,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 2.1610369011087727,
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
       }
     ],
     "predicate_H_events": [],
+    "alignment_limited_delay_to_compete": [],
     "compete_episodes": [
       {
         "entry_seq": 418,
         "entry_rel_s": 1.487907436,
-        "entry_phase": "ON",
         "exit_seq": 2656
       },
       {
         "entry_seq": 19995,
         "entry_rel_s": 42.230383175,
-        "entry_phase": "ON",
         "exit_seq": 26096
       },
       {
         "entry_seq": 44100,
         "entry_rel_s": 84.288074056,
-        "entry_phase": "ON",
         "exit_seq": 47885
       }
     ],
-    "compete_dispatch_events": 5733,
-    "settle_block_entered": 312,
-    "settle_latch_evaluations_reached": 3,
-    "guard_passing_evaluations": 3,
     "guard_failing_evaluations": [],
     "PREDICATE_H_PRESENT": false,
+    "PREDICATE_H_ALIGNMENT_LIMITED": false,
     "PREDICATE_D_PRESENT": false,
-    "H_AND_D_IN_SAME_EPISODE": false
+    "H_AND_D_IN_SAME_EPISODE": false,
+    "ALL_SCANNED_D_SETTLE_GATE_EXACT": true
   },
   {
     "trace": "raw/covegas_replay/primary/rep2.ccr",
     "label": "rep2",
-    "on_periods_rel": [
+    "offset_bracket_s": [
+      -0.05,
+      0.2949
+    ],
+    "offset_hi_source": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9 -- recorder-start to first-callback, monotonic; rigorous upper bound on the covegas-start -> first-callback offset",
+    "schedule_anchor": "cubic_rep1_start_ts.txt (date +%s.%N)",
+    "on_periods_rel_cubic_rep1_start": [
       [
-        0.8,
-        21.41
+        0.0,
+        20.609
       ],
       [
-        41.42,
-        61.96
+        40.616,
+        61.153
       ],
       [
-        81.96,
-        102.63
+        81.159,
+        101.822
       ]
     ],
-    "total_dominant_events": 62899,
-    "total_cong_avoid": 31151,
+    "n_dominant_events": 62899,
+    "n_other_events": 1,
+    "counts": {
+      "cong_avoid": 31151,
+      "cwnd_limited_pass": 31151,
+      "not_cwnd_limited": 0,
+      "minrtt_probe_skipped": 30909,
+      "compete_dispatch": 5441,
+      "dlv_rate_compete_zero_block": 319,
+      "settle_time_gate_reached": 3,
+      "guard_passes": 3,
+      "guard_failures": 0
+    },
+    "settle_gate_jiffies_bracket_flips": 0,
     "delay_to_compete_transitions": [
       {
         "seq": 418,
         "rel_s": 2.024577535,
-        "phase": "ON",
+        "sched_lo": 1.974577535,
+        "sched_hi": 2.319435491,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 2.147006513,
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -131,7 +184,10 @@
       {
         "seq": 19694,
         "rel_s": 42.904526641,
-        "phase": "ON",
+        "sched_lo": 42.854526641,
+        "sched_hi": 43.199384597,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 2.41109992518286,
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -139,7 +195,10 @@
       {
         "seq": 41478,
         "rel_s": 83.073233998,
-        "phase": "ON",
+        "sched_lo": 83.02323399800001,
+        "sched_hi": 83.36809195400001,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 2.0369150645467613,
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -149,7 +208,10 @@
       {
         "seq": 1508,
         "rel_s": 9.895884941,
-        "phase": "ON",
+        "sched_lo": 9.845884941,
+        "sched_hi": 10.190742897,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 10.018313919,
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -157,7 +219,10 @@
       {
         "seq": 24122,
         "rel_s": 58.657979959,
-        "phase": "ON",
+        "sched_lo": 58.607979959000005,
+        "sched_hi": 58.952837915,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 2.3723618206751667,
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -165,66 +230,86 @@
       {
         "seq": 47437,
         "rel_s": 101.756915348,
-        "phase": "ON",
+        "sched_lo": 101.70691534800001,
+        "sched_hi": 102.05177330400001,
+        "phase_bracketed": "ALIGNMENT-LIMITED",
+        "nearest_boundary_s": 0.057060819606576274,
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
       }
     ],
     "predicate_H_events": [],
+    "alignment_limited_delay_to_compete": [],
     "compete_episodes": [
       {
         "entry_seq": 418,
         "entry_rel_s": 2.024577535,
-        "entry_phase": "ON",
         "exit_seq": 1508
       },
       {
         "entry_seq": 19694,
         "entry_rel_s": 42.904526641,
-        "entry_phase": "ON",
         "exit_seq": 24122
       },
       {
         "entry_seq": 41478,
         "entry_rel_s": 83.073233998,
-        "entry_phase": "ON",
         "exit_seq": 47437
       }
     ],
-    "compete_dispatch_events": 5441,
-    "settle_block_entered": 319,
-    "settle_latch_evaluations_reached": 3,
-    "guard_passing_evaluations": 3,
     "guard_failing_evaluations": [],
     "PREDICATE_H_PRESENT": false,
+    "PREDICATE_H_ALIGNMENT_LIMITED": false,
     "PREDICATE_D_PRESENT": false,
-    "H_AND_D_IN_SAME_EPISODE": false
+    "H_AND_D_IN_SAME_EPISODE": false,
+    "ALL_SCANNED_D_SETTLE_GATE_EXACT": true
   },
   {
     "trace": "raw/covegas_replay/primary/rep3.ccr",
     "label": "rep3",
-    "on_periods_rel": [
+    "offset_bracket_s": [
+      -0.05,
+      0.2762
+    ],
+    "offset_hi_source": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9 -- recorder-start to first-callback, monotonic; rigorous upper bound on the covegas-start -> first-callback offset",
+    "schedule_anchor": "cubic_rep1_start_ts.txt (date +%s.%N)",
+    "on_periods_rel_cubic_rep1_start": [
       [
-        0.6,
-        21.33
+        0.0,
+        20.736
       ],
       [
-        41.34,
-        62.01
+        40.743,
+        61.416
       ],
       [
-        82.02,
-        102.57
+        81.423,
+        101.969
       ]
     ],
-    "total_dominant_events": 64049,
-    "total_cong_avoid": 31683,
+    "n_dominant_events": 64049,
+    "n_other_events": 1,
+    "counts": {
+      "cong_avoid": 31683,
+      "cwnd_limited_pass": 31683,
+      "not_cwnd_limited": 0,
+      "minrtt_probe_skipped": 31422,
+      "compete_dispatch": 5716,
+      "dlv_rate_compete_zero_block": 300,
+      "settle_time_gate_reached": 3,
+      "guard_passes": 3,
+      "guard_failures": 0
+    },
+    "settle_gate_jiffies_bracket_flips": 0,
     "delay_to_compete_transitions": [
       {
         "seq": 424,
         "rel_s": 1.48688746,
-        "phase": "ON",
+        "sched_lo": 1.43688746,
+        "sched_hi": 1.7630917469999998,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 1.5999896034999999,
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -232,7 +317,10 @@
       {
         "seq": 21021,
         "rel_s": 42.404106681,
-        "phase": "ON",
+        "sched_lo": 42.354106681000005,
+        "sched_hi": 42.680310968,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 1.7737763026799342,
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -240,7 +328,10 @@
       {
         "seq": 44373,
         "rel_s": 84.151534247,
-        "phase": "ON",
+        "sched_lo": 84.101534247,
+        "sched_hi": 84.427738534,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 2.84189402370923,
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -250,7 +341,10 @@
       {
         "seq": 2607,
         "rel_s": 11.92948679,
-        "phase": "ON",
+        "sched_lo": 11.87948679,
+        "sched_hi": 12.205691077,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 8.69385577818518,
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -258,7 +352,10 @@
       {
         "seq": 26753,
         "rel_s": 61.305756061,
-        "phase": "ON",
+        "sched_lo": 61.255756061,
+        "sched_hi": 61.581960347999996,
+        "phase_bracketed": "ALIGNMENT-LIMITED",
+        "nearest_boundary_s": 0.002615366594113766,
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -266,40 +363,39 @@
       {
         "seq": 48619,
         "rel_s": 100.358266,
-        "phase": "ON",
+        "sched_lo": 100.308266,
+        "sched_hi": 100.634470287,
+        "phase_bracketed": "ON",
+        "nearest_boundary_s": 1.4979407096494128,
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
       }
     ],
     "predicate_H_events": [],
+    "alignment_limited_delay_to_compete": [],
     "compete_episodes": [
       {
         "entry_seq": 424,
         "entry_rel_s": 1.48688746,
-        "entry_phase": "ON",
         "exit_seq": 2607
       },
       {
         "entry_seq": 21021,
         "entry_rel_s": 42.404106681,
-        "entry_phase": "ON",
         "exit_seq": 26753
       },
       {
         "entry_seq": 44373,
         "entry_rel_s": 84.151534247,
-        "entry_phase": "ON",
         "exit_seq": 48619
       }
     ],
-    "compete_dispatch_events": 5716,
-    "settle_block_entered": 300,
-    "settle_latch_evaluations_reached": 3,
-    "guard_passing_evaluations": 3,
     "guard_failing_evaluations": [],
     "PREDICATE_H_PRESENT": false,
+    "PREDICATE_H_ALIGNMENT_LIMITED": false,
     "PREDICATE_D_PRESENT": false,
-    "H_AND_D_IN_SAME_EPISODE": false
+    "H_AND_D_IN_SAME_EPISODE": false,
+    "ALL_SCANNED_D_SETTLE_GATE_EXACT": true
   }
 ]

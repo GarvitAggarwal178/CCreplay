@@ -26,11 +26,13 @@ def read_ts(name):
 
 
 def main():
-    covegas_start = read_ts("covegas_start_ts")
+    covegas_start = read_ts("covegas_start_ts")   # date +%s.%N, immediately BEFORE covegas launch
+    c1s = read_ts("cubic_rep1_start_ts")          # date +%s.%N, immediately AFTER covegas launch
     on_wall = []
     for i in (1, 2, 3):
         on_wall.append((read_ts(f"cubic_rep{i}_start_ts"), read_ts(f"cubic_rep{i}_stop_ts")))
-    on_rel = [(a - covegas_start, b - covegas_start) for a, b in on_wall]
+    # anchor the schedule to cubic_rep1_start_ts (consistent with the current-trace scanner)
+    on_rel = [(a - c1s, b - c1s) for a, b in on_wall]
 
     def phase(t):
         for a, b in on_rel:
@@ -38,9 +40,28 @@ def main():
                 return "ON"
         return "OFF"
 
+    def nearest_boundary(t):
+        edges = [0.0]
+        for a, b in on_rel:
+            edges += [a, b]
+        return min(abs(t - e) for e in edges)
+
     csv_path = os.path.join(ARCHIVE, f"{PREFIX}_ringbuf.csv")
     rows = list(csv.DictReader(open(csv_path)))
     t0 = int(rows[0]["ts_ns"])
+    csv_span_s = (int(rows[-1]["ts_ns"]) - t0) / 1e9
+
+    # Time-alignment note: the CSV ts_ns is CLOCK_MONOTONIC (bpf_ktime_get_ns);
+    # the schedule is CLOCK_REALTIME (date +%s.%N). The historical CSV carries
+    # NO monotonic anchor (no header creation timestamp), so there is no exact
+    # common anchor and no rigorous X-style upper bound as in the CCReplay
+    # traces. Lower bound on the offset delta' (first_csv_row_wall -
+    # cubic_rep1_start_wall) is ~0 (first telemetry row is emitted after the
+    # covegas connection is established, which is after cubic_rep1_start_ts was
+    # captured a few ms after covegas launch). Classification robustness is
+    # therefore reported as distance-to-nearest-boundary vs. a generous
+    # offset allowance.
+    OFFSET_ALLOWANCE_S = 4.0  # deliberately generous; far beyond any plausible connect latency
 
     def rel(r):
         return (int(r["ts_ns"]) - t0) / 1e9
@@ -64,12 +85,38 @@ def main():
     spurious_entries = [tr for tr in transitions
                         if tr["dir"] == "DELAY->COMPETE" and tr["phase"] == "OFF"]
 
+    def robust_phase(t):
+        lo, hi = t - OFFSET_ALLOWANCE_S, t + OFFSET_ALLOWANCE_S
+        ps = {phase(lo), phase(hi), phase(t)}
+        for a, b in on_rel:
+            for edge in (a, b):
+                if lo < edge < hi:
+                    ps.add(phase(edge - 1e-9)); ps.add(phase(edge + 1e-9))
+        if ps == {"ON"}:
+            return "ON (robust)"
+        if ps == {"OFF"}:
+            return "OFF (robust)"
+        return "ALIGNMENT-LIMITED"
+
     out = {
         "archive_csv": csv_path,
+        "time_alignment": {
+            "event_clock": "CLOCK_MONOTONIC (bpf_ktime_get_ns, covegas.bpf.c telemetry ts_ns)",
+            "schedule_clock": "CLOCK_REALTIME (date +%s.%N)",
+            "common_anchor": "NONE (historical CSV has no monotonic header/creation timestamp)",
+            "schedule_anchor": "cubic_rep1_start_ts.txt",
+            "covegas_start_ts_to_cubic_rep1_start_ts_s": round(c1s - covegas_start, 6),
+            "offset_lower_bound_s": 0.0,
+            "offset_upper_bound_s": "unbounded from artifacts; classification reported robust vs +-%.1fs allowance" % OFFSET_ALLOWANCE_S,
+            "csv_span_s": round(csv_span_s, 3),
+        },
         "on_periods_rel_s": [(round(a, 2), round(b, 2)) for a, b in on_rel],
         "total_rows": len(rows),
         "all_transitions": [
-            {"t_rel_s": round(tr["t_rel_s"], 3), "phase": tr["phase"], "dir": tr["dir"],
+            {"t_rel_s": round(tr["t_rel_s"], 3), "phase": tr["phase"],
+             "phase_robust": robust_phase(tr["t_rel_s"]),
+             "nearest_boundary_s": round(nearest_boundary(tr["t_rel_s"]), 3),
+             "dir": tr["dir"],
              "dlv_rate_bps": int(tr["row"]["dlv_rate_bps"]),
              "dlv_rate_compete": int(tr["row"]["dlv_rate_compete"]),
              "dlv_rate_max": int(tr["row"]["dlv_rate_max"]),
@@ -98,6 +145,8 @@ def main():
         cand = {
             "entry_t_rel_s": round(entry_t, 3),
             "entry_phase": se["phase"],
+            "entry_phase_robust": robust_phase(entry_t),
+            "entry_nearest_boundary_s": round(nearest_boundary(entry_t), 3),
             "revert_t_rel_s": round(revert["t_rel_s"], 3) if revert else None,
             "revert_minus_entry_s": round(revert["t_rel_s"] - entry_t, 3) if revert else None,
             "dlv_rate_compete_ever_latched_in_episode": max(

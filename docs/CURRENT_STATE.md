@@ -303,6 +303,16 @@ did not establish:
   trigger-positive trace to run it against.
 - `data/historical_regression_predictions.md` remains committed and unresolved by design — no
   RESULTS section was appended, since no diff was ever run.
+- **A3 predicate audit (`REPORT_EVIDENCE_RECONCILIATION_AND_A3_PREDICATE_AUDIT.md`, round 2):** the
+  A3 settle-latch *implementation-divergence* predicate (Predicate D) was derived from source and
+  scanned over the three existing CoVegas traces alongside the historical off-period *symptom*
+  trigger (Predicate H). Both are **absent** in all three traces — Predicate H NO is shown robust
+  to the event/schedule clock-offset bracket (`Δ ∈ [−0.05, +0.30] s`, from
+  `first_event.ts_ns − header.creation_ts_ns`), not assumed; Predicate D NO under the corrected
+  control flow (cwnd-limited gate → minrtt-probe gate → COMPETE dispatch → settle-latch), with
+  every scanned settle-time-gate classification exactly resolved under both jiffies bracket
+  endpoints. Interpretation **CASE 4 — neither predicate present**; no v2 differential-replay
+  candidate exists in the current traces.
 
 **Do not describe the case study as failed.** Nothing about CCReplay, the CoVegas Replay Contract,
 or the recorder failed; self-replay fidelity was fully demonstrated (PASS, §5) before this blocker
