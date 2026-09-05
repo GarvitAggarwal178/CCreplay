@@ -139,13 +139,44 @@ the replayed sequence in every trace (`fields_that_never_changed_in_any_trace = 
 | `ssthresh` | likely rare | 14 (nonzero, exercised) |
 | `set_state` | likely very rare | 42 (nonzero, exercised) |
 | `cwnd_event` | likely very rare/zero | 15 (nonzero, exercised) |
-| `undo_cwnd` | likely rare/zero | **0** — `UNVALIDATED` |
+| `undo_cwnd` | likely rare/zero | 0 in primary traces — **`VALIDATED`** via auxiliary trace, see below |
 
-Every prediction held. `undo_cwnd` is `UNVALIDATED` — zero events across all three reps, and no
-auxiliary loss-injection scenario was attempted this session (remaining time budget); it is
-architecturally identical to Reno's already-validated `tcp_reno_undo_cwnd` (zero CUBIC-specific
-logic, `data/cubic_replay_callback_manifest.md`), which somewhat mitigates but does not close the
-gap for CUBIC's own trace evidence specifically.
+Every prediction held in the primary traces.
+
+### Auxiliary evidence: `undo_cwnd` (Part B)
+
+`undo_cwnd` fired zero times across all three primary traces (predicted in advance,
+`data/cubic_replay_callback_coverage_plan.md`). One focused targeted auxiliary attempt was made,
+per Part B's "make ONE focused attempt... do not perform a sweep" instruction:
+
+**Deviation from validated Gate-3-R2** (documented, not primary evidence): `reorder 25% 50%` added
+to the `ns_h1` netem delay qdisc (`scripts/r3_run_auxiliary_undo.sh`) — everything else (10 Mbit/s
+htb+bfifo, 40ms base RTT via the two 20ms netem delays, offloads disabled) unchanged. Rationale:
+`undo_cwnd` requires the kernel to detect a *spurious* loss/reduction (e.g. via DSACK-based
+reordering detection), which a clean, non-reordering bottleneck-queue-drop path does not produce.
+
+Result, first attempt: `undo_cwnd` fired **12 times** in a 65s auxiliary trace
+(`raw/cubic_replay/auxiliary/undo_cwnd/aux1.ccr`, 75,417 events, zero drops, gapless,
+`aux1_validation.json` reports `pass: true`). Event-local replay (R3A engine, standalone — **not**
+folded into the primary R3A totals above) against this auxiliary trace: **0 mismatches on all
+75,415 dominant-connection events, including all 12 `undo_cwnd` events and all 21
+`CLOCK_AMBIGUOUS` events** (`pass_including_clock_ambiguous: true`). Stateful replay (R3B engine,
+also standalone): **first divergence = NONE across the entire 75,415-event sequence** — a stronger
+result than any primary trace, plausibly because only 21 ambiguous events occurred here versus 46
+in the primary traces and none happened to land on a mismatching one (consistent with the primary
+traces' own ~9% ambiguous-event mismatch rate, not a contradiction of the clock-boundary
+characterization).
+
+**`undo_cwnd` coverage status: `VALIDATED`** — both callback result and full declared private-state
+schema exact on every observed invocation. This closes the last gap in
+`data/cubic_replay_callback_manifest.md`'s seven-callback manifest: all seven callbacks now have
+at least event-local exact-semantic-equality evidence (six from primary traces, one from this
+auxiliary trace).
+
+**Per Part B3: this does NOT change the R3 verdict.** R3 remains `PARTIAL` — the clock-boundary
+issue characterized in the primary R3A/R3B evidence above is unaffected by `undo_cwnd` coverage;
+R3's governing gate definition (`REPORT_CUBIC_REPLAY_VALIDATION.md`'s own "Gate verdict" section,
+unchanged below) does not treat callback-coverage completeness as sufficient for PASS on its own.
 
 ## Failures and deviations
 

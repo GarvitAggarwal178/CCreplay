@@ -1,0 +1,4 @@
+reorder change exit=0
+qdisc netem 8096: root refcnt 17 limit 10000 delay 20ms reorder 25% 50% seed 1030408797855523512 gap 1
+ Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0
