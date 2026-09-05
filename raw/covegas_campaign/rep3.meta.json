@@ -1,0 +1,23 @@
+{
+  "trace_version": 2,
+  "recorder_version": 1,
+  "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+  "invocations": 60621,
+  "emitted": 60621,
+  "drops": 0,
+  "clock_jiffies_stable": 60619,
+  "clock_jiffies_ambiguous": 2,
+  "clock_ktime_stable": 0,
+  "clock_ktime_ambiguous": 60621,
+  "counters_read_ok": true,
+  "events_written_userspace": 60621,
+  "trace_file_bytes": 37827648,
+  "duration_s_requested": 125,
+  "bpf_stats": {
+    "init": {"run_time_ns": 46053, "run_cnt": 2},
+    "cong_avoid": {"run_time_ns": 34632080, "run_cnt": 29970},
+    "ssthresh": {"run_time_ns": 9416, "run_cnt": 10},
+    "undo_cwnd": {"run_time_ns": 0, "run_cnt": 0},
+    "pkts_acked": {"run_time_ns": 664810576, "run_cnt": 30641}
+  }
+}

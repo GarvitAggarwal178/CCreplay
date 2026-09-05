@@ -1,0 +1,2 @@
+bfifo limit (readback) = 250000B, expected = 250000B
+OK

@@ -1,0 +1,509 @@
+[
+  {
+    "prefix": "raw/covegas_campaign/rep1",
+    "trace": "raw/covegas_campaign/rep1.ccr",
+    "valid": true,
+    "drops": 0,
+    "sequence_gaps": 0,
+    "dominant_events": 65484,
+    "dominant_fraction": 0.99998,
+    "callback_counts": {
+      "init": 2,
+      "pkts_acked": 33221,
+      "cong_avoid": 32250,
+      "ssthresh": 12
+    },
+    "integrity_checks": {
+      "magic_ok": true,
+      "trace_version_known": true,
+      "callback_manifest_matches": true,
+      "private_state_schema_matches": true,
+      "counters_read_ok": true,
+      "invocations_eq_emitted_plus_drops": true,
+      "zero_drops": true,
+      "emitted_eq_events_in_file": true,
+      "events_written_userspace_eq_events_in_file": true,
+      "global_sequence_gapless": true,
+      "global_sequence_spans_invocations": true,
+      "result_present_where_required": true,
+      "clock_counts_match_sidecar": true,
+      "single_dominant_connection": true
+    },
+    "offset_interval_s": [
+      -0.4963,
+      0.2356
+    ],
+    "on_periods_rel": [
+      [
+        0.0,
+        20.54
+      ],
+      [
+        40.54,
+        61.22
+      ],
+      [
+        81.22,
+        101.77
+      ]
+    ],
+    "all_delay_to_compete": [
+      {
+        "seq": 512,
+        "t": 1.592,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 22193,
+        "t": 42.117,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 45803,
+        "t": 83.861,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      }
+    ],
+    "H_events": [],
+    "H_COUNT": 0,
+    "D_events": [],
+    "D_COUNT": 0,
+    "episode_diagnostic": {
+      "512": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 728,
+        "ratio": 0.425052,
+        "settle_gate_flips": false
+      },
+      "22193": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 22509,
+        "ratio": 0.337711,
+        "settle_gate_flips": false
+      },
+      "45803": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 46027,
+        "ratio": 0.261975,
+        "settle_gate_flips": false
+      }
+    },
+    "H_AND_D_SAME_EPISODE_COUNT": 0,
+    "H_AND_D_SAME_EPISODE": [],
+    "outcome_class": "NEITHER"
+  },
+  {
+    "prefix": "raw/covegas_campaign/rep2",
+    "trace": "raw/covegas_campaign/rep2.ccr",
+    "valid": true,
+    "drops": 0,
+    "sequence_gaps": 0,
+    "dominant_events": 56120,
+    "dominant_fraction": 0.99998,
+    "callback_counts": {
+      "init": 2,
+      "pkts_acked": 28133,
+      "cong_avoid": 27982,
+      "ssthresh": 4
+    },
+    "integrity_checks": {
+      "magic_ok": true,
+      "trace_version_known": true,
+      "callback_manifest_matches": true,
+      "private_state_schema_matches": true,
+      "counters_read_ok": true,
+      "invocations_eq_emitted_plus_drops": true,
+      "zero_drops": true,
+      "emitted_eq_events_in_file": true,
+      "events_written_userspace_eq_events_in_file": true,
+      "global_sequence_gapless": true,
+      "global_sequence_spans_invocations": true,
+      "result_present_where_required": true,
+      "clock_counts_match_sidecar": true,
+      "single_dominant_connection": true
+    },
+    "offset_interval_s": [
+      -0.62,
+      0.2492
+    ],
+    "on_periods_rel": [
+      [
+        0.0,
+        20.66
+      ],
+      [
+        40.67,
+        61.38
+      ],
+      [
+        81.39,
+        102.1
+      ]
+    ],
+    "all_delay_to_compete": [
+      {
+        "seq": 300,
+        "t": 2.298,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 656,
+        "t": 8.724,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 1627,
+        "t": 15.492,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 20193,
+        "t": 45.14,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 21106,
+        "t": 52.26,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 40396,
+        "t": 86.597,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 41912,
+        "t": 98.402,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      }
+    ],
+    "H_events": [],
+    "H_COUNT": 0,
+    "D_events": [],
+    "D_COUNT": 0,
+    "episode_diagnostic": {
+      "300": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 380,
+        "ratio": 0.253299,
+        "settle_gate_flips": false
+      },
+      "656": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 756,
+        "ratio": 0.44486,
+        "settle_gate_flips": false
+      },
+      "1627": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 1773,
+        "ratio": 0.710775,
+        "settle_gate_flips": false
+      },
+      "20193": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 20344,
+        "ratio": 0.145845,
+        "settle_gate_flips": false
+      },
+      "21106": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 21200,
+        "ratio": 0.153961,
+        "settle_gate_flips": false
+      },
+      "40396": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 40556,
+        "ratio": 0.146278,
+        "settle_gate_flips": false
+      },
+      "41912": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 41992,
+        "ratio": 0.097041,
+        "settle_gate_flips": false
+      }
+    },
+    "H_AND_D_SAME_EPISODE_COUNT": 0,
+    "H_AND_D_SAME_EPISODE": [],
+    "outcome_class": "NEITHER"
+  },
+  {
+    "prefix": "raw/covegas_campaign/rep3",
+    "trace": "raw/covegas_campaign/rep3.ccr",
+    "valid": true,
+    "drops": 0,
+    "sequence_gaps": 0,
+    "dominant_events": 60620,
+    "dominant_fraction": 0.99998,
+    "callback_counts": {
+      "init": 2,
+      "pkts_acked": 30640,
+      "cong_avoid": 29969,
+      "ssthresh": 10
+    },
+    "integrity_checks": {
+      "magic_ok": true,
+      "trace_version_known": true,
+      "callback_manifest_matches": true,
+      "private_state_schema_matches": true,
+      "counters_read_ok": true,
+      "invocations_eq_emitted_plus_drops": true,
+      "zero_drops": true,
+      "emitted_eq_events_in_file": true,
+      "events_written_userspace_eq_events_in_file": true,
+      "global_sequence_gapless": true,
+      "global_sequence_spans_invocations": true,
+      "result_present_where_required": true,
+      "clock_counts_match_sidecar": true,
+      "single_dominant_connection": true
+    },
+    "offset_interval_s": [
+      -0.5289,
+      0.2487
+    ],
+    "on_periods_rel": [
+      [
+        0.0,
+        20.57
+      ],
+      [
+        40.58,
+        61.2
+      ],
+      [
+        81.21,
+        101.75
+      ]
+    ],
+    "all_delay_to_compete": [
+      {
+        "seq": 312,
+        "t": 2.295,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 18537,
+        "t": 42.905,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 40740,
+        "t": 83.821,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      }
+    ],
+    "H_events": [],
+    "H_COUNT": 0,
+    "D_events": [],
+    "D_COUNT": 0,
+    "episode_diagnostic": {
+      "312": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 396,
+        "ratio": 0.265525,
+        "settle_gate_flips": false
+      },
+      "18537": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 18781,
+        "ratio": 0.278313,
+        "settle_gate_flips": false
+      },
+      "40740": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 40964,
+        "ratio": 0.26166,
+        "settle_gate_flips": false
+      }
+    },
+    "H_AND_D_SAME_EPISODE_COUNT": 0,
+    "H_AND_D_SAME_EPISODE": [],
+    "outcome_class": "NEITHER"
+  },
+  {
+    "prefix": "raw/covegas_campaign/rep4",
+    "trace": "raw/covegas_campaign/rep4.ccr",
+    "valid": true,
+    "drops": 0,
+    "sequence_gaps": 0,
+    "dominant_events": 68424,
+    "dominant_fraction": 0.99999,
+    "callback_counts": {
+      "init": 2,
+      "pkts_acked": 34700,
+      "cong_avoid": 33712,
+      "ssthresh": 11
+    },
+    "integrity_checks": {
+      "magic_ok": true,
+      "trace_version_known": true,
+      "callback_manifest_matches": true,
+      "private_state_schema_matches": true,
+      "counters_read_ok": true,
+      "invocations_eq_emitted_plus_drops": true,
+      "zero_drops": true,
+      "emitted_eq_events_in_file": true,
+      "events_written_userspace_eq_events_in_file": true,
+      "global_sequence_gapless": true,
+      "global_sequence_spans_invocations": true,
+      "result_present_where_required": true,
+      "clock_counts_match_sidecar": true,
+      "single_dominant_connection": true
+    },
+    "offset_interval_s": [
+      -0.6461,
+      0.2517
+    ],
+    "on_periods_rel": [
+      [
+        0.0,
+        20.69
+      ],
+      [
+        40.69,
+        61.35
+      ],
+      [
+        81.35,
+        102.01
+      ]
+    ],
+    "all_delay_to_compete": [
+      {
+        "seq": 566,
+        "t": 1.637,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 4495,
+        "t": 17.336,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 9533,
+        "t": 25.489,
+        "phase_over_interval": "ROBUST_OFF",
+        "dir": "D->C"
+      },
+      {
+        "seq": 23381,
+        "t": 42.424,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      },
+      {
+        "seq": 47833,
+        "t": 83.968,
+        "phase_over_interval": "ROBUST_ON",
+        "dir": "D->C"
+      }
+    ],
+    "H_events": [
+      {
+        "seq": 9533,
+        "t": 25.489,
+        "phase_over_interval": "ROBUST_OFF",
+        "dir": "D->C"
+      }
+    ],
+    "H_COUNT": 1,
+    "D_events": [
+      {
+        "seq": 10421,
+        "t": 26.486,
+        "dlv_rate_bps": 1192908,
+        "dlv_rate_max": 1197822,
+        "ratio": 0.995898,
+        "elapsed_jiffies_before": 250,
+        "elapsed_jiffies_after": 250,
+        "settle_gate_flips": false,
+        "episode_entry_seq": 9533,
+        "episode_entry_phase": "ROBUST_OFF"
+      }
+    ],
+    "D_COUNT": 1,
+    "episode_diagnostic": {
+      "566": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 810,
+        "ratio": 0.457377,
+        "settle_gate_flips": false
+      },
+      "4495": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 4711,
+        "ratio": 0.650643,
+        "settle_gate_flips": false
+      },
+      "9533": {
+        "entry_phase": "ROBUST_OFF",
+        "reason": "guard_failed",
+        "settle_seq": 10421,
+        "ratio": 0.995898,
+        "settle_gate_flips": false
+      },
+      "23381": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 23713,
+        "ratio": 0.342762,
+        "settle_gate_flips": false
+      },
+      "47833": {
+        "entry_phase": "ROBUST_ON",
+        "reason": "guard_passed",
+        "settle_seq": 48057,
+        "ratio": 0.261883,
+        "settle_gate_flips": false
+      }
+    },
+    "H_AND_D_SAME_EPISODE_COUNT": 1,
+    "H_AND_D_SAME_EPISODE": [
+      {
+        "seq": 10421,
+        "t": 26.486,
+        "dlv_rate_bps": 1192908,
+        "dlv_rate_max": 1197822,
+        "ratio": 0.995898,
+        "elapsed_jiffies_before": 250,
+        "elapsed_jiffies_after": 250,
+        "settle_gate_flips": false,
+        "episode_entry_seq": 9533,
+        "episode_entry_phase": "ROBUST_OFF"
+      }
+    ],
+    "outcome_class": "H+D_SAME_EPISODE"
+  }
+]
