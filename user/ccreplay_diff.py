@@ -59,6 +59,10 @@ def _detect_version_and_parse(trace_path):
         from user.ccr_trace_v1 import parse_trace_v1, select_dominant_connection, CALLBACK_NAMES
         hdr, events = parse_trace_v1(trace_path)
         return hdr, events, select_dominant_connection, CALLBACK_NAMES
+    elif trace_version == 2:
+        from user.ccr_trace_v2 import parse_trace_v2, select_dominant_connection, CALLBACK_NAMES
+        hdr, events = parse_trace_v2(trace_path)
+        return hdr, events, select_dominant_connection, CALLBACK_NAMES
     else:
         raise ValueError(f"unsupported trace_version {trace_version}")
 
@@ -91,12 +95,27 @@ def diff_trace(trace_path, meta_path, reference_module, candidate_module):
     matched_before_divergence = 0
     first_divergence = None
 
+    # v2 (CoVegas, ADR-023) uses a mode-dependent comparison schema
+    # `comparison_fields(callback_id, pre_mode, post_mode)` instead of a flat
+    # `COMPARISON_FIELDS` dict. The two are handled uniformly below: for v2
+    # the field list is computed per-event AFTER the transitions run (it
+    # needs the computed POST mode). `priv_post_mode` is always in the
+    # dedicated field set, so a mode disagreement between the two modules is
+    # caught as a divergence regardless of which arm is gated.
+    v2_schema = (not hasattr(reference_module, "COMPARISON_FIELDS")
+                 and hasattr(reference_module, "comparison_fields"))
+
     for idx, e in enumerate(dominant_events):
         cb = e["callback_id"]
-        fields = reference_module.COMPARISON_FIELDS[cb]
 
         ref_computed, ref_state = reference_module.transition(e, ref_state)
         cand_computed, cand_state = candidate_module.transition(e, cand_state)
+
+        if v2_schema:
+            fields = reference_module.comparison_fields(
+                cb, e.get("priv_pre_mode"), ref_computed.get("priv_post_mode"))
+        else:
+            fields = reference_module.COMPARISON_FIELDS[cb]
 
         diffs = [f for f in fields if ref_computed.get(f) != cand_computed.get(f)]
         if diffs:
