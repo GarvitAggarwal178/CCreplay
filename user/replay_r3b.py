@@ -33,9 +33,9 @@ import json
 
 sys.path.insert(0, ".")
 from user.ccr_trace_v1 import parse_trace_v1, select_dominant_connection, CALLBACK_NAMES, clock_classification
-from user.cubic_model import transition, COMPARISON_FIELDS, PRIVATE_FIELDS, CCR_CB_INIT
+from user.cubic_model import transition, COMPARISON_FIELDS, PRIVATE_FIELDS, CCR_CB_INIT, INITIAL_PRIVATE_STATE
 
-ZERO_PRIVATE_STATE = {f: 0 for f in PRIVATE_FIELDS}
+ZERO_PRIVATE_STATE = INITIAL_PRIVATE_STATE
 
 
 def run_r3b_on_trace(trace_path, meta_path):

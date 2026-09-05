@@ -475,6 +475,12 @@ PRIVATE_FIELDS = (
     "round_start", "end_seq", "last_ack", "curr_rtt",
 )
 
+# Symmetric with reno_model.NONE_PRIVATE_STATE -- CUBIC's actual initial
+# private state (a freshly allocated, zeroed icsk_ca_priv), used by Mode B
+# (replay_r3b.py) and the N4 differential debugger (ccreplay_diff.py) as the
+# seed before the trace's own `init` event is replayed as transition #1.
+INITIAL_PRIVATE_STATE = {f: 0 for f in PRIVATE_FIELDS}
+
 
 def pre_from_event(e):
     """Shared-state PRE dict, keyed to match cubic_model function
