@@ -12,6 +12,9 @@ this table follows.
 | N4 — differential debugger core | **COMPLETE** | 02:07–02:11 UTC (budget 1.5h) | [REPORT_DIFFERENTIAL_DEBUGGER.md](REPORT_DIFFERENTIAL_DEBUGGER.md) | `9097835` | Yes — hard negative oracle PASS for both Reno and CUBIC, proceed to N5 (controlled regression case study) |
 | N5 — controlled regression case study | **PASS** | 02:11–02:16 UTC (budget 1.5h) | [REPORT_CONTROLLED_REGRESSION_CASE_STUDY.md](REPORT_CONTROLLED_REGRESSION_CASE_STUDY.md) | `4d2972e` (predictions), `2f82a9c` (results) | Yes — proceed to N6 (checkpoint + suffix reproducer) |
 | N6 — checkpoint + suffix reproducer | **COMPLETE** | 02:17–02:19 UTC (budget 1h) | [REPORT_CHECKPOINT_REPRODUCER.md](REPORT_CHECKPOINT_REPRODUCER.md) | `d2f2adb` | Session ends here per pipeline — do not begin the historical CoVegas case study |
+| Part A — evidence-language corrections | **COMPLETE** | 10:16–10:24 UTC | (folded into `REPORT_CUBIC_REPLAY_VALIDATION.md` + new `data/kernel_source_ref/CUBIC_SOURCE_PROVENANCE.md`) | `6e95112` | Yes — proceed to Part B |
+| Part B — `undo_cwnd` auxiliary coverage | **COMPLETE (VALIDATED)** | 10:24–10:29 UTC | (folded into `REPORT_CUBIC_REPLAY_VALIDATION.md`) | `f4276f7` | Yes — R3 remains PARTIAL, proceed to Part C |
+| Part C — clock-boundary investigation | **COMPLETE** (`ATTRIBUTED_AND_CHARACTERIZED`) | 10:29–10:31 UTC | [REPORT_CUBIC_CLOCK_BOUNDARY_INVESTIGATION.md](REPORT_CUBIC_CLOCK_BOUNDARY_INVESTIGATION.md) | `4cb3ee2` | Yes — does not upgrade R3 to PASS; proceed to Part D (CoVegas readiness audit) |
 
 ## Phase 1 summary
 
