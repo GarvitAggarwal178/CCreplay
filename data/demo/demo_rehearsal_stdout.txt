@@ -77,8 +77,9 @@ FIELD:       priv_post_mode
 FIELD:       priv_post_dlv_rate_compete
   fixed/v4 (revert): 0
   recon-v3 (latch):  1192908
-OTHER DIFFERING FIELDS: post_snd_cwnd, post_snd_cwnd_cnt, priv_post_recent_min_us, priv_post_detect_count, priv_post_last_compete_exit_jiffies, priv_post_delay_window_start_ack, priv_post_delay_cwnd_at_window_start, priv_post_delay_rtts_in_window, priv_post_delay_detect_hold_until
-  (v4 executed revert_to_delay(); v3 executed cubic_growth())
+OTHER DIFFERING (computed boundary values): post_snd_cwnd, post_snd_cwnd_cnt, priv_post_recent_min_us, priv_post_detect_count, priv_post_last_compete_exit_jiffies, priv_post_delay_window_start_ack, priv_post_delay_cwnd_at_window_start, priv_post_delay_rtts_in_window, priv_post_delay_detect_hold_until
+  (v4 executed revert_to_delay(); v3 executed cubic_growth() -- these are the values each
+   implementation COMPUTES AT THIS RECORDED CALLBACK BOUNDARY, not an alternate trajectory)
 ====================================
 
 PASS -- fixed/v4 and reconstructed-v3 first differ at exactly the historical Predicate-D event.
