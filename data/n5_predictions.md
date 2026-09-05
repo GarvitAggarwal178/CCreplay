@@ -80,5 +80,30 @@ each time).
 
 ## RESULTS
 
-*(appended after running `user/ccreplay_diff.py` against all four bug variants; this section is
-added, not a rewrite of the predictions above.)*
+Run via `user/ccreplay_diff.py --reference user.cubic_model --candidate user.cubic_model_bug_<name>`
+against all three primary traces. Predictions above are unmodified; this section is purely additive.
+
+| bug | prediction correct? | matched before divergence (rep1/2/3) | actual callback | actual field | actual value diff |
+| --- | --- | ---: | --- | --- | --- |
+| 1 — wrong ssthresh | **YES, exactly** | 1704 / 1722 / 1710 | `ssthresh` | `result` | reference=145, candidate=146 (+1, exactly as predicted) |
+| 2 — ACK accounting | **PARTIALLY** (trigger class right, magnitude off) | 587 / 565 / 623 | `cong_avoid` | `priv_post_ack_cnt` | matches |
+| 3 — epoch/reset | **YES, exactly** | 1704 / 1722 / 1710 (same event as Bug 1, as predicted) | `ssthresh` | `priv_post_epoch_start` | matches |
+| 4 — dormant undo | **YES, exactly** | 78,688 / 78,768 / 78,632 (full trace, no divergence) | — | — | **NO DIVERGENCE**, confirmed |
+
+**Bug 2 detail on the partial miss:** the prediction stated the divergence would appear "on the
+first or second `cong_avoid` event... extremely early," reasoning that a standard-MSS ACK train
+usually carries `acked=2`. The trigger *class* was correct — the bug is invisible whenever the real
+`acked` value happens to equal 1 (since `+1` and `+acked` then coincide) — but slow-start's earliest
+growth phase apparently produces `acked=1` far more often than assumed (587/565/623 matched events
+elapsed, all presumably `acked==1`, before the first `acked!=1` event). This is recorded as a
+partial miss rather than silently rounded up to "correct," per the pipeline's "do not rewrite
+predictions" instruction — the reasoning behind the prediction was sound in kind, wrong in
+magnitude.
+
+**Reference-vs-reference control:** re-verified NO DIVERGENCE on all three primary traces
+immediately before this run (already established in `REPORT_DIFFERENTIAL_DEBUGGER.md`'s N4 hard
+negative oracle; the standing invariant held).
+
+**Overall: 3 of 4 predictions exactly correct, 1 partially correct (right class, wrong magnitude),
+0 wrong, 0 false positives on the dormant control.** N5 is declared PASS — see
+`REPORT_CONTROLLED_REGRESSION_CASE_STUDY.md`.
