@@ -1,0 +1,58 @@
+
+==============================================================
+ CCReplay demo 1/3 -- NEGATIVE CONTROL (identical implementations)
+==============================================================
+TRACE:            raw/cubic_replay/primary/rep1.ccr  (Replay ABI v1, CUBIC)
+REFERENCE:        user.cubic_model
+CANDIDATE:        user.cubic_model   (same module)
+
+EVENTS CHECKED:   78688
+MATCHED:          78688
+RESULT:           NO DIVERGENCE
+
+PASS -- identical implementations produce NO DIVERGENCE, as they must.
+
+
+==============================================================
+ CCReplay demo 2/3 -- SEEDED FIRST DIVERGENCE
+==============================================================
+TRACE:            raw/cubic_replay/primary/rep1.ccr  (Replay ABI v1, CUBIC)
+REFERENCE:        user.cubic_model              (known good)
+CANDIDATE:        user.cubic_model_bug_ssthresh (seeded: wrong ssthresh reduction, +1)
+
+MATCHING EVENTS BEFORE DIVERGENCE: 1704
+
+========= FIRST DIVERGENCE =========
+EVENT INDEX: 1704
+SEQ:         1705
+CALLBACK:    ssthresh
+FIELD:       result
+  REFERENCE: 145
+  CANDIDATE: 146
+====================================
+
+PRE context at the divergent event: {'pre_snd_cwnd': 208, 'pre_snd_ssthresh': 148, 'pre_snd_cwnd_cnt': 0}
+
+PASS -- first divergence localized to one callback + one field.
+
+
+==============================================================
+ CCReplay demo 3/3 -- CHECKPOINT + SUFFIX REPRODUCER
+==============================================================
+TRACE:            raw/cubic_replay/primary/rep1.ccr
+REFERENCE:        user.cubic_model
+CANDIDATE:        user.cubic_model_bug_ssthresh
+CHECKPOINT EVERY: 500 events
+
+FULL TRACE DIVERGENCE:  event_index=1704 seq=1705 callback=ssthresh field=result
+CHECKPOINT:             event_index=1500 seq=1501
+REPLAYED SUFFIX LENGTH: 204  (events 1501..1704, every one, in order)
+REPRODUCED DIVERGENCE:  event_index=1704 seq=1705 field=result
+IDENTICAL RESULT:       True
+
+PASS -- suffix replay reproduces the identical first divergence.
+
+==============================================================
+ DEMO RUN-ALL: PASS  (negative control clean, first divergence localized, reproduced from suffix)
+==============================================================
+EXIT_CODE=0

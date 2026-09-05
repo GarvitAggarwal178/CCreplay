@@ -175,7 +175,23 @@ empirical evidence; **not** proof that workload phase causally determines the ra
 
 ## PHASE 6 — PROFESSOR DEMO PACKAGE
 
-_(appended after Phase 6)_
+`scripts/demo/` (5 files) + `data/demo/` (`DEMO_NUMBERS.md`, rehearsal logs, checkpoint file).
+Deterministic, offline, no network, no UI. Presenter guide: `scripts/demo/README.md`.
+
+| script | what it shows | rehearsal result |
+| --- | --- | --- |
+| `demo_01_negative_control.sh` | `user.cubic_model` vs itself, `raw/cubic_replay/primary/rep1.ccr` | **NO DIVERGENCE**, 78,688 events, exit 0 |
+| `demo_02_first_divergence.sh` | `user.cubic_model` vs `user.cubic_model_bug_ssthresh` (+1 ssthresh) | **FIRST DIVERGENCE** event 1704 / seq 1705 / `ssthresh` / `result` (ref 145, cand 146), exit 0 |
+| `demo_03_checkpoint_reproducer.sh` | reproduce that divergence from checkpoint@1500 + 204-event suffix | REPRODUCED, IDENTICAL RESULT = True, exit 0 |
+| `demo_00_run_all.sh` | runs 1→2→3 | **EXIT 0**, wall-clock **1.56 s**, peak RSS 240 MB (`data/demo/demo_rehearsal_stdout.txt` / `_stderr.txt`) |
+
+All demo outputs agree with the committed N4 / N5 / N6 reports. `data/demo/DEMO_NUMBERS.md` cites a
+repository source path for every value (Reno / CUBIC / N4-N6 / CoVegas / historical status). No
+demo step depends on a new capture; the optional `demo_04_historical_a3.sh` exists only if Phase
+10A succeeds.
+
+Phase-6 gate: ABI compat was CLEAN (Phase 0) and N4/N5/N6 evidence is intact → demo package is
+BANKED regardless of what the A3 network track does.
 
 ## PHASE 7–11 — HISTORICAL CAPTURE CAMPAIGN + OUTCOME
 
