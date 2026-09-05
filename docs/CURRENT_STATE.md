@@ -129,7 +129,7 @@ and ADR-017 through ADR-024 in `docs/DECISIONS.md`) — not duplicated here. Per
 | Controlled seeded regression (N5) | **PASS** | 4 seeded bugs: 3 positive controls (2 exact, 1 partial-magnitude miss, correctly localized to callback/field in all 3) + 1 required dormant negative control (exact NO DIVERGENCE, 78,688/78,768/78,632 events, no false positive) | Predictions committed (`4d2972e`) before bug code existed; the one partial miss is disclosed, not rounded up |
 | Checkpoint + suffix reproducer (N6) | **COMPLETE** | Bug 1 demo: checkpoint@event 1500, divergence@event 1704, 204-event suffix replayed in full, reproduced the identical divergence | Reproducer, not minimizer — no event in the suffix is skipped or deleted, by design |
 | CoVegas Replay Fidelity (E1–E3) | **PASS**, unqualified | E2 (event-local): 190,277 events, 4,982,990 field comparisons, 0 mismatches, all 3 primary traces. E3 (stateful): first divergence = NONE across all 3 traces (190,277 sequential transitions total, 3 separate all-exact runs). All 30 semantic private fields (17 dedicated + both union arms) changed value nontrivially; both mode-transition directions exercised. Neither clock (`tcp_jiffies32`, `bpf_ktime_get_ns()`) produced a single mismatch — the CUBIC clock exception was proven, not assumed, not to transfer to this trace set. `undo_cwnd`: 0 events in primary traces — Outcome A (function semantics independently supported via the shared `tcp_reno_undo_cwnd` kernel helper; the CoVegas ABI-v2 recorder/model path itself was not exercised) — this is not the CUBIC auxiliary trace's result and does not itself constitute CoVegas-trace evidence. | Reference-strength caveat: CoVegas has no independent kernel-native reference (ADR-022); this PASS validates CCReplay's replay fidelity for the selected BPF implementation, not the independent correctness of the CoVegas algorithm itself. `undo_cwnd` coverage is function-level only (Outcome A), not trace-level — does not affect this PASS or the historical case study's readiness (the historical mechanism runs through `cong_avoid`, fully exercised). |
-| Historical CoVegas regression case study | **INCOMPLETE — TRIGGER NOT REPRODUCED** | 3 bounded intermittent-workload capture attempts (rep1/rep2/rep3), 18 real recorded mode transitions total, 0 occurred during an off-period. The buggy-vs-fixed differential replay was intentionally NOT run because the required trigger was absent. | This is not: a CCReplay fidelity failure; a debugger failure; a disproven historical regression. It is a trigger-availability blocker. |
+| Historical CoVegas regression case study | **CLOSED SUCCESSFULLY** (narrow-sense differential-replay PASS) | Originally INCOMPLETE — TRIGGER NOT REPRODUCED in 3 bounded attempts; **subsequently closed** by a capped acquisition campaign (`REPORT_FINAL_HISTORICAL_CAPTURE_CAMPAIGN.md`): valid run 4 of a 9-run / 12-attempt campaign, `raw/covegas_campaign/rep4.ccr` — spurious off-period `DELAY→COMPETE` at `seq=9533` (`ROBUST_OFF`) + same-episode settle-latch guard failure at `seq=10421` (ratio ≈ 0.996). `fixed/v4` vs `reconstructed-v3` first diverges at exactly `seq=10421` (`cong_avoid`): `priv_post_mode` DELAY↔COMPETE, `priv_post_dlv_rate_compete` 0↔latched, + full `revert_to_delay`-vs-`cubic_growth` field set — matches the precommitted prediction (`b8af8c1`) exactly. Divergent event is `CLOCK_STABLE`. | Narrow claim only: *on the recorded fixed/v4 callback stream, reconstructed-v3 first differs from fixed/v4 at the Predicate-D event in the historical off-period COMPETE episode.* NOT alternate throughput/RTT/queue state, NOT a recreated network outcome. `reconstructed-v3` is v4's committed source with exactly the A3 guard reverted — a documented reconstruction, not original v3 source. |
 
 ## 6. Important Replay Contract discoveries
 
@@ -275,6 +275,17 @@ did not establish:
 
 ## 10. Historical CoVegas case-study state
 
+**Status: CLOSED SUCCESSFULLY** (Final Integrated Session, Branch 10A). A qualifying H+D trace was
+acquired on valid run 4 of a capped campaign (`raw/covegas_campaign/rep4.ccr`;
+`REPORT_FINAL_HISTORICAL_CAPTURE_CAMPAIGN.md`; `data/historical_case_freeze_decision.md`). `fixed/v4`
+vs `reconstructed-v3` first diverges at the precommitted Predicate-D event (`seq=10421`,
+`cong_avoid`); the difference is the A3 revert-vs-latch branch outcome
+(`priv_post_mode` DELAY↔COMPETE, `priv_post_dlv_rate_compete` 0↔latched, plus the full
+`revert_to_delay`-vs-`cubic_growth` field set). Narrow claim only — not alternate throughput / RTT
+/ queue state, not a recreated network outcome. No further historical capture is authorized.
+
+The build description below is unchanged (`reconstructed-v3` = the "buggy build" used in that diff):
+
 - **Fixed build:** v4 — the actual, currently committed `~/cn-spike/covegas/src/covegas.bpf.c`
   source. This is the only version of that file ever committed to the read-only repository.
 - **Buggy build:** a reconstruction — v4's real source with exactly one conditional in
@@ -295,17 +306,19 @@ did not establish:
   0 of 9 boundaries at `HOLD_MS=0` and 0 of 9 boundaries at `HOLD_MS=2000` (3 runs each). The full
   three-setting sweep (9 runs, 27 boundaries) shows 1 spurious re-entry pooled across all 27 — that
   pooled 1/27 figure must not be substituted for the `HOLD_MS=500`-specific 1/9 rate.
-- **Current attempts:** 3 bounded runs on the historically-relevant intermittent-workload topology;
-  trigger absent in all 3 (**3 runs, 9 off-period boundaries, 0 observed trigger events**). Under a
-  rough independence model using the selected configuration's descriptive rate (1/9 per boundary) —
-  a rough binomial sensitivity figure, not an estimated trigger distribution — `P(0 in 9) = (8/9)^9
-  ≈ 34.6%`, so observing zero is plausible and unsurprising at this sample size (not claimed as the
-  expected or most likely count). (An earlier draft used `(8/9)^3 ≈ 70%`, treating the historical
-  denominator as 3 runs instead of 9 boundaries — corrected here.)
-- The buggy CoVegas model module was designed but not implemented, since there was no
-  trigger-positive trace to run it against.
-- `data/historical_regression_predictions.md` remains committed and unresolved by design — no
-  RESULTS section was appended, since no diff was ever run.
+- **Earlier bounded verification pass:** 3 runs, 9 off-period boundaries, 0 observed trigger — an
+  expected-scale result at the ~1/9-per-boundary descriptive rate (rough sensitivity, not a power
+  guarantee).
+- **Final Integrated Session acquisition campaign:** 4 attempts / 4 valid runs / 12 valid
+  boundaries; **1 Predicate-H event, 1 Predicate-D event, 1 same-episode H+D** on valid run 4
+  (`raw/covegas_campaign/rep4.ccr`). Stopped on the first acquisition (cap 9 valid / 12 total).
+  Rough sensitivity: `P(≥1 H in 27 boundaries, p=1/9) ≈ 1−(8/9)^27 ≈ 95.8%` — not a power guarantee
+  and not an H+D probability.
+- **The reconstructed-v3 module** (`user/covegas_model_v3_latch.py`) **was implemented** (Phase 3),
+  `ONLY_A3_SEMANTIC_DIFFERENCE = YES`, positive + negative controls all PASS, and run against the
+  acquired trace.
+- `data/historical_regression_predictions.md` — a **RESULTS section is now appended** (the diff was
+  run); the original predictions are not rewritten.
 - **A3 predicate audit (`REPORT_EVIDENCE_RECONCILIATION_AND_A3_PREDICATE_AUDIT.md`, rounds 2–3):**
   the A3 settle-latch *implementation-divergence* predicate (Predicate D) was derived from source
   and scanned over the three existing CoVegas traces alongside the historical off-period *symptom*
@@ -317,26 +330,30 @@ did not establish:
   `Δ ∈ {−1 … +1} s` sensitivity sweep. Predicate D NO: under the corrected control flow
   (cwnd-limited gate → minrtt-probe gate → COMPETE dispatch → settle-latch), every scanned
   settle-time-gate classification is exactly resolved under both jiffies bracket endpoints.
-  Interpretation **CASE 4 — neither predicate present**; no v2 differential-replay candidate exists
-  in the current traces.
+  Interpretation for the three *original* traces was **CASE 4 — neither predicate present**; the
+  Final Integrated Session's acquisition campaign then obtained a **CASE 1** trace
+  (`raw/covegas_campaign/rep4.ccr`) and ran the differential replay (Branch 10A) — see the status
+  line at the top of this section.
 
 **Do not describe the case study as failed.** Nothing about CCReplay, the CoVegas Replay Contract,
-or the recorder failed; self-replay fidelity was fully demonstrated (PASS, §5) before this blocker
-was even reached. The blocker is specifically about reproducing a rare, historically-documented-as-
-rare network condition on demand within a bounded number of attempts.
+or the recorder ever failed; self-replay fidelity was demonstrated (PASS, §5) independently, and the
+historical case is now **closed successfully** in the narrow differential-replay sense.
 
 ## 11. Current open work — prioritized
 
-- **Priority A — Decide historical case-study strategy.** A project-level decision (more bounded
-  attempts vs. a longer/multi-rep capture campaign vs. accepting INCOMPLETE as the final state for
-  this case study) is required. **This decision is not executed in this task.**
+- **Priority A — Historical case-study strategy — RESOLVED.** The Final Integrated Session ran a
+  capped acquisition campaign and closed the historical case successfully (Branch 10A,
+  `data/historical_case_freeze_decision.md`). No further historical network campaign is authorized
+  (hard termination clauses in that file).
 - **Priority B — Replay ABI ablation.** Mask one recorded field class at a time and rerun
   self-replay to identify load-bearing fields, per `docs/REPLAY_ABI.md`'s ablation section. Not yet
   started for any controller.
 - **Priority C — Formal recorder non-interference.** A dedicated study of whether the recorder
   detectably perturbs the connection it instruments under the validated Gate-3-R2 topology,
   distinct from N0's isolated CPU-cost diagnostic.
-- **Priority D — Professor demo.** Packaging the differential-debugger / checkpoint-reproducer
+- **Priority D — Professor demo — DONE.** `scripts/demo/` (deterministic N4/N5/N6 package,
+  rehearsed EXIT 0 in 1.6 s) + optional `demo_04_historical_a3.sh`. Packaging the
+  differential-debugger / checkpoint-reproducer
   results (N4–N6) into a presentable demonstration.
 - **Priority E — Prior-art review.** Broadening related-work claims in `docs/PRIOR_ART.md`.
 
@@ -346,8 +363,12 @@ rare network condition on demand within a bounded number of attempts.
    primary traces) is not met, regardless of how fully the clock residual is characterized.
 2. Do not downgrade CoVegas self-replay (E1–E3, PASS) because the historical trigger was absent —
    these are unrelated results; fidelity was proven before the trigger blocker was reached.
-3. Do not call the historical regression case study FAIL. It is INCOMPLETE, blocked on trigger
-   availability, not a disproven regression or a CCReplay defect.
+3. Do not call the historical regression case study FAIL. It was originally INCOMPLETE (blocked on
+   trigger availability) and is now **CLOSED SUCCESSFULLY** in the narrow sense — a qualifying H+D
+   trace was acquired (`raw/covegas_campaign/rep4.ccr`) and `fixed/v4` vs `reconstructed-v3` first
+   diverges at the precommitted Predicate-D event. Do not inflate that to a claim about alternate
+   throughput / RTT / queue state or a recreated network outcome; do not present `reconstructed-v3`
+   as original committed v3 source (it is v4 with the A3 guard reverted).
 4. Do not describe CUBIC's clock limitation as "irreducible" — it is a characterized clock-boundary
    limitation under the current recorder architecture, and the bounded instrumentation search was
    NOT CLOSED, not exhaustively proven impossible.
@@ -457,11 +478,18 @@ HISTORICAL COVEGAS REGRESSION
   Historical rate (HOLD_MS=500): 3 runs, 9 off-period boundaries, 1 observed trigger (not "1 of 9 runs")
   0 of 9 boundaries at HOLD_MS=0 (3 runs); 0 of 9 boundaries at HOLD_MS=2000 (3 runs)
   Full 3-setting sweep: 9 runs, 27 boundaries, 1 trigger pooled (not substitutable for the HOLD_MS=500 rate)
-  Current attempts: 3 runs, 9 off-period boundaries, 0 observed trigger events
-  Rough binomial sensitivity (independence assumption, not an estimated distribution):
-       P(0 in 9, rate 1/9) ~= (8/9)^9 ~= 34.6% -- observing zero is plausible/unsurprising at this
-       sample size; NOT claimed as the expected or most likely count. (Corrected from an earlier
-       (8/9)^3 ~= 70% figure that used the wrong denominator.)
+  Bounded verification pass (earlier): 3 runs, 9 off-period boundaries, 0 observed trigger events
+  Final Integrated Session acquisition campaign: 4 attempts, 4 valid runs, 12 valid boundaries;
+       H events = 1, D events = 1, H+D same episode = 1 (valid run 4, raw/covegas_campaign/rep4.ccr);
+       STOP on first H+D acquisition (cap was 9 valid runs / 12 total attempts).
+  Acquired episode: H DELAY->COMPETE seq=9533 (ROBUST_OFF), D settle-latch guard FAIL seq=10421
+       (ratio 1,192,908/1,197,822 = 0.9959), same episode; divergent event is CLOCK_STABLE.
+  fixed/v4 vs reconstructed-v3: FIRST DIVERGENCE at seq=10421 (cong_avoid), 10,420 events matched
+       before; priv_post_mode DELAY<->COMPETE, priv_post_dlv_rate_compete 0<->1,192,908, +
+       revert_to_delay-vs-cubic_growth field set -- matches precommit b8af8c1 exactly.
+  Historical suffix reproducer: checkpoint@10000 + 420-event suffix reproduces the identical divergence.
+  Rough binomial sensitivity (independence assumption, NOT a power guarantee, NOT an H+D probability):
+       P(>=1 H in 27 boundaries, p=1/9) ~= 1-(8/9)^27 ~= 95.8%. Campaign is NOT "95%-powered".
 
 RECORDER OVERHEAD (N0, loopback diagnostic only)
   baseline_production:  mean 7,933 ns/callback  (3 reps: 6847.0, 8837.0, 8113.6)

@@ -72,3 +72,27 @@ CCReplay to discover, not frozen here as a certainty.
 Exact first callback occurrence count, exact sequence number, exact first divergent field value —
 all left `UNKNOWN`, to preserve the value of the case study as a genuine discovery rather than a
 confirmation of an already-known answer.
+
+---
+
+## RESULTS (appended — predictions above NOT rewritten)
+
+The Final Integrated Session's capped acquisition campaign
+(`REPORT_FINAL_HISTORICAL_CAPTURE_CAMPAIGN.md`) obtained a qualifying trace on valid run 4:
+`raw/covegas_campaign/rep4.ccr`. `fixed/v4` vs `reconstructed-v3` differential replay
+(`user/ccreplay_diff.py`, stateful) result:
+
+| predicted (above / `a3_reconstructed_candidate_predictions.md` §2.4) | observed | verdict |
+| --- | --- | --- |
+| affected mechanism: `handle_compete_mode` settle-latch decision, once per `cong_avoid` while `mode==COMPETE` and `dlv_rate_compete==0` after settle time | first divergence at `seq=10421`, `cong_avoid`, exactly that decision | **matched** |
+| affected callback: `cong_avoid` | `cong_avoid` | **matched** |
+| affected state class: `dlv_rate_compete`, then `mode` (+ downstream `detect_count` / `u.delay.*`) | `priv_post_dlv_rate_compete` (0 vs 1,192,908), `priv_post_mode` (DELAY vs COMPETE), `priv_post_detect_count`, `priv_post_delay_*` all differ | **matched** |
+| workload/trigger: intermittent cross-traffic, spurious off-period COMPETE re-entry — verified present before the diff | Predicate H at `seq=9533` (`ROBUST_OFF`), same episode as the Predicate-D event | **matched** |
+| exact first event: UNKNOWN — CCReplay to discover | `seq=10421` (event index 10420); 10,420 events matched before it | **discovered** |
+| exact first divergent field: UNKNOWN | the divergence is simultaneous across `priv_post_mode`, `priv_post_dlv_rate_compete`, `post_snd_cwnd`, and the `revert_to_delay`-vs-`cubic_growth` field set (v4 reverts + returns; v3 latches + grows) | **discovered** — not a single field; the whole branch outcome differs on that one event |
+
+Narrow-sense **PASS**: *on the recorded fixed/v4 callback stream, reconstructed-v3 first differs
+from fixed/v4 at the Predicate-D event in the historical off-period COMPETE episode.* No claim about
+alternate throughput / RTT / queue state or a recreated network outcome.
+`reconstructed-v3` is v4's committed source with exactly the A3 guard reverted
+(`data/a3_reconstructed_candidate_diff.md`), a documented reconstruction, not original v3 source.

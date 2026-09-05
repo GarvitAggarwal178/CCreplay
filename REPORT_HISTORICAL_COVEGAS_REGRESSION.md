@@ -1,8 +1,30 @@
 # Historical CoVegas Regression Case Study
 
-## Status: **INCOMPLETE**
+## Status: **CLOSED SUCCESSFULLY** (narrow-sense differential-replay PASS)
 
-**Blocker:** `TRIGGER NOT REPRODUCED` — see `data/historical_trigger_validation.md`. The historical
+> **Historical state at time of this report:** `INCOMPLETE — TRIGGER NOT REPRODUCED` (3 bounded
+> attempts). **Subsequently closed** by the Final Integrated Session's capped acquisition campaign
+> (`REPORT_FINAL_HISTORICAL_CAPTURE_CAMPAIGN.md`, `data/historical_case_freeze_decision.md`): valid
+> run 4 of a 9-run / 12-attempt campaign produced `raw/covegas_campaign/rep4.ccr`, which contains a
+> spurious off-period `DELAY→COMPETE` entry (`seq=9533`, `ROBUST_OFF`) and, ≈ 1 s later in the same
+> COMPETE episode, a settle-latch guard evaluation (`seq=10421`, `dlv_rate_bps/dlv_rate_max ≈
+> 0.996`) that the v4 A3 guard fails (Predicate H **and** Predicate D, same episode). `fixed/v4` vs
+> `reconstructed-v3` (`user/covegas_model_v3_latch.py`, controls all PASS) first diverges at exactly
+> `seq=10421` (`cong_avoid`): `priv_post_mode` DELAY↔COMPETE, `priv_post_dlv_rate_compete` 0↔latched,
+> plus the full `revert_to_delay()`-vs-`cubic_growth()` field set — matching the precommitted
+> prediction (`data/a3_reconstructed_candidate_predictions.md` §2.4, `b8af8c1`) exactly.
+>
+> Narrow claim only: *on the recorded fixed/v4 callback stream, reconstructed-v3 first differs from
+> fixed/v4 at the precommitted Predicate-D event in the historical off-period COMPETE episode.* Not
+> a claim about alternate throughput / RTT / queue state or a recreated network outcome.
+
+The rest of this document is the historical record as written when the case was `INCOMPLETE`; it is
+not rewritten. Later evidence supersedes the `INCOMPLETE` status but not this raw account.
+
+---
+
+**Blocker (historical, at time of writing):** `TRIGGER NOT REPRODUCED` — see
+`data/historical_trigger_validation.md`. The historical
 regression's trigger (a spurious `DELAY→COMPETE` mode transition during an off-period) did not
 occur in any of 3 bounded primary-workload attempts, so the buggy-vs-fixed differential replay
 (Part F) was never run — running it and reporting "no divergence" on a trace that never reaches the

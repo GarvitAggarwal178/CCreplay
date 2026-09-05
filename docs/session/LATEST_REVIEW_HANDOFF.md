@@ -193,9 +193,80 @@ demo step depends on a new capture; the optional `demo_04_historical_a3.sh` exis
 Phase-6 gate: ABI compat was CLEAN (Phase 0) and N4/N5/N6 evidence is intact → demo package is
 BANKED regardless of what the A3 network track does.
 
-## PHASE 7–11 — HISTORICAL CAPTURE CAMPAIGN + OUTCOME
+## PHASE 7 — CAMPAIGN PRECOMMIT
 
-_(appended per attempt / per phase)_
+`data/final_historical_capture_campaign.md` committed at **`8ce243a`** — BEFORE the first capture.
+Caps: `MAX_VALID_RUNS=9`, `MAX_VALID_BOUNDARIES=27`, `MAX_TOTAL_ATTEMPTS=12`. Stop on first
+`H_AND_D_IN_SAME_EPISODE`. Config exactly preserved (`HOLD_MS=500`, Gate-3-R2, ABI v2, fixed/v4).
+
+## PHASE 8 — CAMPAIGN + PHASE 9 OUTCOME
+
+Full report: `REPORT_FINAL_HISTORICAL_CAPTURE_CAMPAIGN.md`. Per-attempt data:
+`data/historical_capture_campaign_results.json`. Analyzer: `data/audit_src/campaign_analyze_one.py`.
+
+| attempt | valid run | trace | valid | drops | gaps | dom events | D→C | H (ROBUST_OFF) | D (guard-fail) | H+D | outcome |
+| ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 1 | `rep1.ccr` | yes | 0 | 0 | 65,484 | 3 | 0 | 0 | 0 | NEITHER |
+| 2 | 2 | `rep2.ccr` | yes | 0 | 0 | 56,120 | 7 | 0 | 0 | 0 | NEITHER |
+| 3 | 3 | `rep3.ccr` | yes | 0 | 0 | 60,620 | 3 | 0 | 0 | 0 | NEITHER |
+| 4 | 4 | `rep4.ccr` | yes | 0 | 0 | 68,424 | 5 (1 **ROBUST_OFF**) | **1** | **1** | **1** | **H+D_SAME_EPISODE** |
+
+```text
+TOTAL ATTEMPTS 4 (cap 12) | VALID RUNS 4 (cap 9) | INVALID 0 | VALID BOUNDARIES 12 (cap 27)
+H 1 | D 1 | H+D SAME EPISODE 1 | STOP: H_AND_D_IN_SAME_EPISODE = YES (never continue after first)
+OUTCOME CLASS: 1 -- HISTORICAL DIFFERENTIAL CANDIDATE ACQUIRED
+```
+
+Acquired episode (`raw/covegas_campaign/rep4.ccr`, sha256 `1aeabe02…`):
+- **Predicate H** — DELAY→COMPETE `seq=9533`, t=25.489 s, window `[24.84, 25.74]` ⊂ OFF-period 1
+  `[20.69, 40.69]` → **ROBUST_OFF**.
+- **Predicate D** — settle-latch guard eval `seq=10421`, t=26.486 s (**0.997 s after H**),
+  `dlv_rate_bps=1,192,908 / dlv_rate_max=1,197,822` → **ratio 0.9959 ≥ 0.75 → v4 guard FAILS**;
+  `elapsed_jiffies=250/250` under both jiffies endpoints (no flip); same episode as H.
+- `D_COUNT = 1` → **`D_hist == D_first`** → Branch 10A.
+- Guard ratios across all 4 attempts: ON-period episodes 0.097–0.711 (all PASS); the one
+  OFF-period episode 0.9959 (FAIL) — same mechanism as the archived historical positive (~0.998).
+
+## PHASE 10A — HISTORICAL DIFFERENTIAL REPLAY
+
+```text
+python3 user/ccreplay_diff.py raw/covegas_campaign/rep4.ccr raw/covegas_campaign/rep4.meta.json \
+  --reference user.covegas_model --candidate user.covegas_model_v3_latch
+```
+
+```text
+matched events before divergence: 10,420
+FIRST DIVERGENCE: event_index 10420 / seq 10421 / cong_avoid   (== D_hist == D_first; CLOCK_STABLE)
+  priv_post_mode                 v4 = 0 (DELAY)      v3 = 1 (COMPETE)
+  priv_post_dlv_rate_compete     v4 = 0             v3 = 1,192,908  (latched dlv_rate_bps)
+  post_snd_cwnd                  v4 = 37            v3 = 65
+  + priv_post_detect_count, priv_post_recent_min_us, priv_post_last_compete_exit_jiffies,
+    priv_post_delay_*  -- v4 ran revert_to_delay(); v3 ran cubic_growth()
+```
+
+**Matches the precommitted prediction (`data/a3_reconstructed_candidate_predictions.md` §2.4,
+`b8af8c1`) in every particular** → `HISTORICAL DIFFERENTIAL REPLAY = PASS` (narrow sense):
+
+> On the recorded fixed/v4 callback stream, reconstructed-v3 first differs from fixed/v4 at the
+> precommitted Predicate-D event (`seq=10421`, `cong_avoid`) in the historical off-period COMPETE
+> episode entered at `seq=9533`.
+
+Not claimed: alternate throughput / RTT / queue state / a recreated network outcome.
+
+Optional historical suffix reproducer (`user/ccreplay_checkpoint.py`, extended for v2; N6 v1
+regression unchanged): checkpoint@event 10000 + **420-event suffix** (events 10001..10420)
+reproduces the identical divergence.
+
+## PHASE 11 — CLOSE
+
+`data/historical_case_freeze_decision.md`: **`HISTORICAL NETWORK ACQUISITION CLOSED SUCCESSFULLY`**.
+No further historical network campaign authorized (hard-termination clauses). Formal verdict change:
+**Historical CoVegas A3: INCOMPLETE → CLOSED SUCCESSFULLY** (narrow-sense differential-replay PASS).
+CUBIC R3 still PARTIAL; CoVegas v2 self-replay still PASS; Reno v0 still PASS.
+
+## PHASE 12 — OPTIONAL HISTORICAL DEMO
+
+_(appended after Phase 12)_
 
 ## PHASE 13 — PERFORMANCE
 

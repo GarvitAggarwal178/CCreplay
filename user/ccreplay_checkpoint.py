@@ -26,6 +26,17 @@ import json
 sys.path.insert(0, ".")
 from user.ccreplay_diff import _detect_version_and_parse, _initial_state
 
+
+def _fields_for(reference_module, cb, event, ref_computed):
+    """v2 (CoVegas, ADR-023) uses a mode-dependent comparison schema
+    `comparison_fields(callback_id, pre_mode, post_mode)`; v0/v1 use a flat
+    `COMPARISON_FIELDS` dict. `priv_post_mode` is always in the dedicated
+    field set, so a mode disagreement is always caught."""
+    if hasattr(reference_module, "COMPARISON_FIELDS"):
+        return reference_module.COMPARISON_FIELDS[cb]
+    return reference_module.comparison_fields(
+        cb, event.get("priv_pre_mode"), ref_computed.get("priv_post_mode"))
+
 CHECKPOINT_SCHEMA_VERSION = 1
 
 
@@ -59,9 +70,9 @@ def run_with_checkpoints(trace_path, reference_module, candidate_module, interva
             })
 
         cb = e["callback_id"]
-        fields = reference_module.COMPARISON_FIELDS[cb]
         ref_computed, ref_state = reference_module.transition(e, ref_state)
         cand_computed, cand_state = candidate_module.transition(e, cand_state)
+        fields = _fields_for(reference_module, cb, e, ref_computed)
         diffs = [f for f in fields if ref_computed.get(f) != cand_computed.get(f)]
         if diffs:
             first_divergence = {
@@ -94,9 +105,9 @@ def replay_suffix_from_checkpoint(checkpoint, dominant_events, reference_module,
     for idx in range(checkpoint["event_index"] + 1, stop_at_index + 1):
         e = dominant_events[idx]
         cb = e["callback_id"]
-        fields = reference_module.COMPARISON_FIELDS[cb]
         ref_computed, ref_state = reference_module.transition(e, ref_state)
         cand_computed, cand_state = candidate_module.transition(e, cand_state)
+        fields = _fields_for(reference_module, cb, e, ref_computed)
         diffs = [f for f in fields if ref_computed.get(f) != cand_computed.get(f)]
         if diffs:
             divergence = {"event_index": idx, "seq": e["seq"], "diff_fields": diffs}
