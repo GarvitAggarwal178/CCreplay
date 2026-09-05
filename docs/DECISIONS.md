@@ -144,3 +144,105 @@ and reports any other sockets' events as diagnostic, not as part of the replayed
 is rejected if the dominant connection accounts for less than 99% of events (an actual mixed-load
 recording, not an incidental stray-socket artifact) rather than silently pooling two connections'
 histories under one sequence.
+
+## ADR-017 — CUBIC reference: real kernel kfuncs for recording, real kernel source for the replay model (not `bpf_cubic.c` for either)
+
+**Status:** accepted (N1 capability audit, before any CUBIC recorder code was written).
+
+N1.1 verifier-load-confirmed (real program IDs assigned, not merely BTF-present) that all seven of
+CUBIC's real kernel functions — `cubictcp_init`, `cubictcp_cong_avoid`, `cubictcp_recalc_ssthresh`,
+`cubictcp_state`, `cubictcp_cwnd_event`, `cubictcp_acked`, plus shared `tcp_reno_undo_cwnd` — are
+callable as kfuncs from `struct_ops` on this kernel. **Decision:** the CUBIC recorder wraps these
+real kernel functions directly (Oracle C, same architecture as Reno/ADR precedent), not the
+read-only `~/cn-spike/bpf_src/bpf_cubic.c` port, which is a stronger oracle and was independently
+confirmed as the kernel's own intended calling convention (`data/kernel_source_ref/tcp_cubic.c`
+lines 490–497 register exactly these six kfuncs via `register_btf_kfunc_id_set(BPF_PROG_TYPE_STRUCT_OPS,
+...)`).
+
+Separately and just as importantly: the **userspace replay model** is built from
+`data/kernel_source_ref/tcp_cubic.c` (the actual kernel source for this exact running kernel,
+version-matched via GitHub's Releases API, not guessed) — not from `bpf_cubic.c`. Reading the real
+source after having only `bpf_cubic.c` available found three load-bearing algorithmic differences
+(time-math rounding order in `bictcp_update`; the HyStart round-reset trigger relocated from
+`cong_avoid`'s `ack` argument to `pkts_acked`'s `hystart_update` keyed on `tp->snd_una`; a real
+`sk->sk_gso_max_size` field read where the port hardcodes a constant) — see
+`data/cubic_replay_kernel_source_correction.md` for the full account, including the direct reversal
+of this session's own precommitted Prediction #1 (`snd_una`). Using the port for the replay model
+would risk exactly the anti-fitting-rule failure mode the pipeline warns about: a mismatch that is
+neither a missing-input (A), transcription (B), nor recorder (C) error, but a genuine difference
+between two independently-written implementations, for which there is no legal fix under the A/B/C
+taxonomy.
+
+## ADR-018 — Two independent controller-visible clocks, captured and classified per event
+
+**Status:** accepted (N1 capability audit / clock-window hazard investigation, before any recorder
+code was written).
+
+Reno's math has zero time dependency; CUBIC's does, and via **two independent clock sources**, not
+the single `tcp_jiffies32` a naive reading might assume. `tcp_jiffies32` is a **global** kernel
+jiffies counter (`(u32)jiffies`, `CONFIG_HZ=250` on this kernel — ~4ms resolution), consulted
+throughout `bictcp_update`'s epoch/delta math and `cwnd_event`'s idle-shift logic; it is not stored
+on any socket and cannot be captured as an ordinary shared-state field. `tp->tcp_mstamp` is an
+ordinary per-socket microsecond timestamp, already updated by TCP core independently of the CC
+callback, used by the HyStart path. Both are independently verifier-load-confirmed readable from
+`struct_ops` on this kernel.
+
+**Decision:** record `clock_jiffies32_before`/`clock_jiffies32_after` (snapshotted immediately
+before/after the kfunc call) and classify each event `CLOCK_STABLE` (equal) or `CLOCK_AMBIGUOUS`
+(changed during the call) — per the pipeline's explicit prohibition on substituting a "nearby"
+clock and declaring the hazard resolved, no other timestamp (including the trace's existing
+diagnostic `ts_ns`) is used as a stand-in. `tp->tcp_mstamp` needs only one PRE snapshot per event
+(only TCP core writes it, never the CC callback, so it cannot change mid-call) and is recorded as
+ordinary `SharedTcpPreState`, not as a before/after pair.
+
+## ADR-019 — CUBIC semantic private-state schema: 16 fields, `unused` deliberately excluded
+
+**Status:** accepted (N1.3 ground-truth layout, before any recorder code was written).
+
+`struct bictcp` (`icsk_ca_priv`) has 17 declared members, ground-truthed via compiled
+`offsetof`/`sizeof` against a struct built from live BTF's own field list
+(`data/audit_src/print_offsets_cubic.c`; corrects a flagged prior "15 fields / 16 names"
+transcription error) — 60 bytes total, matching the BTF-reported `STRUCT size=60` exactly, no
+compiler-inserted padding. One member, `unused` (offset 40, `u16`), is confirmed never read or
+written anywhere in the reference source. **Decision:** the semantic private-state schema is the
+other 16 fields; `unused` is excluded from PRE/POST comparison (it is genuine struct content, not
+compiler padding, but it is dead — including it in the equality oracle could only ever produce a
+spurious pass or a spurious fail on a field the algorithm never uses). Raw `icsk_ca_priv` bytes
+(104 bytes, all 16 semantic fields plus `unused` plus the unused tail past `struct bictcp`'s 60
+bytes) are additionally archived per event for diagnostic ground truth, consistent with
+`docs/REPLAY_ABI.md`'s existing "raw bytes may additionally be archived; correctness uses parsed
+semantic fields" principle.
+
+## ADR-020 — `pkts_acked` requires an explicit `post_snd_ssthresh` field
+
+**Status:** accepted (N1.5 callback manifest / N1.1 kernel-source correction, before any recorder
+code was written).
+
+Unlike Reno, where `snd_ssthresh` is mutated only through the `.ssthresh` callback's return value
+(a class-4 "callback result" already captured by v0's `result` field), CUBIC's `pkts_acked` writes
+`tp->snd_ssthresh` **directly** from inside its HyStart path (`WRITE_ONCE(tp->snd_ssthresh,
+tcp_snd_cwnd(tp))`, `data/kernel_source_ref/tcp_cubic.c` lines 426/446) — a controller-owned
+mutation performed by a callback whose own nominal "result" is `void` and has nothing to do with
+ssthresh. Without an explicit field for this, the mutation would be invisible to Mode A/B
+comparison whenever HyStart's exit condition fires. **Decision:** `pkts_acked`'s `EventRecordV1`
+carries `post_snd_ssthresh` alongside the existing `post_snd_cwnd`/`post_snd_cwnd_cnt`, capturing
+`tp->snd_ssthresh` after the kfunc call regardless of whether this specific event actually triggered
+the HyStart-exit branch (so a non-triggering event's `post_snd_ssthresh == pre_snd_ssthresh` is
+itself a meaningful, checked assertion, not merely an absent field).
+
+## ADR-021 — Replay ABI v1 is a new, independently-versioned record type; v0 is untouched
+
+**Status:** accepted (N2, before any ABI-v1 implementation code was written).
+
+CUBIC's contract surface (two clocks, seven callbacks, 16 private fields, several new shared-state
+fields, an explicit `post_snd_ssthresh`) does not fit `struct ccr_event`'s 88-byte v0 layout, and
+`user/ccr_trace.py` asserts `EVENT_SIZE == 88` / `HEADER_SIZE == 144` as a deliberate parse-time
+ground-truth check (Phase 1). Widening `struct ccr_event` in place would silently invalidate that
+assertion's meaning and put all three committed `raw/r0/rep*.ccr` traces and the mandatory Phase-1
+regression at risk on every future CUBIC-driven change. **Decision:** v1 introduces a new,
+separate `struct ccr_event_v1` (and a new Python parse path dispatched on `TraceHeader.trace_version
+== 1`); `struct ccr_event` / `TraceVersion == 0` / all Reno code paths are not modified. The
+`TraceHeader` layout itself does not change — its existing `record_size` and `trace_version` fields
+already generalize to a differently-sized v1 record without requiring a header format change. Every
+change under this ADR must pass the full Phase-1 regression (26 tests, R1 and R2 over all three
+`raw/r0/rep*.ccr` traces) before proceeding, per the pipeline's N2 mandatory-regression requirement.
