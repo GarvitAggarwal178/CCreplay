@@ -22,8 +22,12 @@ condition on demand within a bounded number of attempts, not about any capabilit
 2. **Part E** — built the CoVegas recorder/parser/model from scratch (no kernel-native reference
    exists, ADR-022), captured a primary trace on the intermittent workload, and demonstrated
    **PASS**-verdict self-replay fidelity: E2 zero mismatches (63,329 events, 1,658,687 field
-   comparisons), E3 first divergence = NONE across the entire sequence, all 30 private fields
-   (including both union arms) demonstrated to change nontrivially. `REPORT_COVEGAS_REPLAY_FIDELITY.md`.
+   comparisons at Part E's own initial single-trace capture), E3 first divergence = NONE across the
+   entire sequence, all 30 private fields (including both union arms) demonstrated to change
+   nontrivially. **Current combined evidence (Part E + Part 8's rep2/rep3 fold-in): 190,277 events,
+   4,982,990 field comparisons, still 0 mismatches, across all 3 traces** — see
+   `REPORT_COVEGAS_REPLAY_FIDELITY.md` for the authoritative current figures; the verdict is
+   unchanged (PASS) throughout.
 3. **Part 8 (addendum) — trigger verification** — attempted 3 bounded reps of the historically-
    relevant intermittent cross-traffic workload specifically to verify the regression trigger's
    presence before diffing. All 3 clean captures (zero drops each), all 3 showing zero spurious
@@ -32,10 +36,21 @@ condition on demand within a bounded number of attempts, not about any capabilit
 ## Why this outcome, not a workaround
 
 `REPORT_COVEGAS_V4.md`'s own historical data (`data/historical_regression_selection.md`) already
-disclosed that a spurious off-period re-entry occurred in only 1 of 9 historical runs at
-`HOLD_MS=500` (the default, and the only configuration this session's recorder builds). Getting zero
-successes in 3 independent attempts at an ~11% per-run rate has probability ≈70% — the *expected*
-outcome, not evidence of a problem. Reproducing the trigger reliably would require either
+disclosed that a spurious off-period re-entry occurred at `HOLD_MS=500` (the default, and the only
+configuration this session's recorder builds). **Correction, reconciliation pass:** the exact
+denominator is **3 runs, 9 off-period boundaries** (`REPORT_COVEGAS_V4.md`'s own B2
+prediction-check table: "spurious re-entries ... 1 (of 9 boundaries)"), not "1 of 9 runs" as an
+earlier version of this report stated. This session's own new trigger campaign has the identical
+shape: **3 runs, 9 off-period boundaries, 0 observed trigger events** — see
+`data/historical_trigger_validation.md` for the corrected accounting.
+
+Treating the historical descriptive rate (1 event / 9 boundaries) as a rough binomial sensitivity
+figure under an independence assumption — not an estimated trigger distribution — for seeing 0
+events in a fresh 9-boundary campaign: `P(0 in 9) = (8/9)^9 ≈ 34.6%`, not the previously-stated
+≈70% (that figure incorrectly used 3 as the trial count instead of 9). 34.6% is still among the
+single most likely outcomes at this small sample size — the *expected* outcome, not evidence of a
+problem — the correction narrows the supporting number, not the conclusion. Reproducing the
+trigger reliably would require either
 substantially more attempts (bounded-attempts discipline explicitly caps this) or deviating from the
 historically-relevant workload configuration (explicitly forbidden — that would test a different,
 unvalidated scenario, undermining the entire premise of using a real historical regression as the

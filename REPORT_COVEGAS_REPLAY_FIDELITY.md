@@ -53,8 +53,13 @@ since the data already existed and strengthens this gate's evidence at no extra 
 pattern as Reno/CUBIC). `ktime_ambiguous` 100% in every trace (expected, see below); `jiffies`
 mostly stable (9/12/(rep3 count) ambiguous events per trace). Callback coverage: `init`×2/trace,
 `cong_avoid`~31,150–31,700/trace, `pkts_acked`~31,700–32,350/trace, `ssthresh` 8–9/trace (real
-loss/competition occurred in every rep), `undo_cwnd`×0 (already separately `VALIDATED` via Part B's
-auxiliary trace).
+loss/competition occurred in every rep), `undo_cwnd`×0.
+
+**Correction, reconciliation pass:** the `undo_cwnd`×0 line above previously cited Part B's CUBIC
+auxiliary trace as having separately `VALIDATED` this callback. That was wrong — Part B's auxiliary
+trace validated **CUBIC's** `undo_cwnd` path under ABI v1; it contains no CoVegas events and says
+nothing about the CoVegas ABI-v2 recorder/model path specifically. See "`undo_cwnd` coverage audit"
+below for the corrected classification.
 
 ### E2 — event-local (all three traces)
 
@@ -92,6 +97,98 @@ expected property of a nanosecond-resolution clock read twice with real work in 
 decision boundary in this trace. This is a genuinely different empirical outcome from CUBIC's (where
 `tcp_jiffies32` ambiguity *did* cause real, characterized mismatches) — proven, not assumed, exactly
 as required.
+
+## `undo_cwnd` coverage audit (reconciliation addendum)
+
+Traced against the actual CoVegas source (`bpf/covegas_wrapper.bpf.c`'s `ccr_covegas_undo_cwnd`,
+`user/covegas_model.py`'s `cubic_undo_cwnd` — despite the misleading function name, it is
+CoVegas's own `undo_cwnd` model, not CUBIC's) rather than assumed:
+
+* **Exact CoVegas `undo_cwnd` implementation:** the recorder calls `tcp_reno_undo_cwnd(sk)`
+  directly (`extern __u32 tcp_reno_undo_cwnd(struct sock *sk) __ksym;`) — the identical shared
+  kernel helper CUBIC's `undo_cwnd` also delegates to. It reads no CoVegas-private field and
+  mutates no CoVegas-private field (confirmed directly from the source; matches D3's audit table:
+  "private state read: none ... private state mutated: none").
+* The userspace model (`cubic_undo_cwnd(pre) = max(pre["snd_cwnd"], pre["prior_cwnd"])`) is an
+  independent from-scratch reproduction of that same formula (a Python model cannot call a kfunc),
+  not a delegation — matching what the real recorder computes.
+* ABI v2 adds no controller-specific state comparison for this callback beyond the standard
+  PRE==POST private-state assertion every callback gets; `undo_cwnd` is not expected to touch
+  `mode` or the union.
+* **CoVegas ABI-v2 primary traces contain zero `undo_cwnd` invocations** (E1, above) — the
+  recorder/model path for this specific callback was never exercised by real recorded events.
+
+**Classification — Outcome A:** `undo_cwnd` function semantics have independent evidence through
+the shared kernel helper (identical to CUBIC's own validated `undo_cwnd` path, Part B), but the
+CoVegas ABI-v2 recorder/model path itself was not exercised in the primary traces. No auxiliary
+CoVegas `undo_cwnd`-triggering trace was captured this session (manufacturing one is out of scope
+for this documentation-reconciliation pass).
+
+**This does not downgrade the CoVegas Replay Fidelity PASS verdict, and does not affect the
+historical A3 case study's readiness.** The regression mechanism the historical case study targets
+(`handle_compete_mode`'s settle-latch) is exercised through `cong_avoid`, not `undo_cwnd` — E2/E3's
+PASS already covers the exact callback/state path the historical case needs. Distinguish:
+
+> **historical-case replay fidelity** — PASS, unaffected (`cong_avoid`/`ssthresh`/`mode`/union
+> transitions all exercised and exact).
+
+from:
+
+> **complete five-callback observed coverage** — four of five callbacks (`init`, `cong_avoid`,
+> `ssthresh`, `pkts_acked`) have direct primary-trace evidence; `undo_cwnd` has function-level
+> evidence only (Outcome A), not CoVegas-trace evidence.
+
+## CoVegas `bpf_ktime_get_ns()` semantics (reconciliation addendum)
+
+Traced directly against `bpf/covegas_wrapper.bpf.c` and `user/covegas_model.py`'s dataflow, not
+inferred:
+
+1. **Which read feeds the controller?** `ccr_covegas_init`/`ccr_covegas_cong_avoid` each call
+   `bpf_ktime_get_ns()` exactly **once**, at function entry (`__u64 ... now = bpf_ktime_get_ns();`),
+   before any recording or algorithm logic runs.
+2. **Is that value stored in the EventRecord?** Yes — the same `now` local variable is passed
+   into `fill_common(e, sk, seq, callback_id, now)`, which sets both `e->ts_ns` and
+   `e->clock_ktime_ns_before` to it (`bpf/covegas_wrapper.bpf.c` lines ~552/563).
+3. **Is it identical to `clock_ktime_ns_before`, or is there a separate unobserved read?** For
+   `init`/`cong_avoid` it is the *same* value, not merely equal by coincidence — `fill_common` and
+   the algorithm logic (`ca->last_minrtt_probe_ns = now` in `init`; `handle_minrtt_probe(tp, ca,
+   now)` in `cong_avoid`) both receive the one local `now`. `handle_minrtt_probe` itself takes
+   `now` as a parameter and never calls `bpf_ktime_get_ns()` internally. There is no second,
+   unobserved controller read for these two callbacks. `user/covegas_model.py`'s `transition()`
+   confirms this on the replay side: `ktime_now = event["clock_ktime_ns_before"]` is the only ktime
+   value the model ever reads, e.g. `next_ca["last_minrtt_probe_ns"] = u64(ktime_now)` for `init`.
+4. **Position relative to the original uninstrumented source:** the read-only reference
+   (`~/cn-spike/covegas/src/covegas.bpf.c`) calls `bpf_ktime_get_ns()` once per entry point and
+   passes that same value into `handle_minrtt_probe`, identically in shape (confirmed by direct
+   inspection: its `covegas_cong_avoid`/`covegas_init` each declare `__u64 now =
+   bpf_ktime_get_ns();` and call `handle_minrtt_probe(tp, ca, now)`). The recorder's fix (sharing
+   one read with `fill_common`) did not move or add a read relative to the original — it added the
+   recorder's *own* consumption of the pre-existing single read, replacing what had been, before
+   the fix, a second independent `bpf_ktime_get_ns()` call added by the recorder itself (the
+   category-C bug named in the "Pre-E1 fix" section above).
+5. **Does this preserve intended callback semantics?** Yes — the algorithm's own timing behavior
+   is unchanged from the original source; only the recorder's *observation* of that value changed
+   (from a separate, spurious second read to reusing the actual one the algorithm consumes).
+6. **What is `clock_ktime_ns_after` used for?** It is computed in `finish_clock()`, called
+   *after* the algorithm logic has already run, purely for `CLOCK_STABLE`/`CLOCK_AMBIGUOUS`
+   bookkeeping (`ccr_counters_map`'s `clock_ktime_stable`/`clock_ktime_ambiguous` counters) and
+   diagnostic reporting. It is never read by `user/covegas_model.py` and never fed to the
+   algorithm at recording time — it is a pure elapsed-time diagnostic bracket, not a second
+   candidate input value.
+
+**Conclusion — for `init`/`cong_avoid`, `clock_ktime_ns_before` is an exact recorded controller-
+visible ktime input**, not a CUBIC-style unresolved before/after observation ambiguity. `before !=
+after` on effectively every event (the measured 100% `CLOCK_AMBIGUOUS` rate) is the expected
+result of a nanosecond-resolution clock with real recorder/algorithm work happening in between —
+it reflects elapsed wall-clock time during instrumentation, not uncertainty about which value the
+controller consumed. For `ssthresh`/`undo_cwnd`/`pkts_acked`, `bpf_ktime_get_ns()` is called only
+for `fill_common`'s own diagnostic timestamp — the algorithm in those three callbacks never reads
+ktime at all, so `clock_ktime_ns_before`/`_after` there are purely diagnostic and not a controller
+input in any sense. This distinction (exact recorded input vs. diagnostic elapsed-time bracket) is
+architecturally different from CUBIC's `tcp_jiffies32` situation, where the *global* clock cannot
+be captured as a per-socket field and is only ever bracketed, never exactly known — CoVegas's
+`bpf_ktime_get_ns()` sidesteps that specific hazard by being a value the controller itself computes
+and that the recorder can capture at the exact moment of computation.
 
 ## E4 — anti-fitting log
 

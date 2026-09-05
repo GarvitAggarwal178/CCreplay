@@ -197,8 +197,12 @@ unchanged below) does not treat callback-coverage completeness as sufficient for
    forbidden "magic value derived from expected output"). Full account:
    `data/cubic_replay_model_changes.md` Investigation 2; new limitation:
    `docs/LIMITATIONS.md` #14.
-3. **`undo_cwnd` UNVALIDATED for CUBIC specifically** (see coverage table above). Not remediated
-   this session; flagged rather than silently absorbed.
+3. **`undo_cwnd` originally UNVALIDATED for CUBIC specifically** in the primary traces (0 events,
+   see coverage table above) — flagged rather than silently absorbed. **Subsequently VALIDATED**
+   this session via the targeted auxiliary trace (Part B, see "Auxiliary evidence: `undo_cwnd`"
+   above): 12 invocations, 0 mismatches, first divergence = NONE. This does not change the R3
+   verdict (PARTIAL) — the clock-ambiguity residual is independent of callback-coverage
+   completeness.
 
 ## Limitations
 

@@ -2,6 +2,9 @@
 
 **Read this before doing anything in this repository.**
 
+Read `docs/CURRENT_STATE.md` after this file before starting work. It supersedes older status
+summaries but not their raw evidence.
+
 ## Mission
 
 CCReplay is a **regression debugger for TCP congestion-control implementations**.

@@ -31,9 +31,12 @@ On-periods (seconds relative to the covegas connection's own first recorded even
 ### Trigger classification for this attempt
 
 **ABSENT** in this attempt. No DELAY->COMPETE transition occurred during an OFF period. Consistent
-with `REPORT_COVEGAS_V4.md`'s own historical data, where a spurious off-period re-entry occurred in
-only 1 of 9 runs at `HOLD_MS=500` (0/3 and 0/3 at `HOLD_MS=0`/`2000`) — a genuinely rare event even
-in the fixed build, not evidence the trigger cannot occur.
+with `REPORT_COVEGAS_V4.md`'s own historical data — **correction, reconciliation pass:** the
+source is 3 `HOLD_MS=500` runs × 3 off-period boundaries/run = **9 off-period boundaries** (not 9
+runs), with 1 observed spurious re-entry (`REPORT_COVEGAS_V4.md`'s own B2 prediction-check table:
+"spurious re-entries ... 1 (of 9 boundaries)"); 0 of 9 boundaries at `HOLD_MS=0` and 0 of 9
+boundaries at `HOLD_MS=2000` (3 runs each) — a genuinely rare event even in the fixed build, not
+evidence the trigger cannot occur.
 
 ---
 
@@ -65,13 +68,33 @@ On-periods (seconds relative to the covegas connection's own first recorded even
 **3 of 3 bounded attempts** (rep1, rep2, rep3 — a small bounded number, per the addendum's explicit
 limit) show the historical trigger **absent**: every recorded mode transition across all three
 attempts (6 per trace, 18 total) occurred during an ON period; zero occurred during an OFF period.
+Scoped to the relevant off-period boundaries specifically (3 on-periods/run × 3 runs = **9
+off-period boundaries**, mirroring `REPORT_COVEGAS_V4.md`'s own B2 boundary accounting): **3 runs,
+9 off-period boundaries, 0 observed trigger events.**
 
-This is not evidence something is wrong with the recorder, the topology, or the workload — it is
-statistically the *expected* outcome. `REPORT_COVEGAS_V4.md`'s own historical data (`data/historical_regression_selection.md`)
-found a spurious off-period re-entry in only 1 of 9 runs at `HOLD_MS=500` (0 of 3 at `HOLD_MS=0` and
-`HOLD_MS=2000`) — roughly an 11% per-run rate even in the fixed build being recorded here. The
-probability of seeing zero successes in 3 independent trials at that rate is
-`(8/9)^3 ≈ 70%` — the single most likely outcome, not an anomaly.
+This is not evidence something is wrong with the recorder, the topology, or the workload.
+`REPORT_COVEGAS_V4.md`'s own historical data (`data/historical_regression_selection.md`) —
+**correction, reconciliation pass:** the source is **3 `HOLD_MS=500` runs, 9 off-period
+boundaries, 1 observed spurious re-entry** (not "1 of 9 runs" as an earlier version of this file
+stated; `REPORT_COVEGAS_V4.md`'s own B2 prediction-check table reports this as "1 (of 9
+boundaries)"). The full three-setting sweep (`HOLD_MS` = 0/500/2000, 3 runs each = 9 runs total, 3
+boundaries/run = 27 boundaries total) shows 1 spurious re-entry pooled across all 27 boundaries —
+that pooled 1/27 figure describes the full sweep, not the `HOLD_MS=500` configuration alone, and
+must not be substituted for it.
+
+Using only the selected configuration's own descriptive rate (1 event / 9 boundaries), a **rough
+binomial sensitivity calculation under an independence assumption — not an estimated trigger
+distribution** — for seeing 0 events in this campaign's own 9 boundaries:
+
+```text
+P(0 in 9) = (8/9)^9 ≈ 34.6%
+```
+
+This is still among the single most likely outcomes for a small sample at this descriptive rate,
+but it is **not** "≈70%" — an earlier version of this file computed `(8/9)^3 ≈ 70%` by treating the
+historical denominator as 3 runs instead of 9 boundaries, which understated the sample size the
+1-in-9 rate was actually drawn from. The result (trigger absent, not reproduced, not an anomaly)
+is unchanged; only the supporting probability figure is corrected.
 
 **Per the addendum's explicit instruction, this session does NOT:**
 

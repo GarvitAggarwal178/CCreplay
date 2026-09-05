@@ -4,6 +4,9 @@
 
 CCReplay is a regression debugger for congestion-control implementations.
 
+For the authoritative current project status and latest formal verdicts, see
+`docs/CURRENT_STATE.md`.
+
 A live Linux TCP connection is recorded at the congestion-control callback boundary. The trace contains the callback identity, relevant shared TCP boundary state, callback inputs, controller-private state where required, controller-visible time, and explicit callback results. A userspace engine then re-executes controller implementations against that recording.
 
 Instead of only showing that two versions produce different throughput or cwnd curves, CCReplay is designed to report:

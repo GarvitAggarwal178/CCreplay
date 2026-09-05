@@ -30,6 +30,18 @@ question) recorder-overhead figures.
 
 ## 2. Two-sided clock attribution diagnostic (addendum item 2)
 
+**Scope note (added on reconciliation — see the follow-up addendum below):** two distinct tables
+exist for this diagnostic and must not be conflated:
+
+> **Table 2a — classification of the four production-convention mismatches.** Scoped only to the
+> `CLOCK_AMBIGUOUS` events that currently mismatch under the production `clock_jiffies32_before`
+> convention.
+>
+> **Table 2b — classification of all 46 `CLOCK_AMBIGUOUS` events.** Every ambiguous event in the
+> three primary traces, regardless of whether it currently matches or mismatches production.
+
+### Table 2a — classification of the four production-convention mismatches
+
 Script: `data/audit_src/clock_boundary_attribution.py`. Output:
 `data/cubic_clock_boundary_attribution.json`.
 
@@ -47,16 +59,52 @@ table completeness) and once substituting `clock_jiffies32_after`. Neither subst
 | rep2 | 75603 | `cong_avoid` | 16643546 | 16643547 | `MATCHES_AFTER_ONLY` |
 | rep3 | 61729 | `cong_avoid` | 16663506 | 16663507 | `MATCHES_AFTER_ONLY` |
 
-**Counts:** `MATCHES_BEFORE_ONLY=0`, `MATCHES_AFTER_ONLY=4`, `MATCHES_BOTH=0`, `MATCHES_NEITHER=0`.
+**Counts (Table 2a, n=4):** `MATCHES_BEFORE_ONLY=0`, `MATCHES_AFTER_ONLY=4`, `MATCHES_BOTH=0`,
+`MATCHES_NEITHER=0`. This is the classification of the four production-convention mismatches only
+— it was previously presented without this scope label and must not be read as the classification
+of all 46 ambiguous events (see Table 2b).
 
-**Every residual clock-ambiguous mismatch is fully attributable to one of the two clock values
-bracketing the reference invocation** (all four are `MATCHES_AFTER_ONLY`). No additional semantic
-mismatch was observed in these events. This closes the attribution question under the current
-bracketing evidence. **It does not mean exact replay can select the correct clock prospectively** —
-see §5 (a global "always use `_after`" convention does not generalize; see
+**Every one of these four mismatches is semantically compatible with the `clock_jiffies32_after`
+value from its recorded clock bracket.** This does not mean exact replay can select the correct
+clock prospectively — see §5 (a global "always use `_after`" convention does not generalize; see
 `data/cubic_replay_model_changes.md` Investigation 2, which found switching the production
 convention to `_after` resolves these 4 events but introduces 2 *new* mismatches on different,
 previously-exact events).
+
+### Table 2b — classification of all 46 `CLOCK_AMBIGUOUS` events (reconciliation addendum)
+
+Script: `data/audit_src/clock_boundary_attribution_all_ambiguous.py`. Output:
+`data/cubic_clock_boundary_attribution_all_ambiguous.json`. Same method as Table 2a, run over
+every `CLOCK_AMBIGUOUS` event in the three primary traces, not only the 4 that currently mismatch.
+
+**Counts (Table 2b, n=46, actually recomputed — not assumed):**
+
+```text
+MATCHES_BEFORE_ONLY = 2
+MATCHES_AFTER_ONLY  = 4
+MATCHES_BOTH        = 40
+MATCHES_NEITHER     = 0
+```
+
+The 40 `MATCHES_BOTH` events are ones where the callback's declared comparison fields do not
+happen to depend on the one-jiffy clock delta between that event's before/after snapshots — they
+were already exact under production replay and remain exact under the `_after` substitution too;
+they are not additional evidence of a "correct" clock, only evidence the field(s) compared for
+that specific event/callback combination are insensitive to a one-jiffy shift. The 2
+`MATCHES_BEFORE_ONLY` events are the mirror case of Table 2a's 4 `MATCHES_AFTER_ONLY` events: they
+already match under production (`_before`) and would stop matching if `_after` were substituted.
+
+**Interpretation (both tables).** Per the addendum: do not write that the reference "necessarily
+saw" a given clock value. The recorded transition is semantically compatible with the indicated
+value(s) from the before/after clock bracket under the replay model. Because
+`MATCHES_NEITHER == 0` across all 46 events, the strongest supported statement is:
+
+> Every `CLOCK_AMBIGUOUS` event is semantically explainable by at least one value in the recorded
+> clock bracket; no event requires an unexplained semantic difference outside that bracket.
+
+This does not change the R3 verdict (PARTIAL) or the clock investigation's own verdict
+(`ATTRIBUTED_AND_CHARACTERIZED`, §5) — it sharpens the scope of what was already reported, it does
+not reveal a new correctness failure.
 
 ## 3. Stateful resynchronization diagnostic (addendum item 3)
 
@@ -109,8 +157,10 @@ this kernel within the available tooling.
 
 Requirements (per the addendum) and their evidence:
 
-* every residual ambiguous mismatch matches at least one bracketing clock value — **met** (§2: 4/4
-  `MATCHES_AFTER_ONLY`, 0 `MATCHES_NEITHER`);
+* every residual ambiguous mismatch matches at least one bracketing clock value — **met** (§2
+  Table 2a: 4/4 `MATCHES_AFTER_ONLY`, 0 `MATCHES_NEITHER`; confirmed to generalize across all 46
+  `CLOCK_AMBIGUOUS` events, not only the 4 mismatching ones — §2 Table 2b: 0 `MATCHES_NEITHER`
+  across the full 46);
 * stateful replay is exact between ambiguous events after diagnostic resynchronization — **met**
   (§3, all three traces);
 * no unexplained `CLOCK_STABLE` divergence exists — **met** (§3, zero in any trace).

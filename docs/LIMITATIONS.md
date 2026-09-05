@@ -67,8 +67,8 @@ had a private field actually change value between events.
 **Closed by R3B (CUBIC):** all 16 semantic private fields (ADR-019) were confirmed to change value
 across the replayed sequence on all three primary traces (`fields_that_never_changed_in_any_trace`
 is empty), carried through 51,323–75,603 consecutive sequential transitions per trace without ever
-being resynchronized from the recording, byte-exact until the clock-ambiguity residual (item 14).
-See `REPORT_GATE_R3_CUBIC.md`.
+being resynchronized from the recording, with exact semantic equality until the clock-ambiguity
+residual (item 14). See `REPORT_GATE_R3_CUBIC.md`.
 
 ## 14. Controller-visible clock ambiguity is not always resolvable from a before/after snapshot pair
 

@@ -1,0 +1,474 @@
+{
+  "scope": "ALL CLOCK_AMBIGUOUS events across all three primary traces (not scoped to the 4 that mismatch under the production clock_jiffies32_before convention)",
+  "n_events_classified": 46,
+  "counts": {
+    "MATCHES_BEFORE_ONLY": 2,
+    "MATCHES_AFTER_ONLY": 4,
+    "MATCHES_BOTH": 40,
+    "MATCHES_NEITHER": 0
+  },
+  "attribution_closed": true,
+  "interpretation": "The recorded transition is semantically compatible with the indicated value(s) from the before/after clock bracket under the replay model. This is not a claim that the reference necessarily read exactly that value; MATCHES_BOTH events are ones where the callback's declared comparison fields happen not to depend on the clock delta between the before/after snapshots for that specific event.",
+  "rows": [
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 15074,
+      "callback": "cong_avoid",
+      "clock_before": 16602118,
+      "clock_after": 16602119,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 18745,
+      "callback": "cong_avoid",
+      "clock_before": 16603183,
+      "clock_after": 16603184,
+      "matches_before": true,
+      "matches_after": false,
+      "classification": "MATCHES_BEFORE_ONLY"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 26665,
+      "callback": "cong_avoid",
+      "clock_before": 16605474,
+      "clock_after": 16605475,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 35077,
+      "callback": "pkts_acked",
+      "clock_before": 16607905,
+      "clock_after": 16607906,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 38945,
+      "callback": "pkts_acked",
+      "clock_before": 16609022,
+      "clock_after": 16609023,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 39282,
+      "callback": "cong_avoid",
+      "clock_before": 16609121,
+      "clock_after": 16609122,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 40326,
+      "callback": "cong_avoid",
+      "clock_before": 16609425,
+      "clock_after": 16609426,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 41482,
+      "callback": "cong_avoid",
+      "clock_before": 16609759,
+      "clock_after": 16609760,
+      "matches_before": true,
+      "matches_after": false,
+      "classification": "MATCHES_BEFORE_ONLY"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 45146,
+      "callback": "cong_avoid",
+      "clock_before": 16610817,
+      "clock_after": 16610818,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 46314,
+      "callback": "cong_avoid",
+      "clock_before": 16611151,
+      "clock_after": 16611152,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 50104,
+      "callback": "pkts_acked",
+      "clock_before": 16612246,
+      "clock_after": 16612247,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 51323,
+      "callback": "cong_avoid",
+      "clock_before": 16612603,
+      "clock_after": 16612604,
+      "matches_before": false,
+      "matches_after": true,
+      "classification": "MATCHES_AFTER_ONLY"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 55964,
+      "callback": "pkts_acked",
+      "clock_before": 16613942,
+      "clock_after": 16613943,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 57117,
+      "callback": "cong_avoid",
+      "clock_before": 16614269,
+      "clock_after": 16614270,
+      "matches_before": false,
+      "matches_after": true,
+      "classification": "MATCHES_AFTER_ONLY"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 59573,
+      "callback": "cong_avoid",
+      "clock_before": 16614983,
+      "clock_after": 16614984,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 65289,
+      "callback": "pkts_acked",
+      "clock_before": 16616639,
+      "clock_after": 16616640,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 66341,
+      "callback": "pkts_acked",
+      "clock_before": 16616943,
+      "clock_after": 16616944,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "seq": 77670,
+      "callback": "cong_avoid",
+      "clock_before": 16620219,
+      "clock_after": 16620220,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 7376,
+      "callback": "cong_avoid",
+      "clock_before": 16623819,
+      "clock_after": 16623820,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 12306,
+      "callback": "cong_avoid",
+      "clock_before": 16625257,
+      "clock_after": 16625258,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 12638,
+      "callback": "cong_avoid",
+      "clock_before": 16625353,
+      "clock_after": 16625354,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 16823,
+      "callback": "pkts_acked",
+      "clock_before": 16626576,
+      "clock_after": 16626577,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 17477,
+      "callback": "pkts_acked",
+      "clock_before": 16626768,
+      "clock_after": 16626769,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 24832,
+      "callback": "cong_avoid",
+      "clock_before": 16628874,
+      "clock_after": 16628875,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 29963,
+      "callback": "cong_avoid",
+      "clock_before": 16630345,
+      "clock_after": 16630346,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 32931,
+      "callback": "cong_avoid",
+      "clock_before": 16631195,
+      "clock_after": 16631196,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 44586,
+      "callback": "pkts_acked",
+      "clock_before": 16634570,
+      "clock_after": 16634571,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 44747,
+      "callback": "cong_avoid",
+      "clock_before": 16634616,
+      "clock_after": 16634617,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 46557,
+      "callback": "pkts_acked",
+      "clock_before": 16635136,
+      "clock_after": 16635137,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 47736,
+      "callback": "pkts_acked",
+      "clock_before": 16635484,
+      "clock_after": 16635485,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 54648,
+      "callback": "pkts_acked",
+      "clock_before": 16637497,
+      "clock_after": 16637498,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 56159,
+      "callback": "cong_avoid",
+      "clock_before": 16637933,
+      "clock_after": 16637934,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 71265,
+      "callback": "cong_avoid",
+      "clock_before": 16642297,
+      "clock_after": 16642298,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "seq": 75603,
+      "callback": "cong_avoid",
+      "clock_before": 16643546,
+      "clock_after": 16643547,
+      "matches_before": false,
+      "matches_after": true,
+      "classification": "MATCHES_AFTER_ONLY"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 943,
+      "callback": "pkts_acked",
+      "clock_before": 16646051,
+      "clock_after": 16646052,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 8418,
+      "callback": "cong_avoid",
+      "clock_before": 16648061,
+      "clock_after": 16648062,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 10634,
+      "callback": "cong_avoid",
+      "clock_before": 16648709,
+      "clock_after": 16648710,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 16088,
+      "callback": "cong_avoid",
+      "clock_before": 16650279,
+      "clock_after": 16650280,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 27956,
+      "callback": "pkts_acked",
+      "clock_before": 16653744,
+      "clock_after": 16653745,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 28269,
+      "callback": "cong_avoid",
+      "clock_before": 16653837,
+      "clock_after": 16653838,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 29038,
+      "callback": "pkts_acked",
+      "clock_before": 16654062,
+      "clock_after": 16654063,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 52129,
+      "callback": "cong_avoid",
+      "clock_before": 16660749,
+      "clock_after": 16660750,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 55869,
+      "callback": "cong_avoid",
+      "clock_before": 16661830,
+      "clock_after": 16661831,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 57196,
+      "callback": "pkts_acked",
+      "clock_before": 16662214,
+      "clock_after": 16662215,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 61729,
+      "callback": "cong_avoid",
+      "clock_before": 16663506,
+      "clock_after": 16663507,
+      "matches_before": false,
+      "matches_after": true,
+      "classification": "MATCHES_AFTER_ONLY"
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "seq": 72089,
+      "callback": "cong_avoid",
+      "clock_before": 16666492,
+      "clock_after": 16666493,
+      "matches_before": true,
+      "matches_after": true,
+      "classification": "MATCHES_BOTH"
+    }
+  ]
+}
