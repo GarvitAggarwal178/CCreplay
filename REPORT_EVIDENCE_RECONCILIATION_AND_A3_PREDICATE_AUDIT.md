@@ -384,7 +384,115 @@ only, PARTIAL) — validating the detector, not providing a v2 diff candidate.
 
 ### Round-2 commit
 
-This report's round-2 update lands with the corrected `user/scan_historical_a3.py`,
+Round 2 landed in commit `45aa0ff` with the corrected `user/scan_historical_a3.py`,
 `data/audit_src/analyze_historical_a3_archive.py`, their regenerated outputs,
 `data/historical_a3_predicate_audit.md`, `docs/CURRENT_STATE.md` §10, the session-index row, and
 `docs/session/LATEST_REVIEW_HANDOFF.md`.
+
+---
+
+## Round-3 correction — Predicate-H time-origin (independent-review follow-up)
+
+Independent review found the round-2 offset interval `Δ ∈ [−0.05, +0.30] s` had an **asserted,
+underived lower bound** (and raised the possibility of a wrong sign). Re-derived from the harness
+happens-before order and artifacts; **no formal verdict, count, or predicate threshold changed.**
+
+### Coordinate convention (fixed, one throughout)
+
+`Δ = first_dominant_event_wall − cubic_rep1_start_wall`. `Δ > 0` ⇔ the first recorded CoVegas
+callback happens **after** the `date +%s.%N` that wrote `cubic_rep1_start_ts`.
+
+### Harness order (verified — `scripts/covegas_run_intermittent.sh`, `user/ccr_recorder_covegas.c:124`)
+
+```text
+M0 header.creation_ts_ns (after bpf__load, before bpf__attach)
+   < M_attach (struct_ops registered) <= M_seen (driver poll succeeds)
+   < M_cov (covegas iperf3 `... -C ccr_covegas -t 120 ... &`)
+   < M_date (`date +%s.%N > cubic_rep1_start_ts.txt` -- next statement)
+and concurrently after M_cov:  M2 = first_dominant_event.ts_ns (data-socket init)
+```
+
+So the covegas client is backgrounded, then `date` runs, then (concurrently) the covegas
+connection establishes and the first `init` fires. The reviewer's hypothesis that
+`first_event − cubic_start` might be negative traces to the round-1 `check_historical_trigger.py`
+figure "ON1 starts at ~0.33 s", which is `cubic_rep1_start − floor(iperf3 timesecs)` — an artifact
+of the **1-second flooring** of `timesecs`. Against the finer `timemillisecs`, `cubic_rep1_start`
+is actually ~0.13 s **before** the iperf3 timestamp, and the data-socket `init` is at or after
+that — so `Δ > 0`.
+
+### Re-derived bounds (current traces)
+
+| bound | value (rep1 / rep2 / rep3) | type | derivation |
+| --- | --- | --- | --- |
+| upper | **+0.298 / +0.295 / +0.276 s** | **rigorous** | `Δ ≈ M2 − M_date < M2 − M0 = (first_event.ts_ns − header.creation_ts_ns)`; `M_date > M0` guaranteed by harness order; monotonic/realtime rate diff < ~1 ms over the window |
+| lower | **≈ −0.64 / −0.57 / −0.70 s** | **loose (derived)** | `Δ ≈ (M2 − M_cov) − ε_date` ≥ `base_RTT − ε_date_bound`; `base_RTT = 0.040 s` (topology; the control handshake precedes the data-socket init); `ε_date_bound = (cubic_rep1_stop − cubic_rep1_start) − 20 s` (cubic ran `-t 20`, wall ≥ 20 s) ≈ 0.68 / 0.61 / 0.74 s |
+| empirical Δ | **≈ +0.12 … +0.20 s (positive)** | context, not a bound | `(iperf3 timemillisecs/1000) − cubic_rep1_start_ts ≈ +0.12 s` for all reps; data-socket init is at or after that instant |
+
+**Offset interval used for classification: `Δ ∈ [≈ −0.65, +0.30] s`** (upper rigorous, lower loose).
+
+### Reclassification — all 9 DELAY→COMPETE transitions
+
+Per-trace offset interval: rep1 `[−0.644, +0.298]`, rep2 `[−0.569, +0.295]`, rep3 `[−0.696, +0.276]`.
+
+| trace | seq | t_event (s) | schedule window `[t+lo, t+hi]` (s) | nearest boundary (s) | phase over interval |
+| --- | ---: | ---: | --- | ---: | --- |
+| rep1 | 418 | 1.49 | [+0.84, +1.79] | 1.49 | **ROBUST_ON** |
+| rep1 | 19995 | 42.23 | [+41.59, +42.53] | 1.54 | **ROBUST_ON** |
+| rep1 | 44100 | 84.29 | [+83.64, +84.59] | 2.91 | **ROBUST_ON** |
+| rep2 | 418 | 2.02 | [+1.46, +2.32] | 2.02 | **ROBUST_ON** |
+| rep2 | 19694 | 42.90 | [+42.34, +43.20] | 2.29 | **ROBUST_ON** |
+| rep2 | 41478 | 83.07 | [+82.50, +83.37] | 1.91 | **ROBUST_ON** |
+| rep3 | 424 | 1.49 | [+0.79, +1.76] | 1.49 | **ROBUST_ON** |
+| rep3 | 21021 | 42.40 | [+41.71, +42.68] | 1.66 | **ROBUST_ON** |
+| rep3 | 44373 | 84.15 | [+83.46, +84.43] | 2.73 | **ROBUST_ON** |
+
+All 9 windows lie entirely within an ON period. **Sensitivity table** (each transition's phase at
+fixed `Δ ∈ {−1.0, −0.5, −0.3, −0.1, 0, +0.12, +0.3, +0.5, +1.0}`): **ON at every grid point for
+every transition** — the earliest transition (t ≈ 1.49 s) stays ON down to `Δ ≈ −1.49 s`. So the
+classification is robust far beyond the derived interval.
+
+**Predicate H: absent in all three traces, `ROBUST_OFF` never reached, no `ALIGNMENT_LIMITED`.**
+
+### Historical archive — terminology corrected
+
+Per review: **not** "historical H is robust". Corrected statement:
+
+> The archived ~65.51 s event is documented historically as an off-period DELAY→COMPETE
+> transition, and its OFF classification remains unchanged under a ±4 s sensitivity analysis
+> (nearest boundary 4.11 s). The raw archive alone does not provide a rigorous cross-clock offset
+> bound.
+
+**Predicate D for the archive stays PARTIAL** (guard expression evaluable and FALSE at the
+documented revert; `dlv_rate_compete` never latched; settle-time gate and `handle_minrtt_probe`
+gate not reconstructable from the CSV columns).
+
+### Round-3 documentation
+
+- `user/scan_historical_a3.py`: `derive_offset_bracket()` replaces the asserted `−0.05` constant;
+  `phase_over_interval()` returns `ROBUST_ON` / `ROBUST_OFF` / `ALIGNMENT_LIMITED`; per-transition
+  sensitivity table added.
+- `data/audit_src/analyze_historical_a3_archive.py`: `ON/OFF (robust)` → `… (unchanged under ±4s)`;
+  added `rigorous_offset_bound: NONE` and the corrected summary wording.
+- `data/historical_a3_predicate_audit.md` §7: coordinate convention, harness happens-before,
+  rigorous-upper / loose-lower derivations, empirical Δ.
+- Statistical wording (`REPORT_HISTORICAL_COVEGAS_REGRESSION.md`,
+  `data/historical_trigger_validation.md`, `docs/CURRENT_STATE.md`): the zero-trigger campaign is
+  no longer called "the expected outcome" / "the most likely outcome" — now "plausible and
+  unsurprising at this sample size" under the rough independence model.
+
+### Round-3 validation
+
+```text
+python3 -m unittest discover -s tests   -> 40/40 OK
+Reno v0 R1/R2 (rep1/rep2/rep3)          -> PASS / first divergence NONE
+CUBIC v1 R3A / R3B                      -> 0 CLOCK_STABLE mismatches, 4 CLOCK_AMBIGUOUS (unchanged PARTIAL)
+CoVegas v2 E2 / E3                      -> 0 mismatches / first divergence NONE
+source repos                            -> ~/cn-spike at 022c2e2, only the pre-existing baseline `M CLAUDE.md`
+```
+
+### Final case classification — unchanged
+
+Existing traces: **CASE 4 — neither Predicate H nor Predicate D present**; Predicate H absent is
+now backed by a `ROBUST_ON` classification of all 9 DELAY→COMPETE transitions over a derived offset
+interval and a sensitivity table. `HISTORICAL DIFF CANDIDATE = NO`. `A3 MECHANISM-DIFF CANDIDATE
+= NO`.

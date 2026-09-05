@@ -85,7 +85,9 @@ def main():
     spurious_entries = [tr for tr in transitions
                         if tr["dir"] == "DELAY->COMPETE" and tr["phase"] == "OFF"]
 
-    def robust_phase(t):
+    def phase_under_pm4s(t):
+        """Sensitivity only -- NOT a robustness claim. The historical CSV has no
+        monotonic anchor, so there is no rigorous cross-clock offset bound."""
         lo, hi = t - OFFSET_ALLOWANCE_S, t + OFFSET_ALLOWANCE_S
         ps = {phase(lo), phase(hi), phase(t)}
         for a, b in on_rel:
@@ -93,28 +95,31 @@ def main():
                 if lo < edge < hi:
                     ps.add(phase(edge - 1e-9)); ps.add(phase(edge + 1e-9))
         if ps == {"ON"}:
-            return "ON (robust)"
+            return "ON (unchanged under +-4s)"
         if ps == {"OFF"}:
-            return "OFF (robust)"
-        return "ALIGNMENT-LIMITED"
+            return "OFF (unchanged under +-4s)"
+        return "changes under +-4s"
 
     out = {
         "archive_csv": csv_path,
         "time_alignment": {
             "event_clock": "CLOCK_MONOTONIC (bpf_ktime_get_ns, covegas.bpf.c telemetry ts_ns)",
             "schedule_clock": "CLOCK_REALTIME (date +%s.%N)",
-            "common_anchor": "NONE (historical CSV has no monotonic header/creation timestamp)",
+            "common_anchor": "NONE -- historical CSV has no monotonic header/creation timestamp",
+            "rigorous_offset_bound": "NONE -- the raw archive alone does not provide a rigorous cross-clock offset bound",
             "schedule_anchor": "cubic_rep1_start_ts.txt",
             "covegas_start_ts_to_cubic_rep1_start_ts_s": round(c1s - covegas_start, 6),
-            "offset_lower_bound_s": 0.0,
-            "offset_upper_bound_s": "unbounded from artifacts; classification reported robust vs +-%.1fs allowance" % OFFSET_ALLOWANCE_S,
+            "sensitivity_allowance_s": OFFSET_ALLOWANCE_S,
+            "sensitivity_note": ("classifications below report only whether the phase is UNCHANGED "
+                                 "under a +-%.1fs sensitivity analysis; this is not a robustness "
+                                 "claim" % OFFSET_ALLOWANCE_S),
             "csv_span_s": round(csv_span_s, 3),
         },
         "on_periods_rel_s": [(round(a, 2), round(b, 2)) for a, b in on_rel],
         "total_rows": len(rows),
         "all_transitions": [
-            {"t_rel_s": round(tr["t_rel_s"], 3), "phase": tr["phase"],
-             "phase_robust": robust_phase(tr["t_rel_s"]),
+            {"t_rel_s": round(tr["t_rel_s"], 3), "phase_at_face_value": tr["phase"],
+             "phase_sensitivity_pm4s": phase_under_pm4s(tr["t_rel_s"]),
              "nearest_boundary_s": round(nearest_boundary(tr["t_rel_s"]), 3),
              "dir": tr["dir"],
              "dlv_rate_bps": int(tr["row"]["dlv_rate_bps"]),
@@ -144,9 +149,12 @@ def main():
 
         cand = {
             "entry_t_rel_s": round(entry_t, 3),
-            "entry_phase": se["phase"],
-            "entry_phase_robust": robust_phase(entry_t),
+            "entry_phase_at_face_value": se["phase"],
+            "entry_phase_sensitivity_pm4s": phase_under_pm4s(entry_t),
             "entry_nearest_boundary_s": round(nearest_boundary(entry_t), 3),
+            "historical_documentation": ("documented in REPORT_COVEGAS_V4.md as a spurious "
+                                         "off-period COMPETE entry at t~=65.51s, reverted ~1.0s "
+                                         "later by the A3 guard"),
             "revert_t_rel_s": round(revert["t_rel_s"], 3) if revert else None,
             "revert_minus_entry_s": round(revert["t_rel_s"] - entry_t, 3) if revert else None,
             "dlv_rate_compete_ever_latched_in_episode": max(
@@ -166,6 +174,16 @@ def main():
                 "dlv_rate_compete": int(settle_row["dlv_rate_compete"]),
             }
         out["predicate_H_candidates"].append(cand)
+
+    out["summary_wording"] = (
+        "The archived ~65.51 s event is documented historically as an off-period DELAY->COMPETE "
+        "transition, and its OFF classification remains unchanged under a +/-4 s sensitivity "
+        "analysis. The raw archive alone does not provide a rigorous cross-clock offset bound. "
+        "Predicate D for the archive is PARTIAL: the v4 guard expression is directly evaluable "
+        "from the CSV columns and is FALSE at the documented revert, and dlv_rate_compete is "
+        "never latched in the episode, but the settle-time gate (elapsed_jiffies >= 250) and the "
+        "handle_minrtt_probe gate cannot be reconstructed from the archived columns."
+    )
 
     with open("data/historical_a3_archive_analysis.json", "w") as f:
         json.dump(out, f, indent=2, default=str)

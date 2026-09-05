@@ -44,13 +44,13 @@ earlier version of this report stated. This session's own new trigger campaign h
 shape: **3 runs, 9 off-period boundaries, 0 observed trigger events** — see
 `data/historical_trigger_validation.md` for the corrected accounting.
 
-Treating the historical descriptive rate (1 event / 9 boundaries) as a rough binomial sensitivity
-figure under an independence assumption — not an estimated trigger distribution — for seeing 0
-events in a fresh 9-boundary campaign: `P(0 in 9) = (8/9)^9 ≈ 34.6%`, not the previously-stated
-≈70% (that figure incorrectly used 3 as the trial count instead of 9). 34.6% is still among the
-single most likely outcomes at this small sample size — the *expected* outcome, not evidence of a
-problem — the correction narrows the supporting number, not the conclusion. Reproducing the
-trigger reliably would require either
+Under the rough independence model using the historical 1/9-per-boundary descriptive rate,
+`P(0 in 9) = (8/9)^9 ≈ 34.6%` (not the previously-stated ≈70%, which incorrectly used 3 as the
+trial count instead of 9; and this is a rough binomial sensitivity figure under an independence
+assumption, not an estimated trigger distribution). So observing zero is plausible and unsurprising
+at this sample size — it is not evidence of a problem, and it is not being claimed as the expected
+or most likely count. The correction narrows the supporting number, not the conclusion. Reproducing
+the trigger reliably would require either
 substantially more attempts (bounded-attempts discipline explicitly caps this) or deviating from the
 historically-relevant workload configuration (explicitly forbidden — that would test a different,
 unvalidated scenario, undermining the entire premise of using a real historical regression as the

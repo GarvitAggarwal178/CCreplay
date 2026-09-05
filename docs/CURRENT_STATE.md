@@ -257,9 +257,12 @@ did not establish:
   equality; padding/unused private-state bytes are excluded from the oracle.
 - CUBIC's clock-boundary ambiguity affects ≈0.02% of primary events; it is characterized (§7) but
   not resolved, and R3 remains PARTIAL as a direct consequence.
-- The historical CoVegas trigger is a rare (~11%/run), probabilistic network condition; 3 bounded
-  attempts produced 0 occurrences (an expected outcome, not an anomaly), so the historical
-  buggy-vs-fixed differential replay has not been run.
+- The historical CoVegas trigger is a rare, probabilistic network condition (historical descriptive
+  rate: 1 spurious off-period re-entry / 9 off-period boundaries at `HOLD_MS=500`); the current
+  3-run / 9-boundary campaign produced 0 occurrences. Under a rough independence model at that
+  1/9-per-boundary rate, `P(0 in 9) ≈ 34.6%`, so observing zero is plausible and unsurprising at
+  this sample size (not claimed as the expected or most likely count). The historical buggy-vs-fixed
+  differential replay has not been run.
 - CoVegas self-replay (E2/E3 PASS) validates CCReplay's fidelity to the selected BPF
   implementation, not the independent correctness of the CoVegas algorithm — no kernel-native
   CoVegas reference exists.
@@ -293,26 +296,29 @@ did not establish:
   three-setting sweep (9 runs, 27 boundaries) shows 1 spurious re-entry pooled across all 27 — that
   pooled 1/27 figure must not be substituted for the `HOLD_MS=500`-specific 1/9 rate.
 - **Current attempts:** 3 bounded runs on the historically-relevant intermittent-workload topology;
-  trigger absent in all 3 (**3 runs, 9 off-period boundaries, 0 observed trigger events**). Using
-  the selected configuration's own descriptive rate (1/9 per boundary) as a rough binomial
-  sensitivity calculation under an independence assumption — not an estimated trigger distribution
-  — `P(0 in 9) = (8/9)^9 ≈ 34.6%`, still among the single most likely outcomes at this sample size,
-  not an anomaly. (An earlier draft of this figure used `(8/9)^3 ≈ 70%`, treating the historical
+  trigger absent in all 3 (**3 runs, 9 off-period boundaries, 0 observed trigger events**). Under a
+  rough independence model using the selected configuration's descriptive rate (1/9 per boundary) —
+  a rough binomial sensitivity figure, not an estimated trigger distribution — `P(0 in 9) = (8/9)^9
+  ≈ 34.6%`, so observing zero is plausible and unsurprising at this sample size (not claimed as the
+  expected or most likely count). (An earlier draft used `(8/9)^3 ≈ 70%`, treating the historical
   denominator as 3 runs instead of 9 boundaries — corrected here.)
 - The buggy CoVegas model module was designed but not implemented, since there was no
   trigger-positive trace to run it against.
 - `data/historical_regression_predictions.md` remains committed and unresolved by design — no
   RESULTS section was appended, since no diff was ever run.
-- **A3 predicate audit (`REPORT_EVIDENCE_RECONCILIATION_AND_A3_PREDICATE_AUDIT.md`, round 2):** the
-  A3 settle-latch *implementation-divergence* predicate (Predicate D) was derived from source and
-  scanned over the three existing CoVegas traces alongside the historical off-period *symptom*
-  trigger (Predicate H). Both are **absent** in all three traces — Predicate H NO is shown robust
-  to the event/schedule clock-offset bracket (`Δ ∈ [−0.05, +0.30] s`, from
-  `first_event.ts_ns − header.creation_ts_ns`), not assumed; Predicate D NO under the corrected
-  control flow (cwnd-limited gate → minrtt-probe gate → COMPETE dispatch → settle-latch), with
-  every scanned settle-time-gate classification exactly resolved under both jiffies bracket
-  endpoints. Interpretation **CASE 4 — neither predicate present**; no v2 differential-replay
-  candidate exists in the current traces.
+- **A3 predicate audit (`REPORT_EVIDENCE_RECONCILIATION_AND_A3_PREDICATE_AUDIT.md`, rounds 2–3):**
+  the A3 settle-latch *implementation-divergence* predicate (Predicate D) was derived from source
+  and scanned over the three existing CoVegas traces alongside the historical off-period *symptom*
+  trigger (Predicate H). Both are **absent** in all three traces. Predicate H NO: all 9
+  DELAY→COMPETE transitions classify **`ROBUST_ON`** over a re-derived event/schedule offset
+  interval `Δ = first_event_wall − cubic_rep1_start_wall ∈ [≈ −0.65, +0.30] s` (upper bound
+  rigorous, from `first_event.ts_ns − header.creation_ts_ns` and the guaranteed harness order;
+  lower bound loose, from base RTT − the cubic-rep1 excess-over-20s), and stay ON across a
+  `Δ ∈ {−1 … +1} s` sensitivity sweep. Predicate D NO: under the corrected control flow
+  (cwnd-limited gate → minrtt-probe gate → COMPETE dispatch → settle-latch), every scanned
+  settle-time-gate classification is exactly resolved under both jiffies bracket endpoints.
+  Interpretation **CASE 4 — neither predicate present**; no v2 differential-replay candidate exists
+  in the current traces.
 
 **Do not describe the case study as failed.** Nothing about CCReplay, the CoVegas Replay Contract,
 or the recorder failed; self-replay fidelity was fully demonstrated (PASS, §5) before this blocker
@@ -453,8 +459,9 @@ HISTORICAL COVEGAS REGRESSION
   Full 3-setting sweep: 9 runs, 27 boundaries, 1 trigger pooled (not substitutable for the HOLD_MS=500 rate)
   Current attempts: 3 runs, 9 off-period boundaries, 0 observed trigger events
   Rough binomial sensitivity (independence assumption, not an estimated distribution):
-       P(0 in 9, rate 1/9) ~= (8/9)^9 ~= 34.6% -- still the expected outcome (corrected from an
-       earlier (8/9)^3 ~= 70% figure that used the wrong denominator)
+       P(0 in 9, rate 1/9) ~= (8/9)^9 ~= 34.6% -- observing zero is plausible/unsurprising at this
+       sample size; NOT claimed as the expected or most likely count. (Corrected from an earlier
+       (8/9)^3 ~= 70% figure that used the wrong denominator.)
 
 RECORDER OVERHEAD (N0, loopback diagnostic only)
   baseline_production:  mean 7,933 ns/callback  (3 reps: 6847.0, 8837.0, 8113.6)

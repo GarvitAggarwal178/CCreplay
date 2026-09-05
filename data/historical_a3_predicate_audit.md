@@ -194,37 +194,88 @@ cross-traffic wall-clock timeline. The two clocks differ:
 `data/audit_src/check_historical_trigger.py` implicitly assumed the two zero points coincide (and
 used the 1-second-quantized `timesecs`); that assumption is now made explicit and bracketed.
 
-**Artifact-derived offset bracket (current traces).** Anchor the schedule to
-`cubic_rep1_start_ts.txt` (`date +%s.%N`, captured in the driver script immediately after the
-covegas iperf3 client is backgrounded, before cross-traffic rep1). An event at monotonic-relative
-time `t_e = (ev.ts_ns − first_dominant_event.ts_ns)/1e9` sits at schedule position `t_e + Δ`,
-`Δ = first_dominant_event_wall − cubic_rep1_start_wall`.
+### Coordinate convention (one throughout)
 
-- **Upper bound (rigorous):** `Δ < (first_dominant_event.ts_ns − header.creation_ts_ns)/1e9`. The
-  recorder starts (captures `creation_ts_ns`, monotonic) *before* the covegas iperf3 process is
-  launched, and the first `init` callback is *after* that; both clocks advance at the same rate to
-  within ~0.5 ms/s. Measured: **0.30 s / 0.29 s / 0.28 s** for rep1/rep2/rep3.
-- **Lower bound:** `Δ ≥ 0` — the first `init` callback (connection setup) occurs after
-  `cubic_rep1_start_ts` was captured (one `date` exec after the covegas process was backgrounded).
-  A −0.05 s pad absorbs `date` exec time and slew.
+`Δ = first_dominant_event_wall − cubic_rep1_start_wall`.  `Δ > 0` ⇔ the first recorded CoVegas
+callback is **after** the `date +%s.%N` that wrote `cubic_rep1_start_ts`. An event at
+monotonic-relative time `t_e = (ev.ts_ns − first_dominant_event.ts_ns)/1e9` sits at schedule
+position `t_e + Δ` (schedule anchored to `cubic_rep1_start_ts`).
 
-So the current-trace bracket is **Δ ∈ [−0.05, +0.30] s**. A DELAY→COMPETE transition is classified
-ON/OFF only if `[t_e − 0.05, t_e + 0.30]` lies entirely within one phase; otherwise
-`ALIGNMENT-LIMITED`.
+### Harness happens-before (verified — `scripts/covegas_run_intermittent.sh`, `user/ccr_recorder_covegas.c`)
+
+```text
+M0   header.creation_ts_ns captured   (ccr_recorder_covegas.c:124 -- AFTER bpf__load(), BEFORE bpf__attach())
+  <  M_attach   (covegas_wrapper_bpf__attach -> struct_ops registered -> "ccr_covegas" visible)
+  <= M_seen     (driver: `sysctl ... | grep -q ccr_covegas` succeeds; poll loop, sleep 0.1)
+  <  M_cov      (driver: `iperf3 -c ... -C ccr_covegas -t 120 ... &`  -- covegas client backgrounded)
+  <  M_date     (driver: `date +%s.%N > cubic_rep1_start_ts.txt`  -- the very next statement)
+and concurrently, after M_cov:
+     M2 = first_dominant_event.ts_ns   (data-socket `init` callback -- after control connect + param exchange)
+```
+
+Script excerpt:
+
+```sh
+build/ccr_recorder_covegas "${PREFIX}.ccr" "${PREFIX}.meta.json" 125 > ... &
+REC_PID=$!
+for i in $(seq 1 100); do
+  if sysctl net.ipv4.tcp_available_congestion_control 2>/dev/null | grep -q ccr_covegas; then ATTACHED=1; break; fi
+  sleep 0.1
+done
+...
+ip netns exec ns_h1 iperf3 -c 10.0.1.1 -p 5201 -C ccr_covegas -t 120 -i 1 -J > "${PREFIX}_covegas_iperf3.json" ... &
+COVEGAS_PID=$!
+for i in 1 2 3; do
+  date +%s.%N > "${PREFIX}_cubic_rep${i}_start_ts.txt"
+  ip netns exec ns_h1 iperf3 -c 10.0.1.1 -p 5301 -C cubic -t 20 -i 1 -J > ...
+  date +%s.%N > "${PREFIX}_cubic_rep${i}_stop_ts.txt"
+  [ "$i" -lt 3 ] && sleep 20
+done
+```
+
+### Bounds on Δ (current traces)
+
+- **Upper bound — RIGOROUS:** `Δ ≈ M2 − M_date`. Since `M_date > M0` (guaranteed by harness order),
+  `M2 − M_date < M2 − M0 = (first_dominant_event.ts_ns − header.creation_ts_ns)`. Monotonic and
+  realtime advance at the same rate to within ~0.5 ms/s over this ~10 s window (`CLOCK_MONOTONIC` is
+  never stepped). **Measured: +0.298 / +0.295 / +0.276 s** for rep1/rep2/rep3.
+- **Lower bound — LOOSE (derived, not asserted):** `Δ ≈ (M2 − M_cov) − ε_date`.
+  - `M2 − M_cov ≥ 1 base RTT = 0.040 s`: the CoVegas **control** connection's TCP handshake must
+    complete before iperf3 param exchange before the data socket's `connect()` → `init`. Base RTT
+    is the topology constant (two 20 ms netem delays, `docs/PROVENANCE.md`; confirmed by early-trace
+    `pre_srtt_us ≈ 40000`).
+  - `ε_date < (cubic_rep1_stop_ts − cubic_rep1_start_ts) − 20 s`: the cubic-rep1 flow ran `-t 20`,
+    so its wall time is ≥ 20 s; `(stop − start) = ε_date2 + cubic_wall`, `cubic_wall ≥ 20`, and
+    `ε_date ≈ ε_date2` (same command). Value: **≈ 0.68 / 0.61 / 0.74 s** for rep1/rep2/rep3.
+  - So `Δ > 0.040 − 0.68 ≈ −0.64 s` (rep1). This bound is loose because `ε_date_bound` also
+    absorbs the cubic flow's own setup/teardown.
+- **Empirical Δ (context only, not a bound):** `(covegas_iperf3.json start.timestamp.timemillisecs
+  / 1000) − cubic_rep1_start_ts ≈ +0.12 s` for all three reps. The data-socket `init` is at or
+  after that instant, so the true `Δ` is **≈ +0.12 … +0.20 s (positive)**.
+
+**Current-trace offset interval: `Δ ∈ [≈ −0.65, +0.30] s`** (upper rigorous, lower loose).
+`ROBUST_ON` / `ROBUST_OFF` is asserted for a DELAY→COMPETE transition only if
+`[t_e + offset_lo, t_e + offset_hi]` lies entirely within one phase; a per-transition sensitivity
+table over `Δ ∈ {−1.0 … +1.0}` is reported separately. The round-2 bracket `[−0.05, +0.30]` had
+the correct **sign** (`Δ > 0` empirically) and a rigorous upper bound, but its lower bound `−0.05`
+was **asserted without derivation**; the corrected interval is wider on the low side.
 
 **Historical archive (`Ph500_B5x_rep2`).** The archived CSV carries **no** monotonic header
-timestamp, so no rigorous upper bound on `Δ'` is available. Classification robustness is reported
-as distance-to-nearest-boundary vs. a deliberately generous ±4.0 s allowance (the physical offset
-is sub-second — first telemetry row after connection setup).
+timestamp → **no rigorous cross-clock offset bound exists**. The ~65.51 s event is documented
+historically as an off-period DELAY→COMPETE transition, and its OFF classification remains
+unchanged under a ±4 s sensitivity analysis (nearest boundary 4.11 s). This is a sensitivity
+result, not a robustness claim.
 
 ---
 
 ## Predicate H (for contrast — historical off-period symptom trigger)
 
 > **Predicate H holds for an observed `cong_avoid` event iff `priv_pre_mode == DELAY` and
-> `priv_post_mode == COMPETE` (a real DELAY→COMPETE transition on that event) AND the event's
-> wall-clock time falls in a cross-traffic OFF period, *robustly over the §7 offset bracket*.** If
-> the phase is not invariant over that bracket the classification is `ALIGNMENT-LIMITED`, not H.
+> `priv_post_mode == COMPETE` (a real DELAY→COMPETE transition on that event) AND its schedule
+> window `[t_e + offset_lo, t_e + offset_hi]` (§7) lies entirely within a cross-traffic OFF
+> period (`ROBUST_OFF`).** If the window straddles a phase boundary the classification is
+> `ALIGNMENT_LIMITED`, not H. Where no rigorous offset interval exists (the historical archive), H
+> is not asserted — only a sensitivity result is reported.
 
 The schedule is derived from the run's own `*_cubic_rep{1,2,3}_{start,stop}_ts.txt` files (anchor:
 `cubic_rep1_start_ts.txt`). This supersedes `data/audit_src/check_historical_trigger.py`'s

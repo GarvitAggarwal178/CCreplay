@@ -3,11 +3,12 @@
   "time_alignment": {
     "event_clock": "CLOCK_MONOTONIC (bpf_ktime_get_ns, covegas.bpf.c telemetry ts_ns)",
     "schedule_clock": "CLOCK_REALTIME (date +%s.%N)",
-    "common_anchor": "NONE (historical CSV has no monotonic header/creation timestamp)",
+    "common_anchor": "NONE -- historical CSV has no monotonic header/creation timestamp",
+    "rigorous_offset_bound": "NONE -- the raw archive alone does not provide a rigorous cross-clock offset bound",
     "schedule_anchor": "cubic_rep1_start_ts.txt",
     "covegas_start_ts_to_cubic_rep1_start_ts_s": 0.00348,
-    "offset_lower_bound_s": 0.0,
-    "offset_upper_bound_s": "unbounded from artifacts; classification reported robust vs +-4.0s allowance",
+    "sensitivity_allowance_s": 4.0,
+    "sensitivity_note": "classifications below report only whether the phase is UNCHANGED under a +-4.0s sensitivity analysis; this is not a robustness claim",
     "csv_span_s": 120.047
   },
   "on_periods_rel_s": [
@@ -28,8 +29,8 @@
   "all_transitions": [
     {
       "t_rel_s": 1.552,
-      "phase": "ON",
-      "phase_robust": "ALIGNMENT-LIMITED",
+      "phase_at_face_value": "ON",
+      "phase_sensitivity_pm4s": "changes under +-4s",
       "nearest_boundary_s": 1.552,
       "dir": "DELAY->COMPETE",
       "dlv_rate_bps": 308358,
@@ -40,8 +41,8 @@
     },
     {
       "t_rel_s": 20.578,
-      "phase": "ON",
-      "phase_robust": "ALIGNMENT-LIMITED",
+      "phase_at_face_value": "ON",
+      "phase_sensitivity_pm4s": "changes under +-4s",
       "nearest_boundary_s": 0.11,
       "dir": "COMPETE->DELAY",
       "dlv_rate_bps": 480263,
@@ -52,8 +53,8 @@
     },
     {
       "t_rel_s": 43.623,
-      "phase": "ON",
-      "phase_robust": "ALIGNMENT-LIMITED",
+      "phase_at_face_value": "ON",
+      "phase_sensitivity_pm4s": "changes under +-4s",
       "nearest_boundary_s": 2.929,
       "dir": "DELAY->COMPETE",
       "dlv_rate_bps": 300042,
@@ -64,8 +65,8 @@
     },
     {
       "t_rel_s": 53.889,
-      "phase": "ON",
-      "phase_robust": "ON (robust)",
+      "phase_at_face_value": "ON",
+      "phase_sensitivity_pm4s": "ON (unchanged under +-4s)",
       "nearest_boundary_s": 7.515,
       "dir": "COMPETE->DELAY",
       "dlv_rate_bps": 414845,
@@ -76,8 +77,8 @@
     },
     {
       "t_rel_s": 57.495,
-      "phase": "ON",
-      "phase_robust": "ALIGNMENT-LIMITED",
+      "phase_at_face_value": "ON",
+      "phase_sensitivity_pm4s": "changes under +-4s",
       "nearest_boundary_s": 3.909,
       "dir": "DELAY->COMPETE",
       "dlv_rate_bps": 131126,
@@ -88,8 +89,8 @@
     },
     {
       "t_rel_s": 61.34,
-      "phase": "ON",
-      "phase_robust": "ALIGNMENT-LIMITED",
+      "phase_at_face_value": "ON",
+      "phase_sensitivity_pm4s": "changes under +-4s",
       "nearest_boundary_s": 0.065,
       "dir": "COMPETE->DELAY",
       "dlv_rate_bps": 545846,
@@ -100,8 +101,8 @@
     },
     {
       "t_rel_s": 65.514,
-      "phase": "OFF",
-      "phase_robust": "OFF (robust)",
+      "phase_at_face_value": "OFF",
+      "phase_sensitivity_pm4s": "OFF (unchanged under +-4s)",
       "nearest_boundary_s": 4.11,
       "dir": "DELAY->COMPETE",
       "dlv_rate_bps": 1191791,
@@ -112,8 +113,8 @@
     },
     {
       "t_rel_s": 66.512,
-      "phase": "OFF",
-      "phase_robust": "OFF (robust)",
+      "phase_at_face_value": "OFF",
+      "phase_sensitivity_pm4s": "OFF (unchanged under +-4s)",
       "nearest_boundary_s": 5.108,
       "dir": "COMPETE->DELAY",
       "dlv_rate_bps": 1194436,
@@ -124,8 +125,8 @@
     },
     {
       "t_rel_s": 83.236,
-      "phase": "ON",
-      "phase_robust": "ALIGNMENT-LIMITED",
+      "phase_at_face_value": "ON",
+      "phase_sensitivity_pm4s": "changes under +-4s",
       "nearest_boundary_s": 1.826,
       "dir": "DELAY->COMPETE",
       "dlv_rate_bps": 403688,
@@ -136,8 +137,8 @@
     },
     {
       "t_rel_s": 101.985,
-      "phase": "ON",
-      "phase_robust": "ALIGNMENT-LIMITED",
+      "phase_at_face_value": "ON",
+      "phase_sensitivity_pm4s": "changes under +-4s",
       "nearest_boundary_s": 0.1,
       "dir": "COMPETE->DELAY",
       "dlv_rate_bps": 611846,
@@ -150,9 +151,10 @@
   "predicate_H_candidates": [
     {
       "entry_t_rel_s": 65.514,
-      "entry_phase": "OFF",
-      "entry_phase_robust": "OFF (robust)",
+      "entry_phase_at_face_value": "OFF",
+      "entry_phase_sensitivity_pm4s": "OFF (unchanged under +-4s)",
       "entry_nearest_boundary_s": 4.11,
+      "historical_documentation": "documented in REPORT_COVEGAS_V4.md as a spurious off-period COMPETE entry at t~=65.51s, reverted ~1.0s later by the A3 guard",
       "revert_t_rel_s": 66.512,
       "revert_minus_entry_s": 0.998,
       "dlv_rate_compete_ever_latched_in_episode": 0,
@@ -166,5 +168,6 @@
         "dlv_rate_compete": 0
       }
     }
-  ]
+  ],
+  "summary_wording": "The archived ~65.51 s event is documented historically as an off-period DELAY->COMPETE transition, and its OFF classification remains unchanged under a +/-4 s sensitivity analysis. The raw archive alone does not provide a rigorous cross-clock offset bound. Predicate D for the archive is PARTIAL: the v4 guard expression is directly evaluable from the CSV columns and is FALSE at the documented revert, and dlv_rate_compete is never latched in the episode, but the settle-time gate (elapsed_jiffies >= 250) and the handle_minrtt_probe gate cannot be reconstructed from the archived columns."
 }

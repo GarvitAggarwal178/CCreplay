@@ -59,20 +59,84 @@ TRACES = [
     ("rep3", "raw/covegas_replay/primary/rep3"),
 ]
 
-# Conservative lower edge of the event/schedule offset bracket. The rigorous
-# upper edge is computed per-trace as (first_dominant_event.ts_ns -
-# header.creation_ts_ns)/1e9  [recorder-start -> first-callback; the covegas
-# process started AFTER the recorder, so the covegas-start -> first-callback
-# offset is strictly smaller]. The lower edge is ~0 (the first `init`
-# callback fires after connection setup, well after `date +%s.%N` captured
-# cubic_rep1_start_ts); a small negative pad absorbs `date` exec time and
-# monotonic-vs-realtime slew.
-OFFSET_LOWER_PAD_S = -0.05
+# Base RTT of the validated Gate-3-R2 topology (two 20ms netem delays),
+# docs/PROVENANCE.md. Confirmed by early-trace pre_srtt_us ~= 40000.
+TOPOLOGY_BASE_RTT_S = 0.040
+
+# Sensitivity grid for Delta (event_wall - cubic_rep1_start_wall).
+OFFSET_SENSITIVITY_GRID = [-1.0, -0.5, -0.3, -0.1, 0.0, 0.12, 0.30, 0.5, 1.0]
 
 
 def read_ts(path):
     with open(path) as f:
         return float(f.read().strip())
+
+
+def derive_offset_bracket(hdr, dom, prefix):
+    """Offset  Delta = first_dominant_event_wall - cubic_rep1_start_wall.
+
+    Coordinate convention (one throughout): Delta > 0 means the first recorded
+    CoVegas callback happens AFTER `date +%s.%N` wrote cubic_rep1_start_ts.
+
+    Harness happens-before (scripts/covegas_run_intermittent.sh, verified):
+      M0  header.creation_ts_ns captured  (user/ccr_recorder_covegas.c:124 --
+          after bpf__load(), before bpf__attach())
+        < M_attach  (struct_ops registered -> ccr_covegas available)
+        < M_cov     (covegas iperf3 backgrounded: `iperf3 -c ... -C ccr_covegas &`)
+        < M_date    (`date +%s.%N > cubic_rep1_start_ts.txt` -- next statement)
+      and, concurrently after M_cov:
+        M2 = first_dominant_event.ts_ns  (data-socket `init` callback)
+
+    RIGOROUS UPPER BOUND:
+      Delta ~= M2 - M_date  (monotonic/realtime rates equal to < ~1ms over the window).
+      M_date > M0  =>  M2 - M_date < M2 - M0 = (first_event.ts_ns - creation_ts_ns).
+      -> offset_hi = (first_event.ts_ns - creation_ts_ns)/1e9   [tight, rigorous]
+
+    LOOSE LOWER BOUND:
+      Delta ~= (M2 - M_cov) - eps_date, where eps_date = wall time from M_cov to
+      `date` reading the clock.
+      (a) M2 - M_cov >= 1 base RTT: the covegas CONTROL connection's TCP handshake
+          must complete before iperf3 param exchange before the data socket's
+          connect() -> init. RTT = 0.040s (topology constant).
+      (b) eps_date  < (cubic_rep1_stop_ts - cubic_rep1_start_ts) - 20.0 :
+          the cubic-rep1 flow ran `-t 20` (>= 20s wall, cannot finish early for a
+          bulk transfer), and (stop_ts - start_ts) = eps_date2 + cubic_wall with
+          cubic_wall >= 20; eps_date ~= eps_date2 (same command).
+      -> offset_lo = RTT - eps_date_bound   [loose but derived, not asserted]
+
+    EMPIRICAL Delta (not a bound; for context): the covegas iperf3 JSON's own
+    start.timestamp.timemillisecs is CLOCK_REALTIME, captured by the covegas
+    process; (timemillisecs/1000 - cubic_rep1_start_ts) ~= +0.12s across all
+    three reps, and the data-socket init is at or after that instant, so the true
+    Delta is ~ +0.12..+0.20s (positive).
+    """
+    first_ev = dom[0]["ts_ns"]
+    offset_hi = (first_ev - hdr.creation_ts_ns) / 1e9
+
+    c1s = read_ts(f"{prefix}_cubic_rep1_start_ts.txt")
+    c1e = read_ts(f"{prefix}_cubic_rep1_stop_ts.txt")
+    eps_date_bound = max(0.0, (c1e - c1s) - 20.0)
+    offset_lo = TOPOLOGY_BASE_RTT_S - eps_date_bound
+
+    empirical = None
+    try:
+        import json as _json
+        with open(f"{prefix}_covegas_iperf3.json") as f:
+            ts_ms = _json.load(f)["start"]["timestamp"]["timemillisecs"] / 1000.0
+        empirical = ts_ms - c1s   # lower estimate of Delta (data init >= this instant)
+    except Exception:
+        pass
+
+    return offset_lo, offset_hi, {
+        "convention": "Delta = first_dominant_event_wall - cubic_rep1_start_wall (positive => event after schedule anchor)",
+        "offset_hi_rigorous": offset_hi,
+        "offset_hi_derivation": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9; M0 < M_cov < M_date guaranteed by harness order",
+        "offset_lo_loose": offset_lo,
+        "offset_lo_derivation": "base RTT (0.040s, topology) minus eps_date_bound; eps_date_bound = max(0, cubic_rep1_stop - cubic_rep1_start - 20.0)",
+        "eps_date_bound_s": eps_date_bound,
+        "empirical_delta_lower_estimate_s": empirical,
+        "empirical_note": "iperf3 start.timestamp.timemillisecs - cubic_rep1_start_ts; the data-socket init is at or after this instant, so true Delta >= this (positive)",
+    }
 
 
 def cwnd_limited(e):
@@ -100,28 +164,32 @@ def build_schedule(prefix):
     return on  # relative to cubic_rep1_start_ts
 
 
-def phase_bracketed(sched_pos_lo, sched_pos_hi, on_periods):
-    """Return 'ON' / 'OFF' if the whole [lo,hi] window is in one phase,
-    else 'ALIGNMENT-LIMITED'."""
-    def phase(t):
-        for a, b in on_periods:
-            if a <= t < b:
-                return "ON"
-        return "OFF"
-    plo, phi = phase(sched_pos_lo), phase(sched_pos_hi)
-    # also sample the interior boundary points that fall inside [lo,hi]
-    pts = {sched_pos_lo, sched_pos_hi}
+def _phase(t, on_periods):
+    for a, b in on_periods:
+        if a <= t < b:
+            return "ON"
+    return "OFF"
+
+
+def phase_over_interval(sched_lo, sched_hi, on_periods):
+    """ROBUST_ON / ROBUST_OFF if the whole [lo,hi] window is in one phase,
+    else ALIGNMENT_LIMITED."""
+    pts = {sched_lo, sched_hi}
     for a, b in on_periods:
         for edge in (a, b):
-            if sched_pos_lo < edge < sched_pos_hi:
+            if sched_lo < edge < sched_hi:
                 pts.add(edge - 1e-9)
                 pts.add(edge + 1e-9)
-    phases = {phase(t) for t in pts}
+    phases = {_phase(t, on_periods) for t in pts}
     if phases == {"ON"}:
-        return "ON"
+        return "ROBUST_ON"
     if phases == {"OFF"}:
-        return "OFF"
-    return "ALIGNMENT-LIMITED"
+        return "ROBUST_OFF"
+    return "ALIGNMENT_LIMITED"
+
+
+def sensitivity_row(t, on_periods):
+    return {f"{d:+.2f}": _phase(t + d, on_periods) for d in OFFSET_SENSITIVITY_GRID}
 
 
 def nearest_boundary_distance(t, on_periods):
@@ -139,8 +207,7 @@ def scan_trace(label, prefix):
     t0 = dom[0]["ts_ns"]
 
     # --- offset bracket (event clock vs schedule clock) ---
-    offset_hi = (dom[0]["ts_ns"] - hdr.creation_ts_ns) / 1e9   # rigorous upper bound
-    offset_lo = OFFSET_LOWER_PAD_S
+    offset_lo, offset_hi, offset_detail = derive_offset_bracket(hdr, dom, prefix)
     on_periods = build_schedule(prefix)
 
     def rel_s(e):
@@ -159,15 +226,16 @@ def scan_trace(label, prefix):
         rec = {
             "seq": e["seq"], "rel_s": t,
             "sched_lo": lo, "sched_hi": hi,
-            "phase_bracketed": phase_bracketed(lo, hi, on_periods),
-            "nearest_boundary_s": nearest_boundary_distance(t + (offset_lo + offset_hi) / 2, on_periods),
+            "phase_over_rigorous_interval": phase_over_interval(lo, hi, on_periods),
+            "nearest_boundary_s": nearest_boundary_distance(t, on_periods),
+            "sensitivity": sensitivity_row(t, on_periods),
             "callback": CALLBACK_NAMES.get(e["callback_id"]),
             "pre_mode": pre_m, "post_mode": post_m,
         }
         (delay_to_compete if pre_m == MODE_DELAY else compete_to_delay).append(rec)
 
-    predicate_H_events = [r for r in delay_to_compete if r["phase_bracketed"] == "OFF"]
-    alignment_limited_dtoc = [r for r in delay_to_compete if r["phase_bracketed"] == "ALIGNMENT-LIMITED"]
+    predicate_H_events = [r for r in delay_to_compete if r["phase_over_rigorous_interval"] == "ROBUST_OFF"]
+    alignment_limited_dtoc = [r for r in delay_to_compete if r["phase_over_rigorous_interval"] == "ALIGNMENT_LIMITED"]
 
     # --- COMPETE episodes ---
     episodes, cur = [], None
@@ -265,7 +333,7 @@ def scan_trace(label, prefix):
     return {
         "trace": trace, "label": label,
         "offset_bracket_s": [round(offset_lo, 4), round(offset_hi, 4)],
-        "offset_hi_source": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9 -- recorder-start to first-callback, monotonic; rigorous upper bound on the covegas-start -> first-callback offset",
+        "offset_detail": offset_detail,
         "schedule_anchor": "cubic_rep1_start_ts.txt (date +%s.%N)",
         "on_periods_rel_cubic_rep1_start": [(round(a, 3), round(b, 3)) for a, b in on_periods],
         "n_dominant_events": len(dom), "n_other_events": len(other),
@@ -306,26 +374,45 @@ def main():
         json.dump(results, f, indent=2, default=str)
 
     L = []
-    L.append("# CoVegas A3 Existing-Trace Scan (Predicate H vs Predicate D) — round 2 (corrected)\n")
+    L.append("# CoVegas A3 Existing-Trace Scan (Predicate H vs Predicate D) — round 3 (offset re-derived)\n")
     L.append("Generated by `user/scan_historical_a3.py` (offline, read-only — no trace modified, "
              "no replay diff run, no network capture). Predicate definitions and source derivation: "
              "`data/historical_a3_predicate_audit.md`.\n")
-    L.append("## What changed from round 1\n")
-    L.append("1. **cwnd-limited gate added.** The scanner now applies `tcp_is_cwnd_limited(...)` "
-             "BEFORE `handle_minrtt_probe()` and mode dispatch, matching `user/covegas_model.py` "
-             "cong_avoid (lines 523–524) and `bpf/covegas_wrapper.bpf.c` "
-             "(`if (!tcp_is_cwnd_limited(sk)) return;`). Round 1 omitted this gate and therefore "
-             "inspected an over-inclusive event set. Required ABI-v2 inputs for the gate: "
-             "`pre_snd_cwnd`, `pre_snd_ssthresh`, `pre_max_packets_out`, `pre_is_cwnd_limited`.\n")
-    L.append("2. **Explicit time-alignment bracket.** Phase is now classified against an "
-             "artifact-derived offset bracket between the event clock (`CLOCK_MONOTONIC`, "
-             "`bpf_ktime_get_ns`) and the cross-traffic schedule (`CLOCK_REALTIME`, `date +%s.%N`); "
-             "Predicate H is asserted only when the phase is invariant over that bracket. Schedule "
-             "anchor changed from the 1-second-quantized iperf3 `timesecs` to "
-             "`cubic_rep1_start_ts.txt`.\n")
+    L.append("## Correction history\n")
+    L.append("**Round 1** (`d9677dc`): scanner built; Predicate D derived from source; scan run.\n")
+    L.append("**Round 2** (`45aa0ff`): added the cwnd-limited GATE 0 before `handle_minrtt_probe()` "
+             "(0 event-count change — the recorder already pre-filters on the kernel's "
+             "`tcp_is_cwnd_limited(sk)`; control-flow fidelity fix); added an event/schedule offset "
+             "bracket that was stated as `[-0.05, +0.30] s` **without a derived lower bound**.\n")
+    L.append("**Round 3** (this run): the round-2 lower bound `-0.05` was asserted, not derived. "
+             "Re-derived from the actual harness happens-before order and artifacts:\n")
+    L.append("- **Coordinate convention:** `Delta = first_dominant_event_wall - cubic_rep1_start_wall` "
+             "(`Delta > 0` => the first recorded CoVegas callback is AFTER the schedule anchor).\n")
+    L.append("- **Harness order (verified, `scripts/covegas_run_intermittent.sh` + "
+             "`user/ccr_recorder_covegas.c:124`):** `M0` header `creation_ts_ns` (after `bpf__load`, "
+             "before `bpf__attach`) `< M_attach < M_cov` (covegas iperf3 backgrounded) `< M_date` "
+             "(`date +%s.%N > cubic_rep1_start_ts`); and `M2` (first data-socket `init`) is "
+             "concurrent-after `M_cov`.\n")
+    L.append("- **Rigorous upper bound:** `Delta < (first_dominant_event.ts_ns - "
+             "header.creation_ts_ns)/1e9` (`M_date > M0` guaranteed) = ~0.28–0.30 s per trace.\n")
+    L.append("- **Loose lower bound:** `Delta >= base_RTT - eps_date_bound`, `base_RTT = 0.040 s` "
+             "(topology; the CoVegas control handshake must complete before the data socket's "
+             "`init`), `eps_date_bound = (cubic_rep1_stop - cubic_rep1_start) - 20 s` (the cubic "
+             "flow ran `-t 20`, so its wall time >= 20 s) ~= 0.6–0.7 s. So `Delta` in roughly "
+             "`[-0.64, +0.30] s`.\n")
+    L.append("- **Empirical Delta (context, not a bound):** the covegas iperf3 JSON's own "
+             "`start.timestamp.timemillisecs` (CLOCK_REALTIME) minus `cubic_rep1_start_ts` ~= "
+             "**+0.12 s** across all three reps, and the data-socket `init` is at or after that "
+             "instant — so the true `Delta` is ~ **+0.12..+0.20 s (positive)**. The round-2 sign "
+             "was correct; only the lower bound was underived.\n")
+    L.append("- `ROBUST_ON` / `ROBUST_OFF` is used only where the whole `[t + offset_lo, "
+             "t + offset_hi]` window lies in one phase; a per-transition sensitivity table over "
+             "`Delta in {-1.0 .. +1.0}` is given separately.\n")
 
     L.append("\n## Before vs after (control-flow counts)\n")
-    L.append("| trace | metric | round 1 | round 2 (corrected) |")
+    L.append("Round 3 did not change any control-flow count (it only re-derived the time-alignment "
+             "offset bracket). The cwnd-limited gate (round 2) removed 0 events.\n")
+    L.append("| trace | metric | round 1 | round 2 / round 3 |")
     L.append("| --- | --- | ---: | ---: |")
     for r in results:
         r1 = ROUND1_COUNTS[r["label"]]
@@ -340,14 +427,22 @@ def main():
     L.append("## Per-trace detail\n")
     for r in results:
         c = r["counts"]
+        od = r["offset_detail"]
         L.append(f"### {r['label']} — `{r['trace']}`\n")
         L.append(f"- dominant-connection events: {r['n_dominant_events']}  (other: {r['n_other_events']})")
-        L.append(f"- event/schedule offset bracket: **{r['offset_bracket_s']} s**; upper edge = "
-                 f"{r['offset_hi_source']}")
+        L.append(f"- offset `Delta` bracket: **[{od['offset_lo_loose']:+.3f}, "
+                 f"{od['offset_hi_rigorous']:+.3f}] s**  "
+                 f"(upper = rigorous, {od['offset_hi_derivation']}; "
+                 f"lower = loose, {od['offset_lo_derivation']}; "
+                 f"eps_date_bound = {od['eps_date_bound_s']:.3f} s)")
+        emp = od.get("empirical_delta_lower_estimate_s")
+        if emp is not None:
+            L.append(f"- empirical `Delta` >= **{emp:+.3f} s** (iperf3 timemillisecs - cubic_rep1_start; "
+                     f"true `Delta` ~ +0.12..+0.20 s, positive)")
         L.append(f"- schedule anchor: {r['schedule_anchor']}; ON periods (s, rel anchor): "
                  f"`{r['on_periods_rel_cubic_rep1_start']}`")
         L.append("")
-        L.append("Full cong_avoid control-flow funnel (round 2):")
+        L.append("Full cong_avoid control-flow funnel:")
         L.append("```text")
         for k in ("cong_avoid", "not_cwnd_limited", "cwnd_limited_pass", "minrtt_probe_skipped",
                   "compete_dispatch", "dlv_rate_compete_zero_block", "settle_time_gate_reached",
@@ -356,12 +451,21 @@ def main():
         L.append(f"  settle_gate_jiffies_bracket_flips {r['settle_gate_jiffies_bracket_flips']}")
         L.append("```")
         L.append("")
-        L.append("DELAY→COMPETE transitions (Predicate H candidates):\n")
-        L.append("| seq | t_event (s) | sched window [lo,hi] (s) | phase (bracketed) | nearest boundary (s) |")
-        L.append("| ---: | ---: | --- | --- | ---: |")
+        L.append("DELAY→COMPETE transitions (Predicate H candidates) — formal classification over the "
+                 "rigorous offset interval:\n")
+        L.append("| seq | t_event (s) | sched window [lo,hi] (s) | nearest boundary (s) | phase over interval |")
+        L.append("| ---: | ---: | --- | ---: | --- |")
         for tr in r["delay_to_compete_transitions"]:
-            L.append(f"| {tr['seq']} | {tr['rel_s']:.2f} | [{tr['sched_lo']:.2f}, {tr['sched_hi']:.2f}] | "
-                     f"{tr['phase_bracketed']} | {tr['nearest_boundary_s']:.2f} |")
+            L.append(f"| {tr['seq']} | {tr['rel_s']:.2f} | [{tr['sched_lo']:+.2f}, {tr['sched_hi']:+.2f}] | "
+                     f"{tr['nearest_boundary_s']:.2f} | **{tr['phase_over_rigorous_interval']}** |")
+        L.append("")
+        L.append("Sensitivity table (phase of each DELAY→COMPETE transition at fixed offsets `Delta`, "
+                 "independent of the formal classification above):\n")
+        grid = [f"{d:+.2f}" for d in OFFSET_SENSITIVITY_GRID]
+        L.append("| seq | " + " | ".join(grid) + " |")
+        L.append("| ---: | " + " | ".join(["---"] * len(grid)) + " |")
+        for tr in r["delay_to_compete_transitions"]:
+            L.append(f"| {tr['seq']} | " + " | ".join(tr["sensitivity"][g] for g in grid) + " |")
         L.append("")
         if r["guard_failing_evaluations"]:
             L.append("Predicate D events (v4 guard FALSE):\n")

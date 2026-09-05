@@ -90,9 +90,10 @@ distribution** — for seeing 0 events in this campaign's own 9 boundaries:
 P(0 in 9) = (8/9)^9 ≈ 34.6%
 ```
 
-This is still among the single most likely outcomes for a small sample at this descriptive rate,
-but it is **not** "≈70%" — an earlier version of this file computed `(8/9)^3 ≈ 70%` by treating the
-historical denominator as 3 runs instead of 9 boundaries, which understated the sample size the
+So observing zero is plausible and unsurprising at this sample size — not being claimed as the
+expected or most likely count. It is **not** "≈70%" — an earlier version of this file computed
+`(8/9)^3 ≈ 70%` by treating the historical denominator as 3 runs instead of 9 boundaries, which
+understated the sample size the
 1-in-9 rate was actually drawn from. The result (trigger absent, not reproduced, not an anomaly)
 is unchanged; only the supporting probability figure is corrected.
 

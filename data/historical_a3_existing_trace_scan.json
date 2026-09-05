@@ -3,10 +3,19 @@
     "trace": "raw/covegas_replay/primary/rep1.ccr",
     "label": "rep1",
     "offset_bracket_s": [
-      -0.05,
+      -0.6435,
       0.2976
     ],
-    "offset_hi_source": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9 -- recorder-start to first-callback, monotonic; rigorous upper bound on the covegas-start -> first-callback offset",
+    "offset_detail": {
+      "convention": "Delta = first_dominant_event_wall - cubic_rep1_start_wall (positive => event after schedule anchor)",
+      "offset_hi_rigorous": 0.297604874,
+      "offset_hi_derivation": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9; M0 < M_cov < M_date guaranteed by harness order",
+      "offset_lo_loose": -0.6434774017333984,
+      "offset_lo_derivation": "base RTT (0.040s, topology) minus eps_date_bound; eps_date_bound = max(0, cubic_rep1_stop - cubic_rep1_start - 20.0)",
+      "eps_date_bound_s": 0.6834774017333984,
+      "empirical_delta_lower_estimate_s": 0.12865209579467773,
+      "empirical_note": "iperf3 start.timestamp.timemillisecs - cubic_rep1_start_ts; the data-socket init is at or after this instant, so true Delta >= this (positive)"
+    },
     "schedule_anchor": "cubic_rep1_start_ts.txt (date +%s.%N)",
     "on_periods_rel_cubic_rep1_start": [
       [
@@ -40,10 +49,21 @@
       {
         "seq": 418,
         "rel_s": 1.487907436,
-        "sched_lo": 1.437907436,
+        "sched_lo": 0.8444300342666016,
         "sched_hi": 1.78551231,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 1.611709873,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 1.487907436,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -51,10 +71,21 @@
       {
         "seq": 19995,
         "rel_s": 42.230383175,
-        "sched_lo": 42.180383175,
+        "sched_lo": 41.5869057732666,
         "sched_hi": 42.527988049,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 1.662749082840456,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 1.5389466458404542,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -62,10 +93,21 @@
       {
         "seq": 44100,
         "rel_s": 84.288074056,
-        "sched_lo": 84.238074056,
+        "sched_lo": 83.6445966542666,
         "sched_hi": 84.58567893,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 3.032254033588373,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 2.908451596588378,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -75,10 +117,21 @@
       {
         "seq": 2656,
         "rel_s": 11.770489716,
-        "sched_lo": 11.720489716,
+        "sched_lo": 11.1270123142666,
         "sched_hi": 12.06809459,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 8.789185248733398,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 8.912987685733398,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -86,10 +139,21 @@
       {
         "seq": 26096,
         "rel_s": 61.274056636,
-        "sched_lo": 61.224056636,
+        "sched_lo": 60.6305792342666,
         "sched_hi": 61.57166151,
-        "phase_bracketed": "ALIGNMENT-LIMITED",
-        "nearest_boundary_s": 0.029776311235472974,
+        "phase_over_rigorous_interval": "ALIGNMENT_LIMITED",
+        "nearest_boundary_s": 0.09402612576452896,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "OFF",
+          "+0.30": "OFF",
+          "+0.50": "OFF",
+          "+1.00": "OFF"
+        },
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -97,10 +161,21 @@
       {
         "seq": 47885,
         "rel_s": 99.688755089,
-        "sched_lo": 99.638755089,
+        "sched_lo": 99.0452776872666,
         "sched_hi": 99.986359963,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 2.1610369011087727,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 2.2848393381087675,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -136,10 +211,19 @@
     "trace": "raw/covegas_replay/primary/rep2.ccr",
     "label": "rep2",
     "offset_bracket_s": [
-      -0.05,
+      -0.5692,
       0.2949
     ],
-    "offset_hi_source": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9 -- recorder-start to first-callback, monotonic; rigorous upper bound on the covegas-start -> first-callback offset",
+    "offset_detail": {
+      "convention": "Delta = first_dominant_event_wall - cubic_rep1_start_wall (positive => event after schedule anchor)",
+      "offset_hi_rigorous": 0.294857956,
+      "offset_hi_derivation": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9; M0 < M_cov < M_date guaranteed by harness order",
+      "offset_lo_loose": -0.569220266342163,
+      "offset_lo_derivation": "base RTT (0.040s, topology) minus eps_date_bound; eps_date_bound = max(0, cubic_rep1_stop - cubic_rep1_start - 20.0)",
+      "eps_date_bound_s": 0.6092202663421631,
+      "empirical_delta_lower_estimate_s": 0.12273931503295898,
+      "empirical_note": "iperf3 start.timestamp.timemillisecs - cubic_rep1_start_ts; the data-socket init is at or after this instant, so true Delta >= this (positive)"
+    },
     "schedule_anchor": "cubic_rep1_start_ts.txt (date +%s.%N)",
     "on_periods_rel_cubic_rep1_start": [
       [
@@ -173,10 +257,21 @@
       {
         "seq": 418,
         "rel_s": 2.024577535,
-        "sched_lo": 1.974577535,
+        "sched_lo": 1.455357268657837,
         "sched_hi": 2.319435491,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 2.147006513,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 2.024577535,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -184,10 +279,21 @@
       {
         "seq": 19694,
         "rel_s": 42.904526641,
-        "sched_lo": 42.854526641,
+        "sched_lo": 42.33530637465783,
         "sched_hi": 43.199384597,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 2.41109992518286,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 2.288670947182858,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -195,10 +301,21 @@
       {
         "seq": 41478,
         "rel_s": 83.073233998,
-        "sched_lo": 83.02323399800001,
+        "sched_lo": 82.50401373165785,
         "sched_hi": 83.36809195400001,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 2.0369150645467613,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 1.9144860865467592,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -208,10 +325,21 @@
       {
         "seq": 1508,
         "rel_s": 9.895884941,
-        "sched_lo": 9.845884941,
+        "sched_lo": 9.326664674657838,
         "sched_hi": 10.190742897,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 10.018313919,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 9.895884941,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -219,10 +347,21 @@
       {
         "seq": 24122,
         "rel_s": 58.657979959,
-        "sched_lo": 58.607979959000005,
+        "sched_lo": 58.08875969265784,
         "sched_hi": 58.952837915,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 2.3723618206751667,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 2.4947907986751687,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -230,10 +369,21 @@
       {
         "seq": 47437,
         "rel_s": 101.756915348,
-        "sched_lo": 101.70691534800001,
+        "sched_lo": 101.18769508165785,
         "sched_hi": 102.05177330400001,
-        "phase_bracketed": "ALIGNMENT-LIMITED",
-        "nearest_boundary_s": 0.057060819606576274,
+        "phase_over_rigorous_interval": "ALIGNMENT_LIMITED",
+        "nearest_boundary_s": 0.0653681583934258,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "OFF",
+          "+0.30": "OFF",
+          "+0.50": "OFF",
+          "+1.00": "OFF"
+        },
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -269,10 +419,19 @@
     "trace": "raw/covegas_replay/primary/rep3.ccr",
     "label": "rep3",
     "offset_bracket_s": [
-      -0.05,
+      -0.6964,
       0.2762
     ],
-    "offset_hi_source": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9 -- recorder-start to first-callback, monotonic; rigorous upper bound on the covegas-start -> first-callback offset",
+    "offset_detail": {
+      "convention": "Delta = first_dominant_event_wall - cubic_rep1_start_wall (positive => event after schedule anchor)",
+      "offset_hi_rigorous": 0.276204287,
+      "offset_hi_derivation": "(first_dominant_event.ts_ns - header.creation_ts_ns)/1e9; M0 < M_cov < M_date guaranteed by harness order",
+      "offset_lo_loose": -0.6964447116851806,
+      "offset_lo_derivation": "base RTT (0.040s, topology) minus eps_date_bound; eps_date_bound = max(0, cubic_rep1_stop - cubic_rep1_start - 20.0)",
+      "eps_date_bound_s": 0.7364447116851807,
+      "empirical_delta_lower_estimate_s": 0.12269878387451172,
+      "empirical_note": "iperf3 start.timestamp.timemillisecs - cubic_rep1_start_ts; the data-socket init is at or after this instant, so true Delta >= this (positive)"
+    },
     "schedule_anchor": "cubic_rep1_start_ts.txt (date +%s.%N)",
     "on_periods_rel_cubic_rep1_start": [
       [
@@ -306,10 +465,21 @@
       {
         "seq": 424,
         "rel_s": 1.48688746,
-        "sched_lo": 1.43688746,
+        "sched_lo": 0.7904427483148193,
         "sched_hi": 1.7630917469999998,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 1.5999896034999999,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 1.48688746,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -317,10 +487,21 @@
       {
         "seq": 21021,
         "rel_s": 42.404106681,
-        "sched_lo": 42.354106681000005,
+        "sched_lo": 41.70766196931482,
         "sched_hi": 42.680310968,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 1.7737763026799342,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 1.6606741591799334,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -328,10 +509,21 @@
       {
         "seq": 44373,
         "rel_s": 84.151534247,
-        "sched_lo": 84.101534247,
+        "sched_lo": 83.45508953531483,
         "sched_hi": 84.427738534,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 2.84189402370923,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 2.7287918802092292,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 0,
         "post_mode": 1
@@ -341,10 +533,21 @@
       {
         "seq": 2607,
         "rel_s": 11.92948679,
-        "sched_lo": 11.87948679,
+        "sched_lo": 11.23304207831482,
         "sched_hi": 12.205691077,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 8.69385577818518,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 8.80695792168518,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -352,10 +555,21 @@
       {
         "seq": 26753,
         "rel_s": 61.305756061,
-        "sched_lo": 61.255756061,
+        "sched_lo": 60.609311349314815,
         "sched_hi": 61.581960347999996,
-        "phase_bracketed": "ALIGNMENT-LIMITED",
-        "nearest_boundary_s": 0.002615366594113766,
+        "phase_over_rigorous_interval": "ALIGNMENT_LIMITED",
+        "nearest_boundary_s": 0.11048677690588704,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "OFF",
+          "+0.30": "OFF",
+          "+0.50": "OFF",
+          "+1.00": "OFF"
+        },
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
@@ -363,10 +577,21 @@
       {
         "seq": 48619,
         "rel_s": 100.358266,
-        "sched_lo": 100.308266,
+        "sched_lo": 99.66182128831483,
         "sched_hi": 100.634470287,
-        "phase_bracketed": "ON",
-        "nearest_boundary_s": 1.4979407096494128,
+        "phase_over_rigorous_interval": "ROBUST_ON",
+        "nearest_boundary_s": 1.6110428531494136,
+        "sensitivity": {
+          "-1.00": "ON",
+          "-0.50": "ON",
+          "-0.30": "ON",
+          "-0.10": "ON",
+          "+0.00": "ON",
+          "+0.12": "ON",
+          "+0.30": "ON",
+          "+0.50": "ON",
+          "+1.00": "ON"
+        },
         "callback": "cong_avoid",
         "pre_mode": 1,
         "post_mode": 0
