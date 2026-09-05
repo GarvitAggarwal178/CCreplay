@@ -84,7 +84,39 @@ cleanly). No `MISPARSED` path exists at any official boundary.
 
 ## PHASE 1 — COVEGAS CONTROL-FLOW AUDIT
 
-_(appended after Phase 1)_
+Full audit: `data/covegas_control_flow_audit_phase1.md`.
+
+### 1.1 `handle_minrtt_probe()` return-zero state preservation
+
+Path table (`user/covegas_model.py:293-330`; identical branch structure in
+`bpf/covegas_wrapper.bpf.c:349-398` and `~/cn-spike/covegas/src/covegas.bpf.c:606-662`):
+
+| path | condition | writes | return |
+| --- | --- | --- | --- |
+| P1 | probing AND probe elapsed | min_rtt_us, epoch_start (COMPETE+epoch), minrtt_probing←0, last_minrtt_probe_ns | **True** |
+| P2 | probing AND not elapsed | none | **True** |
+| P3 | not probing AND period elapsed | cwnd_before_minrtt_probe, minrtt_probe_min_us, minrtt_probing←1, probe_action_start_ns, dlv_rate_max | **True** |
+| P4 | not probing AND period not elapsed | none | **False** (the only False path) |
+
+Every write path returns True; the only False path (P4) performs no assignment.
+```text
+MINRTT_RETURN_ZERO_STATE_PRESERVATION = CONFIRMED
+```
+The model wraps `ca = dict(ca)` at entry (caller's `ca` never mutated); scanner passes `dict(ca)`
+and, on `probe_ran == False`, proceeds with its original `ca` == model's `next_ca` (P4). Scanner
+not rewritten to carry an equivalent object.
+
+### 1.2 Predicate-D scanner control-flow audit
+
+6-gate comparison (cwnd-limited → handle_minrtt_probe → mode dispatch → dlv_rate_compete branch →
+settle-time gate [both jiffies endpoints] → 3/4 guard) against `handle_compete_mode:360-379`:
+**every gate matches; no earlier gate omitted; integer arithmetic (`u32`, `//`) matches;
+`RATE_SETTLE_MS=1000`, `CONFIG_HZ=250` → threshold 250 jiffies.** Time-origin investigation not
+reopened (accepted result carried).
+
+```text
+A3_TRACK_BLOCKED = NO   -> proceed to Phase 2
+```
 
 ## PHASE 2 — A3 PRECOMMIT
 
