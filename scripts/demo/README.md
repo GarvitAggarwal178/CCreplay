@@ -100,25 +100,58 @@ result about what the controller computes, localized to a callback boundary.
 ## Optional add-on — historical A3 regression (real captured trace)
 
 `demo_04_historical_a3.sh` runs against `raw/covegas_campaign/rep4.ccr` — a real captured Replay
-ABI v2 CoVegas trace acquired by the capped historical campaign (valid run 4 of 4). It contains,
-in one COMPETE episode: a spurious `DELAY→COMPETE` transition during a cross-traffic OFF period
-(`seq=9533`), and ≈ 1 s later a settle-latch guard evaluation (`seq=10421`) with
-`dlv_rate_bps / dlv_rate_max ≈ 0.996` — so the fixed/v4 "A3" guard **reverts** (no real competitor
-is depressing the rate). The reconstructed v3 build (v4 source with **only** that guard reverted to
-an unconditional latch) **latches** instead.
+ABI v2 CoVegas trace acquired by the capped historical campaign (valid run 4 of 4; 4 valid runs,
+12 valid off-period boundaries, stopped on the first same-episode H+D). In one COMPETE episode it
+contains:
+
+- a `DELAY→COMPETE` transition at `seq=9533` **classified inside a cross-traffic OFF period under
+  the established alignment interval; the classification also remains OFF under the documented
+  sensitivity analysis** (no new time-origin work was done — see the technical docs);
+- ≈ 1 s later, a settle-latch guard evaluation at `seq=10421` with `dlv_rate_bps / dlv_rate_max ≈
+  0.9959` → the fixed/v4 "A3" guard **reverts** (no real competitor is depressing the rate). The
+  reconstructed v3 build (v4 source with **only** that guard reverted to an unconditional latch)
+  **latches** instead.
 
 ```text
-FIRST DIVERGENCE:  event 10420 / seq 10421 / cong_avoid
-  priv_post_mode              fixed/v4 = DELAY (revert)   recon-v3 = COMPETE (latch)
-  priv_post_dlv_rate_compete  fixed/v4 = 0                recon-v3 = 1,192,908
-  + post_snd_cwnd and the full revert_to_delay()-vs-cubic_growth() field set
+10,420 matching transitions, then FIRST DIVERGENCE:  seq 10421 / cong_avoid
+  mode:              fixed/v4 = DELAY (revert)   recon-v3 = COMPETE (latch)
+  dlv_rate_compete:  fixed/v4 = 0                recon-v3 = 1,192,908
+  + post_snd_cwnd (computed boundary value: 37 vs 65) and the full revert_to_delay()-vs-cubic_growth() field set
 ```
 
-**Disclosure:** `reconstructed-v3` is a documented reconstruction (v4's committed source with one
-conditional reverted), **not** original committed v3 source — v3's `src/covegas.bpf.c` was never
-committed to the read-only repo. Narrow claim only: on the recorded fixed/v4 callback stream,
-reconstructed-v3 first differs from fixed/v4 at that Predicate-D event. **Not** a claim about
-alternate throughput / RTT / queue state or a recreated 120 s network outcome.
+**Presenter note on `snd_cwnd`:** the `snd_cwnd` difference shown at the first divergence is the
+value each implementation *computes at that recorded callback boundary* under the same recorded
+input state. It does **not** imply that reconstructed-v3 would subsequently have followed a
+particular cwnd, throughput, RTT, loss, or queue trajectory in a live network.
+
+**Disclosures (both mandatory when presenting this):**
+
+1. `reconstructed-v3` is a **documented reconstruction** (v4's committed source with one conditional
+   reverted), **not** original committed v3 source — v3's `src/covegas.bpf.c` was never committed
+   to the read-only repo.
+2. The Replay-ABI-v2 support in the differential debugger was **implemented during the same
+   session** that produced this result; it is validated by precommitted positive/negative controls
+   and 7 permanent automated tests (`tests/test_ccreplay_diff_v2.py`), plus exact agreement with the
+   precommitted first-divergence prediction.
+
+Narrow claim only: on the recorded fixed/v4 callback stream, reconstructed-v3 first differs from
+fixed/v4 at that Predicate-D event. **Not** a claim about alternate throughput / RTT / queue state
+or a recreated 120 s network outcome.
 
 The main demonstration (steps 1–3) works without this add-on; `demo_00_run_all.sh` appends it only
 when the trace is present.
+
+### Compact historical summary (for the five-minute version)
+
+```text
+Final precommitted campaign:  4 valid runs, 12 valid off-period boundaries, stopped on first same-episode H+D
+qualifying v2 trace:          H entry seq 9533 (OFF period), D seq 10421, D rate ratio ~= 0.9959
+differential:                 10,420 matching transitions, then first divergence seq 10421 (cong_avoid)
+primary differences:          mode DELAY vs COMPETE ; dlv_rate_compete 0 vs 1,192,908
+caveats:                      reconstructed-v3 = documented reconstruction ;
+                              v2 differential path = implemented same session, validated with
+                              precommitted controls + automated regression tests
+```
+
+The three scanner-audit rounds (offset re-derivation etc.) are technical documentation — bring them
+up only if asked.

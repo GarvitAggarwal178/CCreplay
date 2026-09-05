@@ -1,6 +1,9 @@
 # Historical CoVegas Regression Case Study
 
-## Status: **CLOSED SUCCESSFULLY** (narrow-sense differential-replay PASS)
+## Status: **Historical CoVegas A3 reconstructed-regression case study = PASS**
+
+(Separate gate from CoVegas v2 self-replay fidelity, which is also PASS — do not merge.
+Historical network acquisition: CLOSED SUCCESSFULLY, no further campaign authorized.)
 
 > **Historical state at time of this report:** `INCOMPLETE — TRIGGER NOT REPRODUCED` (3 bounded
 > attempts). **Subsequently closed** by the Final Integrated Session's capped acquisition campaign

@@ -1,153 +1,229 @@
 {
-  "ABI_COMPATIBILITY": "CLEAN",
-  "n_misparsed_cells": 0,
-  "committed_traces_all_consistent": true,
-  "matrix": {
-    "ccr_trace.parse_trace (v0)": {
-      "v0_reno": {
-        "class": "ACCEPTED_CORRECTLY",
-        "detail": "37260 events, hdr.trace_version=0"
+  "phase0_initial_matrix": {
+    "ABI_COMPATIBILITY": "CLEAN",
+    "n_misparsed_cells": 0,
+    "code_state": "Phase 0 -- user/ccreplay_diff.py supported v0/v1 only; v2 -> ValueError('unsupported trace_version 2')",
+    "matrix": {
+      "ccr_trace.parse_trace (v0)": {
+        "v0_reno": "ACCEPTED_CORRECTLY",
+        "v1_cubic": "REJECTED_CLEANLY",
+        "v2_covegas": "REJECTED_CLEANLY"
       },
-      "v1_cubic": {
-        "class": "REJECTED_CLEANLY",
-        "detail": "TraceValidationError: unknown trace_version 1 (parser supports 0 only)"
+      "ccr_trace_v1.parse_trace_v1 (v1)": {
+        "v0_reno": "REJECTED_CLEANLY",
+        "v1_cubic": "ACCEPTED_CORRECTLY",
+        "v2_covegas": "REJECTED_CLEANLY"
       },
-      "v2_covegas": {
-        "class": "REJECTED_CLEANLY",
-        "detail": "TraceValidationError: unknown trace_version 2 (parser supports 0 only)"
+      "ccr_trace_v2.parse_trace_v2 (v2)": {
+        "v0_reno": "REJECTED_CLEANLY",
+        "v1_cubic": "REJECTED_CLEANLY",
+        "v2_covegas": "ACCEPTED_CORRECTLY"
+      },
+      "ccreplay_diff._detect_version_and_parse": {
+        "v0_reno": "ACCEPTED_CORRECTLY",
+        "v1_cubic": "ACCEPTED_CORRECTLY",
+        "v2_covegas": "REJECTED_CLEANLY  (ValueError: unsupported trace_version 2)"
+      },
+      "validate_run / _v1 / _v2 (own version)": {
+        "v0_reno": "ACCEPTED_CORRECTLY",
+        "v1_cubic": "ACCEPTED_CORRECTLY",
+        "v2_covegas": "ACCEPTED_CORRECTLY"
       }
     },
-    "ccr_trace_v1.parse_trace_v1 (v1)": {
-      "v0_reno": {
-        "class": "REJECTED_CLEANLY",
-        "detail": "TraceValidationError: unknown trace_version 0 (this parser supports 1 only)"
-      },
-      "v1_cubic": {
-        "class": "ACCEPTED_CORRECTLY",
-        "detail": "78690 events, hdr.trace_version=1"
-      },
-      "v2_covegas": {
-        "class": "REJECTED_CLEANLY",
-        "detail": "TraceValidationError: unknown trace_version 2 (this parser supports 1 only)"
-      }
-    },
-    "ccr_trace_v2.parse_trace_v2 (v2)": {
-      "v0_reno": {
-        "class": "REJECTED_CLEANLY",
-        "detail": "TraceValidationError: unknown trace_version 0 (this parser supports 2 only)"
-      },
-      "v1_cubic": {
-        "class": "REJECTED_CLEANLY",
-        "detail": "TraceValidationError: unknown trace_version 1 (this parser supports 2 only)"
-      },
-      "v2_covegas": {
-        "class": "ACCEPTED_CORRECTLY",
-        "detail": "63330 events, hdr.trace_version=2"
-      }
-    },
-    "ccreplay_diff._detect_version_and_parse": {
-      "v0_reno": {
-        "class": "ACCEPTED_CORRECTLY",
-        "detail": "37260 events, hdr.trace_version=0"
-      },
-      "v1_cubic": {
-        "class": "ACCEPTED_CORRECTLY",
-        "detail": "78690 events, hdr.trace_version=1"
-      },
-      "v2_covegas": {
-        "class": "REJECTED_CLEANLY",
-        "detail": "ValueError: unsupported trace_version 2"
-      }
-    },
-    "validate_run / _v1 / _v2 (own version)": {
-      "v0_reno": {
-        "class": "ACCEPTED_CORRECTLY",
-        "detail": "pass=True, n_events=37260"
-      },
-      "v1_cubic": {
-        "class": "ACCEPTED_CORRECTLY",
-        "detail": "pass=True, n_events=78690"
-      },
-      "v2_covegas": {
-        "class": "ACCEPTED_CORRECTLY",
-        "detail": "pass=True, n_events=63330"
-      }
-    }
+    "committed_traces_all_consistent": true
   },
-  "committed_trace_reverification": [
-    {
-      "trace": "raw/covegas_replay/primary/rep1.ccr",
-      "trace_version": 2,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
+  "final_post_v2_extension_matrix": {
+    "code_state": "FINAL -- user/ccreplay_diff.py and user/ccreplay_checkpoint.py support v0/v1/v2",
+    "ABI_COMPATIBILITY": "CLEAN",
+    "FINAL_MISPARSED_CELLS": 0,
+    "committed_traces_all_consistent": true,
+    "matrix": {
+      "ccr_trace.parse_trace (v0)": {
+        "v0_reno": {
+          "class": "ACCEPTED_CORRECTLY",
+          "detail": "37260 events"
+        },
+        "v1_cubic": {
+          "class": "REJECTED_CLEANLY",
+          "detail": "TraceValidationError: unknown trace_version 1 (parser supports 0 only)"
+        },
+        "v2_covegas": {
+          "class": "REJECTED_CLEANLY",
+          "detail": "TraceValidationError: unknown trace_version 2 (parser supports 0 only)"
+        }
+      },
+      "ccr_trace_v1.parse_trace_v1 (v1)": {
+        "v0_reno": {
+          "class": "REJECTED_CLEANLY",
+          "detail": "TraceValidationError: unknown trace_version 0 (this parser supports 1 only)"
+        },
+        "v1_cubic": {
+          "class": "ACCEPTED_CORRECTLY",
+          "detail": "78690 events"
+        },
+        "v2_covegas": {
+          "class": "REJECTED_CLEANLY",
+          "detail": "TraceValidationError: unknown trace_version 2 (this parser supports 1 only)"
+        }
+      },
+      "ccr_trace_v2.parse_trace_v2 (v2)": {
+        "v0_reno": {
+          "class": "REJECTED_CLEANLY",
+          "detail": "TraceValidationError: unknown trace_version 0 (this parser supports 2 only)"
+        },
+        "v1_cubic": {
+          "class": "REJECTED_CLEANLY",
+          "detail": "TraceValidationError: unknown trace_version 1 (this parser supports 2 only)"
+        },
+        "v2_covegas": {
+          "class": "ACCEPTED_CORRECTLY",
+          "detail": "63330 events"
+        }
+      },
+      "ccreplay_diff._detect_version_and_parse": {
+        "v0_reno": {
+          "class": "ACCEPTED_CORRECTLY",
+          "detail": "37260 events, hdr.trace_version=0"
+        },
+        "v1_cubic": {
+          "class": "ACCEPTED_CORRECTLY",
+          "detail": "78690 events, hdr.trace_version=1"
+        },
+        "v2_covegas": {
+          "class": "ACCEPTED_CORRECTLY",
+          "detail": "63330 events, hdr.trace_version=2"
+        }
+      },
+      "validate_run / _v1 / _v2 (own version)": {
+        "v0_reno": {
+          "class": "ACCEPTED_CORRECTLY",
+          "detail": "pass=True, n_events=37260"
+        },
+        "v1_cubic": {
+          "class": "ACCEPTED_CORRECTLY",
+          "detail": "pass=True, n_events=78690"
+        },
+        "v2_covegas": {
+          "class": "ACCEPTED_CORRECTLY",
+          "detail": "pass=True, n_events=63330"
+        }
+      }
     },
-    {
-      "trace": "raw/covegas_replay/primary/rep2.ccr",
-      "trace_version": 2,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
+    "committed_trace_reverification": [
+      {
+        "trace": "raw/covegas_campaign/rep1.ccr",
+        "trace_version": 2,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/covegas_campaign/rep2.ccr",
+        "trace_version": 2,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/covegas_campaign/rep3.ccr",
+        "trace_version": 2,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/covegas_campaign/rep4.ccr",
+        "trace_version": 2,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/covegas_replay/primary/rep1.ccr",
+        "trace_version": 2,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/covegas_replay/primary/rep2.ccr",
+        "trace_version": 2,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/covegas_replay/primary/rep3.ccr",
+        "trace_version": 2,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/cubic_replay/auxiliary/undo_cwnd/aux1.ccr",
+        "trace_version": 1,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/cubic_replay/primary/rep1.ccr",
+        "trace_version": 1,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/cubic_replay/primary/rep2.ccr",
+        "trace_version": 1,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/cubic_replay/primary/rep3.ccr",
+        "trace_version": 1,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/r0/rep1.ccr",
+        "trace_version": 0,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/r0/rep2.ccr",
+        "trace_version": 0,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/r0/rep3.ccr",
+        "trace_version": 0,
+        "recomputed_pass": true,
+        "committed_pass": true,
+        "consistent": true
+      },
+      {
+        "trace": "raw/r0/rep.ccr",
+        "status": "SKIP (missing .ccr/.meta)"
+      }
+    ],
+    "v2_differential_regression": {
+      "fixed_v4_vs_fixed_v4_rep1": "NO DIVERGENCE",
+      "fixed_v4_vs_recon_v3_rep1": "NO DIVERGENCE",
+      "fixed_v4_vs_recon_v3_rep2": "NO DIVERGENCE",
+      "fixed_v4_vs_recon_v3_rep3": "NO DIVERGENCE",
+      "fixed_v4_vs_recon_v3_campaign_rep4_result": "DIVERGENCE",
+      "fixed_v4_vs_recon_v3_campaign_rep4_first_divergence_seq": 10421,
+      "fixed_v4_vs_recon_v3_campaign_rep4_callback": "cong_avoid"
     },
-    {
-      "trace": "raw/covegas_replay/primary/rep3.ccr",
-      "trace_version": 2,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
-    },
-    {
-      "trace": "raw/cubic_replay/auxiliary/undo_cwnd/aux1.ccr",
-      "trace_version": 1,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
-    },
-    {
-      "trace": "raw/cubic_replay/primary/rep1.ccr",
-      "trace_version": 1,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
-    },
-    {
-      "trace": "raw/cubic_replay/primary/rep2.ccr",
-      "trace_version": 1,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
-    },
-    {
-      "trace": "raw/cubic_replay/primary/rep3.ccr",
-      "trace_version": 1,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
-    },
-    {
-      "trace": "raw/r0/rep1.ccr",
-      "trace_version": 0,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
-    },
-    {
-      "trace": "raw/r0/rep2.ccr",
-      "trace_version": 0,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
-    },
-    {
-      "trace": "raw/r0/rep3.ccr",
-      "trace_version": 0,
-      "recomputed_pass": true,
-      "committed_pass": true,
-      "consistent": true
-    },
-    {
-      "trace": "raw/r0/rep.ccr",
-      "status": "SKIP (missing .ccr/.meta)"
-    }
-  ]
+    "v2_differential_regression_ok": true
+  },
+  "FINAL_MISPARSED_CELLS": 0,
+  "ABI_COMPATIBILITY_FINAL": "CLEAN"
 }

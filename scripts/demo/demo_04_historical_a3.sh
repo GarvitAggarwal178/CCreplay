@@ -56,8 +56,9 @@ for f in ("priv_post_mode","priv_post_dlv_rate_compete"):
         print("FIELD:      ", f)
         print("  fixed/v4 (revert):", cd[f]["reference"])
         print("  recon-v3 (latch): ", cd[f]["candidate"])
-print("OTHER DIFFERING FIELDS:", ", ".join(f for f in div["all_diff_fields"] if f not in ("priv_post_mode","priv_post_dlv_rate_compete")))
-print("  (v4 executed revert_to_delay(); v3 executed cubic_growth())")
+print("OTHER DIFFERING (computed boundary values):", ", ".join(f for f in div["all_diff_fields"] if f not in ("priv_post_mode","priv_post_dlv_rate_compete")))
+print("  (v4 executed revert_to_delay(); v3 executed cubic_growth() -- these are the values each")
+print("   implementation COMPUTES AT THIS RECORDED CALLBACK BOUNDARY, not an alternate trajectory)")
 print("====================================")
 sys.exit(0 if d["result"]=="DIVERGENCE" else 1)
 '

@@ -1,8 +1,43 @@
 # Historical CoVegas A3 Case — Close Decision
 
+## Formal verdict: **Historical CoVegas A3 reconstructed-regression case study = PASS**
+
 ## Status: **HISTORICAL NETWORK ACQUISITION CLOSED SUCCESSFULLY**
 
-Phase 11 of `docs/session/OVERNIGHT_EVIDENCE_PIPELINE.md`. Branch 10A succeeded cleanly.
+Phase 11 of `docs/session/OVERNIGHT_EVIDENCE_PIPELINE.md`, then post-success consistency closure.
+Branch 10A succeeded cleanly.
+
+### PASS means, precisely
+
+> On a newly acquired Replay-ABI-v2 fixed/v4 callback stream containing the predeclared historical
+> off-period A3 condition, the precommitted reconstructed-v3 candidate first diverged from fixed/v4
+> at the precommitted same-episode Predicate-D callback.
+
+Concretely: `raw/covegas_campaign/rep4.ccr` (sha256
+`1aeabe0283e3f0a52936391dde18ec86093c524b4f90cad319b901ef067d65de`), Predicate H `seq=9533`
+(off-period DELAY→COMPETE), Predicate D `seq=10421` (`cong_avoid`, same episode, `D_hist == D_first`);
+`fixed/v4` vs `reconstructed-v3` matched 10,420 events then first diverged at `seq=10421` — matching
+the precommit `data/a3_reconstructed_candidate_predictions.md` §2.4 (`b8af8c1`) exactly.
+
+### Mandatory caveats (attach wherever this PASS is stated)
+
+- **Candidate provenance:** the buggy candidate is a *documented reconstruction* of v3's A3
+  settle-latch behaviour from committed v4 source plus historical project evidence. Original
+  committed v3 source is unavailable (`data/historical_regression_selection.md`). This is a
+  **reconstructed-regression case study, not replay of literal original-v3 source.**
+- **Debugger-path provenance:** Replay-ABI-v2 support in the differential debugger was implemented
+  during the same integrated session. Its correctness is supported by precommitted positive/negative
+  controls, subsequent automated regression coverage (`tests/test_ccreplay_diff_v2.py`, +7 tests),
+  and the precommitted historical first-divergence result.
+
+### Verdicts stay separate — do NOT merge the last two
+
+```text
+Reno v0 replay fidelity:                              PASS
+CUBIC v1 R3 replay fidelity:                          PARTIAL
+CoVegas v2 self-replay fidelity:                      PASS
+Historical CoVegas A3 reconstructed-regression case study:  PASS
+```
 
 ## What was achieved
 
@@ -56,7 +91,11 @@ NO post-hoc H/D redefinition
 ## Formal verdict change
 
 ```text
-Historical CoVegas A3:   INCOMPLETE  ->  CLOSED SUCCESSFULLY (narrow-sense differential-replay PASS)
+Historical CoVegas A3 reconstructed-regression case study:
+  INCOMPLETE (trigger not reproduced)  ->  PASS
+  (per the precise definition above; separate gate from CoVegas v2 self-replay fidelity)
 ```
 
-CUBIC R3 remains **PARTIAL**. CoVegas v2 self-replay remains **PASS**. Reno v0 remains **PASS**.
+CUBIC R3 remains **PARTIAL**. CoVegas v2 self-replay fidelity remains **PASS**. Reno v0 remains
+**PASS**. These four gates are reported separately; the historical case-study PASS is **not** the
+CoVegas self-replay PASS and must not be merged with it.

@@ -1,5 +1,24 @@
 # Final Historical Capture Campaign + Differential Replay
 
+## Formal verdict: **Historical CoVegas A3 reconstructed-regression case study = PASS**
+
+> **PASS means:** on a newly acquired Replay-ABI-v2 fixed/v4 callback stream containing the
+> predeclared historical off-period A3 condition, the precommitted reconstructed-v3 candidate first
+> diverged from fixed/v4 at the precommitted same-episode Predicate-D callback.
+>
+> **Candidate provenance caveat:** the buggy candidate is a documented reconstruction of v3's A3
+> settle-latch behaviour from committed v4 source + historical project evidence; original committed
+> v3 source is unavailable. This is a reconstructed-regression case study, not replay of literal
+> original-v3 source.
+>
+> **Debugger-path provenance caveat:** Replay-ABI-v2 support in the differential debugger
+> (`user/ccreplay_diff.py` / `user/ccreplay_checkpoint.py`) was implemented during this same
+> integrated session (Phase 3 / Phase 10). Its correctness is supported by the precommitted
+> synthetic positive control, the `fixed-v4`/`fixed-v4` + `fixed-v4`/`reconstructed-v3` negatives,
+> `tests/test_ccreplay_diff_v2.py` (7 permanent tests), the final ABI/version-dispatch regression
+> (`REPORT_ABI_COMPATIBILITY_MATRIX.md`), and exact agreement with the precommitted first-divergence
+> prediction. It is a provenance caveat, not an invalidation.
+
 ## Outcome: **Outcome 1 — HISTORICAL DIFFERENTIAL CANDIDATE ACQUIRED**, Branch 10A prediction **matched**
 
 Phases 7–11 of `docs/session/OVERNIGHT_EVIDENCE_PIPELINE.md`. Precommit:
@@ -117,6 +136,13 @@ HISTORICAL DIFFERENTIAL REPLAY = PASS
 
 **Not claimed:** the candidate's alternate throughput; alternate RTT; a recreated 120 s network
 outcome; that the first divergence caused every later performance symptom.
+
+**On the `post_snd_cwnd` difference (`v4 = 37`, `v3 = 65`):** this is the value each implementation
+*computes at that recorded callback boundary* under the same recorded input state (v4 ran
+`revert_to_delay()` and lands at the BDP-based target; v3 ran `cubic_growth()` and keeps the
+COMPETE-mode cwnd). It does **not** imply that reconstructed-v3 would subsequently have followed a
+particular cwnd, throughput, RTT, loss, or queue trajectory in a live network — Mode B injects the
+recorded shared TCP state at every callback and does not evolve the TCP core between callbacks.
 
 > CCReplay answers what a congestion-control implementation computes at a recorded callback
 > boundary. It does not claim what network trajectory or performance that implementation would have

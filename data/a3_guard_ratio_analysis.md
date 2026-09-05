@@ -36,14 +36,39 @@ with a genuine competitor depressing CoVegas's throughput.
 `dlv_rate_compete` was never latched in that episode (max 0); the revert fired 0.998 s after entry
 (≈ `RATE_SETTLE_MS`). See `data/historical_a3_archive_analysis.json`.
 
+## Final campaign observations (post-success closure — expanded data)
+
+The capped historical campaign (`REPORT_FINAL_HISTORICAL_CAPTURE_CAMPAIGN.md`, 4 valid runs) added
+**17 more ON-period eligible settle-latch guard evaluations** and **1 OFF-period H+D evaluation**.
+Full list: `data/historical_capture_campaign_results.json` (`episode_diagnostic`).
+
+```text
+ORIGINAL PRIMARY 9 (rep1/rep2/rep3):
+  range  0.2402 - 0.4092                     (all PASS)
+
+FINAL CAMPAIGN ON-PERIOD OBSERVATIONS (n = 17):
+  0.0970 0.1458 0.1463 0.1540 0.2533 0.2617 0.2619 0.2620 0.2655
+  0.2783 0.3377 0.3428 0.4251 0.4449 0.4574 0.6506 0.7108           (all PASS)
+  range  0.0970 - 0.7108
+  max ON value  0.7108   (campaign attempt 2, episode entry seq 1627 -- close to but still below the 0.75 latch threshold)
+
+QUALIFYING OFF-PERIOD H+D (campaign attempt 4, episode entry seq 9533):
+  0.9959                                     (FAIL -> v4 reverts)
+
+ARCHIVED HISTORICAL POSITIVE (~/cn-spike/covegas/raw/partC_v4/Ph500_B5x_rep2_ringbuf.csv):
+  0.9977                                     (FAIL)
+```
+
 ## Allowed interpretation
 
-> All nine existing eligible evaluations occurred in ON-period episodes and passed the v4 guard.
-> The archived off-period positive had a guard-row ratio ≈ 0.998 and therefore failed the guard.
-> This is mechanism-consistent empirical evidence, not proof that workload phase causally
-> determines the ratio.
+> One new ON-period eligible evaluation reached approximately 0.711, close to but still below the
+> v4 0.75 latch threshold. The expanded observations reinforce that workload phase does not
+> deterministically determine the rate ratio. The OFF-period historical/qualifying episodes near
+> 1.0 remain mechanism-consistent evidence, not proof of a phase-to-ratio causal rule.
 
-**Do not claim H deterministically implies D.** The 9 ON-period ratios and the 1 OFF-period ratio
-are separated by a large gap (0.41 vs 0.998), which is *consistent with* the A3 mechanism's design
-rationale (a spurious off-period COMPETE entry leaves the settle-time rate near solo capacity), but
-n=1 on the OFF side and the ratio is not a recorded controller decision variable in its own right.
+**Do not assert `ON ⇒ guard PASS`, `OFF ⇒ guard FAIL`, or `H ⇒ D`.** Across 26 total ON-period
+eligible evaluations the ratio ranges 0.097–0.711 (all PASS), and only one OFF-period evaluation
+exists (0.9959, FAIL) — n=1 on the OFF side. The ratio is not a recorded controller decision
+variable in its own right; the guard mechanism (§5's original rationale) is what the A3 change
+targets, and the newly captured OFF-period episode is consistent with it, not a proof of a causal
+phase→ratio law.
