@@ -13,12 +13,33 @@ their evidence.
 SESSION:                 Final Integrated Session  (docs/session/OVERNIGHT_EVIDENCE_PIPELINE.md, phases 0-18)
 DATE:                    2026-09-05
 STARTING COMMIT:         263ca60  "audit: re-derive Predicate-H time-origin offset from harness order"
-ENDING COMMIT:           <filled at Phase 18>
+ENDING COMMIT:           <this handoff's commit -- `git log --oneline -1`; content = 7fb7af5 + this file>
 FORMAL VERDICTS AT START: Reno v0 PASS | CUBIC v1 R3 PARTIAL | CUBIC clock residual ATTRIBUTED_AND_CHARACTERIZED
                           | CoVegas v2 self-replay PASS | Historical CoVegas A3 INCOMPLETE
-FORMAL VERDICT CHANGES:   <none unless a qualifying result is obtained; tracked per phase>
-NEW NETWORK CAPTURES:     <tracked at Phase 8>
-NEW DIFFERENTIAL REPLAY:  <tracked at Phase 10>
+FORMAL VERDICT CHANGES:   Historical CoVegas A3:  INCOMPLETE -> CLOSED SUCCESSFULLY
+                          (narrow-sense differential-replay PASS, Branch 10A; b8b0a33).
+                          All other verdicts unchanged (CUBIC R3 re-verified PARTIAL in Phase 15).
+NEW NETWORK CAPTURES:     YES -- 4 attempts / 4 valid runs / 12 valid boundaries (cap 12 / 9 / 27);
+                          stopped on first same-episode H+D. Topology torn down afterward.
+NEW DIFFERENTIAL REPLAY:  YES -- Phase 10A: fixed/v4 vs reconstructed-v3 on raw/covegas_campaign/rep4.ccr.
+```
+
+### Commit trail (start → end)
+
+```text
+263ca60  (start)
+0269774  phase0(abi)      -- ABI compatibility matrix CLEAN
+72ec44a  phase1(covegas)  -- control-flow audit, A3_TRACK_BLOCKED = NO
+b8af8c1  test(a3)         -- PRECOMMIT reconstructed candidate + campaign predictions
+27fd795  feat(a3)         -- reconstructed v3 settle-latch candidate
+7b9637a  test(a3)         -- candidate controls + guard-ratio analysis
+2f3a1e1  feat(demo)       -- deterministic professor demo package (N4/N5/N6)
+8ce243a  test(a3)         -- PRECOMMIT final capped historical acquisition campaign
+6245a04  test(a3)         -- per-capture campaign analyzer
+f0b3ea1  exp(a3)          -- final historical capture campaign, Outcome 1 (H+D run 4)
+b8b0a33  exp(a3)          -- historical differential replay PASS (Branch 10A) + close
+7fb7af5  feat(demo)       -- optional historical A3 add-on + full regression
+<this>   docs(session)    -- handoff assembly + adversarial self-check (Phase 17/18)
 ```
 
 ### Binding claim boundary (verbatim, used in all current-facing docs)
@@ -46,14 +67,9 @@ rewrite predictions; modify `~/cn-spike` / `~/cn` / `~/cn-spike/covegas`.
 candidate → 4 positive/negative controls → 5 guard-ratio analysis → 6 professor demo package →
 7 precommit capture campaign → 8 capture campaign → 9 outcome matrix → 10 conditional historical
 diff → 11 freeze/close → 12 optional historical demo → 13 optional performance → 15 full regression
-→ 16 git ordering → 17 handoff assembly + adversarial self-check → 18 terminal summary.
-
-### Commit trail (in order)
-
-```text
-263ca60  (start)
-<phase commits appended here>
-```
+→ 16 git ordering → 17 handoff assembly + adversarial self-check → 18 terminal summary. (13 and 14
+are optional/forbidden respectively — see below.) The full commit trail is under SESSION IDENTITY
+above.
 
 ---
 
@@ -266,20 +282,186 @@ CUBIC R3 still PARTIAL; CoVegas v2 self-replay still PASS; Reno v0 still PASS.
 
 ## PHASE 12 — OPTIONAL HISTORICAL DEMO
 
-_(appended after Phase 12)_
+`scripts/demo/demo_04_historical_a3.sh` — `fixed/v4` vs `reconstructed-v3` on
+`raw/covegas_campaign/rep4.ccr`; prints the OFF-period H entry (`seq=9533`), the same-episode
+Predicate-D event (`seq=10421`), and the first divergence at `seq=10421` (`cong_avoid`):
+`priv_post_mode` DELAY↔COMPETE, `priv_post_dlv_rate_compete` 0↔1,192,908, + the
+`revert_to_delay`-vs-`cubic_growth` field set. Discloses `reconstructed-v3` is a reconstruction,
+not original v3 source; no throughput/RTT/counterfactual claim. `demo_00_run_all.sh` appends it
+only when the trace is present; `README.md` + `data/demo/DEMO_NUMBERS.md` updated. Full package
+re-rehearsed: **EXIT 0, wall-clock 2.9 s, peak RSS 362 MB** (all 4 steps PASS).
 
 ## PHASE 13 — PERFORMANCE
 
-_(appended or SKIPPED)_
+```text
+SKIPPED — lower priority than demo/regression/handoff under session budget
+          (Phase 13 is explicitly optional and "drop first under time pressure").
+```
 
-## PHASE 15 — FULL REGRESSION SUITE
+## PHASE 15 — FULL REGRESSION SUITE (run at candidate-impl time and again at the end)
 
-_(appended)_
+```text
+python3 -m unittest discover -s tests                         -> Ran 40 tests ... OK
+Reno v0   replay_r1.py / replay_r2.py  rep1/rep2/rep3         -> PASS / first divergence NONE
+CUBIC v1  replay_r3a.py  (rep1,rep2,rep3)                     -> total_mismatches 4 ; clock_stable_mismatched 0 ;
+                                                                 non_ambiguous_first_mismatch null   (R3 = PARTIAL, unchanged)
+CUBIC v1  replay_r3b.py  (rep1,rep2,rep3)                     -> pass_first_divergence_is_only_clock_ambiguous: true   (PARTIAL, unchanged)
+CoVegas v2 replay_e2.py  (rep1,rep2,rep3)                     -> "pass": true ; total_mismatches 0
+CoVegas v2 replay_e3.py  (rep1,rep2,rep3)                     -> "pass": true ; first_divergence null   (PASS, unchanged)
+reconstructed-v3 does NOT alter fixed/v4:
+  v4.handle_compete_mode.__module__ == "user.covegas_model"   (the transition() swap is reversible)
+N4 hard-negative:  ccreplay_diff Reno vs Reno   -> NO DIVERGENCE ;  CUBIC vs CUBIC -> NO DIVERGENCE
+N5 bug1:           ccreplay_diff cubic vs cubic_model_bug_ssthresh -> DIVERGENCE seq=1705
+demo:             bash scripts/demo/demo_00_run_all.sh        -> EXIT 0
+source integrity: ~/cn-spike  git rev-parse --short HEAD -> 022c2e2
+                              git status --porcelain | grep '^ M' -> " M CLAUDE.md"  (pre-existing baseline)
+                  ~/cn-spike/covegas, ~/cn  untouched;  raw/covegas_campaign/ topology torn down after the campaign
+working tree:     clean except the standing untracked exceptions
+                  (docs/session/OVERNIGHT_EVIDENCE_PIPELINE.md, instructions.md)
+```
+
+## PHASE 16 — COMMIT ORDERING (provable)
+
+```text
+263ca60  (start)
+0269774  phase0(abi): ABI compatibility matrix -- CLEAN
+72ec44a  phase1(covegas): control-flow audit -- A3_TRACK_BLOCKED = NO
+b8af8c1  test(a3): PRECOMMIT reconstructed candidate + final campaign predictions   <-- before any A3 impl
+27fd795  feat(a3): reconstructed v3 settle-latch candidate                          <-- after b8af8c1
+7b9637a  test(a3): candidate positive/negative controls + guard-ratio analysis
+2f3a1e1  feat(demo): deterministic professor demo package (N4/N5/N6)
+8ce243a  test(a3): PRECOMMIT final capped historical acquisition campaign           <-- before any capture
+6245a04  test(a3): per-capture campaign analyzer (tooling)
+f0b3ea1  exp(a3): final historical capture campaign -- Outcome 1, H+D acquired (run 4)
+b8b0a33  exp(a3): historical differential replay PASS (branch 10A) + close
+7fb7af5  feat(demo): optional historical A3 add-on + full regression (Phase 12/15)
+<final>  docs(session): handoff assembly + adversarial self-check (Phase 17/18)
+```
+
+Precommit commits (`b8af8c1`, `8ce243a`) **precede** their result-generating work. No
+prediction/precommit commit was amended after result generation.
 
 ## PHASE 17 — ADVERSARIAL SELF-CHECK
 
-_(appended)_
+```text
+Did any criterion change after results?
+  NO. Predicate H / D / same-episode rule and the guard expression / 250-jiffy threshold were
+  fixed in data/historical_a3_predicate_audit.md (round 1, d9677dc) and
+  data/a3_reconstructed_candidate_predictions.md (b8af8c1). Rounds 2/3 ADDED conditions (cwnd gate,
+  offset derivation); this session added nothing to them. The Phase-10A prediction (b8af8c1 sec 2.4)
+  was matched, not adjusted.
+
+Was any oracle weakened?
+  NO. Exact semantic equality throughout; all replay-gate regressions unchanged.
+
+Was any prediction rewritten?
+  NO. data/historical_regression_predictions.md got an APPENDED "RESULTS" section; the D2
+  predictions above it are byte-unchanged. data/a3_reconstructed_candidate_predictions.md unchanged.
+
+Was H conflated with D?
+  NO. Separate definitions, separate scans, separate same-episode test. Reported independently in
+  every attempt record.
+
+Was H => D falsely asserted?
+  NO. data/a3_guard_ratio_analysis.md and the campaign report state explicitly it is
+  mechanism-consistent evidence, not proof phase determines the ratio. Attempts 1-3 had H=0, D=0;
+  attempt 2 had 7 ON-period episodes all guard-PASS.
+
+Was a synthetic event presented as real trace evidence?
+  NO. The Phase-4.1 synthetic positive control is labelled "MODULE-WIRING / CANDIDATE-SEMANTICS
+  VALIDATION ONLY" everywhere. The Phase-10A result uses the real captured trace
+  raw/covegas_campaign/rep4.ccr.
+
+Was historical archive evidence presented as Replay ABI-v2 diff evidence?
+  NO. The archived CSV (Ph500_B5x_rep2) is used only for the guard-ratio comparison and detector
+  validation; the differential replay ran on the newly captured v2 trace.
+
+Was counterfactual network behavior claimed?
+  NO. Every historical-diff statement is bounded to "what the implementation computes at the
+  recorded callback boundary" + the verbatim claim boundary. No alternate throughput / RTT / queue
+  state / recreated 120 s outcome.
+
+Was CUBIC R3 upgraded?
+  NO. R3 = PARTIAL, re-verified in Phase 15.
+
+Was CoVegas undo_cwnd overstated?
+  NO. Still Outcome A (0 ABI-v2 trace invocations; function-level evidence only). Not touched.
+
+Was the run cap exceeded?
+  NO. 4 total attempts / 4 valid runs / 12 valid boundaries -- caps are 12 / 9 / 27. Stopped on the
+  first same-episode H+D per the Phase-7 stop rule.
+
+Were campaign parameters altered?
+  NO. HOLD_MS=500, Gate-3-R2 topology, bfifo 250000, 40 ms RTT, 20/20 x3 cross-traffic, ABI v2
+  fixed/v4 -- unchanged across all 4 attempts (scripts/covegas_run_intermittent.sh, no edits).
+
+Was probability-of-H confused with probability-of-H+D?
+  NO. Only the permitted sensitivity statement (1-(8/9)^27 ~= 95.8% for >=1 H in 27 boundaries) is
+  used, immediately followed by "not a power guarantee and does not describe same-episode H+D
+  acquisition probability".
+
+Was checkpoint+suffix called minimization?
+  NO. "Reproducer, not minimization" stated in every checkpoint context; events before the
+  checkpoint are "accounted for by the saved state", the suffix is replayed "in full, in order".
+```
 
 ## PHASE 18 — TERMINAL SUMMARY
 
-_(appended)_
+Printed to the terminal at session end (also reproduced in `§ COPY-PASTE REVIEW SUMMARY` below).
+
+---
+
+## COPY-PASTE REVIEW SUMMARY
+
+```text
+CCReplay -- Final Integrated Session (OVERNIGHT_EVIDENCE_PIPELINE.md, phases 0-18)
+start 263ca60 -> end <final commit>   |   NEW NETWORK CAPTURES: YES (4 attempts)   NEW DIFFERENTIAL REPLAY: YES (Phase 10A)
+
+FORMAL VERDICTS:
+  Reno v0                 PASS      (unchanged)
+  CUBIC v1 R3             PARTIAL   (unchanged -- re-verified Phase 15; not upgraded)
+  CUBIC clock residual    ATTRIBUTED_AND_CHARACTERIZED (unchanged; full-46 attribution 2/4/40/0)
+  CoVegas v2 self-replay  PASS      (unchanged)
+  Historical CoVegas A3   INCOMPLETE -> CLOSED SUCCESSFULLY  (narrow-sense differential-replay PASS)  <-- verdict change
+
+PHASE 0  ABI COMPATIBILITY = CLEAN  (0 MISPARSED cells; all 10 committed traces re-validate)
+PHASE 1  MINRTT_RETURN_ZERO_STATE_PRESERVATION = CONFIRMED ; scanner control-flow audit: no gate omitted ; A3_TRACK_BLOCKED = NO
+PHASE 2  predictions precommit b8af8c1  (before any A3 impl / capture)
+PHASE 3  user/covegas_model_v3_latch.py ; ONLY_A3_SEMANTIC_DIFFERENCE = YES (guard -> unconditional latch; A1/A2 unchanged)
+PHASE 4  synthetic positive control PASS (rep1 seq=608, dlv_rate_bps<-dlv_rate_max; v4 DELAY/0, v3 COMPETE/566686)
+         fixed/fixed NO DIVERGENCE x3 ; fixed/v3 NO DIVERGENCE x3 (3 original traces)
+PHASE 5  9 ON-period guard ratios 0.2402-0.4092 (all PASS) ; archived OFF-period 0.9977 (FAIL)
+PHASE 6  professor demo package (N4/N5/N6) rehearsed EXIT 0 / 1.6 s  -- BANKED before network
+PHASE 7  campaign precommit 8ce243a  (before first capture; caps 9 valid / 27 boundaries / 12 attempts)
+PHASE 8  4 attempts, 4 valid runs, 12 valid boundaries, 0 invalid
+           run1 NEITHER | run2 NEITHER | run3 NEITHER | run4 H+D_SAME_EPISODE  -> STOP
+         acquired: raw/covegas_campaign/rep4.ccr (sha256 1aeabe02...)
+           H = DELAY->COMPETE seq=9533 t=25.489s ROBUST_OFF (OFF-period 1)
+           D = settle-latch guard FAIL seq=10421 t=26.486s ratio 1,192,908/1,197,822 = 0.9959 ; elapsed_jiffies 250/250
+           same episode ; D_COUNT=1 -> D_hist == D_first -> Branch 10A
+PHASE 9  OUTCOME CLASS 1 -- HISTORICAL DIFFERENTIAL CANDIDATE ACQUIRED
+PHASE 10A  ccreplay_diff  fixed/v4 vs reconstructed-v3  ->  FIRST DIVERGENCE event 10420 / seq 10421 / cong_avoid (CLOCK_STABLE)
+           priv_post_mode 0(DELAY) vs 1(COMPETE) ; priv_post_dlv_rate_compete 0 vs 1,192,908 ;
+           post_snd_cwnd 37 vs 65 ; + priv_post_detect_count / recent_min_us / delay_* (revert_to_delay vs cubic_growth)
+           10,420 events matched before divergence
+           == matches precommit b8af8c1 sec 2.4 in every particular  ->  HISTORICAL DIFFERENTIAL REPLAY = PASS (narrow sense)
+           optional suffix reproducer: checkpoint@10000 + 420-event suffix -> identical divergence
+PHASE 11  HISTORICAL NETWORK ACQUISITION CLOSED SUCCESSFULLY  (no further campaign authorized)
+PHASE 12  demo_04_historical_a3.sh added ; full package re-rehearsed EXIT 0 / 2.9 s
+PHASE 13  SKIPPED (performance -- lowest priority)
+PHASE 15  full regression: unittest 40/40 ; Reno R1/R2 PASS ; CUBIC R3A/R3B PARTIAL unchanged ;
+          CoVegas E2/E3 PASS ; reconstructed-v3 does not alter fixed/v4 ; demo EXIT 0 ;
+          ~/cn-spike 022c2e2 (only pre-existing M CLAUDE.md) ; ~/cn-spike/covegas + ~/cn untouched
+
+NARROW CLAIM (verbatim): "On the recorded fixed/v4 callback stream, reconstructed-v3 first differs
+  from fixed/v4 at the precommitted Predicate-D event (seq=10421, cong_avoid) in the historical
+  off-period COMPETE episode entered at seq=9533."  NOT alternate throughput / RTT / queue state,
+  NOT a recreated network outcome.  reconstructed-v3 = v4 committed source with only the A3 guard
+  reverted (documented reconstruction, not original v3 source).
+
+NEXT PROJECT-LEVEL DECISION: none forced. Remaining un-run work (separate methodology, lower
+  grading value): formal recorder non-interference TOST ; Replay ABI field ablation ; prior-art
+  broadening ; final paper/report generation.
+
+FOR EXTERNAL REVIEW SEND ONLY: docs/session/LATEST_REVIEW_HANDOFF.md
+```
