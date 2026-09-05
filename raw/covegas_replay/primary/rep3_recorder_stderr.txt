@@ -1,0 +1,1 @@
+DONE invocations=64050 emitted=64050 drops=0 events_written=64050

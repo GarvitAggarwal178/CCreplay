@@ -44,46 +44,46 @@ mismatches) before proceeding to any primary capture.
 
 ## Evidence
 
-### E1 — primary trace
+### E1 — primary traces
 
-`raw/covegas_replay/primary/rep1.ccr`: 63,330 events, **zero drops**, gapless global sequence,
-`clock_jiffies_stable=63,321` (9 ambiguous), `clock_ktime_ambiguous=63,330` (100% — expected, see
-below), dominant connection 63,329/63,330 (99.998%, same ADR-016 stray-socket pattern as
-Reno/CUBIC). Callback coverage: `init`×2, `cong_avoid`×31,348, `pkts_acked`×31,971, `ssthresh`×9,
-`undo_cwnd`×0 (already separately `VALIDATED` via Part B's auxiliary trace — architecturally
-identical `tcp_reno_undo_cwnd` delegation, zero CoVegas-specific logic). `ssthresh` firing 9 times
-confirms real loss/competition occurred — the intermittent workload genuinely exercised
-loss-adjacent behavior, not merely a clean transfer.
+Three reps captured (`raw/covegas_replay/primary/rep{1,2,3}.ccr`) — rep2/rep3 were captured for
+Part 8's trigger-verification attempts (`data/historical_trigger_validation.md`) and folded in here
+since the data already existed and strengthens this gate's evidence at no extra cost. All three:
+**zero drops**, gapless global sequence, dominant connection ≥99.99% (same ADR-016 stray-socket
+pattern as Reno/CUBIC). `ktime_ambiguous` 100% in every trace (expected, see below); `jiffies`
+mostly stable (9/12/(rep3 count) ambiguous events per trace). Callback coverage: `init`×2/trace,
+`cong_avoid`~31,150–31,700/trace, `pkts_acked`~31,700–32,350/trace, `ssthresh` 8–9/trace (real
+loss/competition occurred in every rep), `undo_cwnd`×0 (already separately `VALIDATED` via Part B's
+auxiliary trace).
 
-### E2 — event-local
+### E2 — event-local (all three traces)
 
 | | value |
 | --- | ---: |
-| Events checked | 63,329 |
-| Field comparisons | 1,658,687 |
+| Events checked | 190,277 |
+| Field comparisons | 4,982,990 |
 | Mismatches | **0** |
-| `jiffies` `CLOCK_STABLE` / mismatched | 63,320 / 0 |
-| `jiffies` `CLOCK_AMBIGUOUS` / mismatched | 9 / 0 |
-| `ktime` `CLOCK_STABLE` / mismatched | 0 / 0 |
-| `ktime` `CLOCK_AMBIGUOUS` / mismatched | 63,329 / 0 |
 
-**100.0000% exact semantic equality on every event**, across every callback type that fired,
-including the full mode-dependent private-state schema (both union arms, gated by that event's own
-recorded/computed mode independently per ADR-023).
+**100.0000% exact semantic equality on every event across all three independent traces**, every
+callback type that fired, the full mode-dependent private-state schema (both union arms, gated by
+that event's own recorded/computed mode independently per ADR-023), and every clock-ambiguity
+combination observed.
 
 ### E3 — stateful
 
-**First divergence = NONE across the entire 63,329-event sequence.** All 30 semantic private fields
-(17 dedicated + 6 `delay`-arm + 7 `cubic`-arm) changed value at least once during the replayed
-sequence (`fields_that_never_changed_in_any_trace = []`) — the mode-dependent union was genuinely
-exercised in both directions (DELAY→COMPETE and COMPETE→DELAY transitions occurred, evidenced
-directly by both arms' fields changing and by 9 real `ssthresh` invocations), not merely present in
-the schema.
+**First divergence = NONE across all three traces, 190,277 sequential transitions total** (each
+trace's private state initialized fresh and independently — not one continuous 190,277-event
+sequence, three separate all-exact runs). All 30 semantic private fields (17 dedicated + 6
+`delay`-arm + 7 `cubic`-arm) changed value at least once across the combined replayed sequences
+(`fields_that_never_changed_in_any_trace = []`) — the mode-dependent union was genuinely exercised
+in both directions (DELAY→COMPETE and COMPETE→DELAY transitions occurred in every trace, evidenced
+directly by both arms' fields changing and by real `ssthresh` invocations in each), not merely
+present in the schema.
 
 ## Clock-transfer question: "Do not silently inherit CUBIC's clock exception. Prove whether it applies."
 
-**It does not apply, empirically, on this trace.** Neither clock produced a single mismatch:
-`jiffies`'s 9 `CLOCK_AMBIGUOUS` events all replayed exactly (0/9 mismatched, vs. CUBIC's ~9%
+**It does not apply, empirically, on these traces.** Neither clock produced a single mismatch across
+190,277 events: `jiffies`'s ambiguous events (9–12 per trace) all replayed exactly, vs. CUBIC's ~9%
 ambiguous-event mismatch rate); `ktime`'s 100% `CLOCK_AMBIGUOUS` rate — itself a real, measured, and
 expected property of a nanosecond-resolution clock read twice with real work in between, not a bug
 (`data/covegas_replay_model_changes.md`'s note) — also produced zero mismatches, because every
@@ -115,8 +115,12 @@ callbacks remain unvalidated" carve-out.
 ## Reproduction
 
 ```
-python3 user/replay_e2.py raw/covegas_replay/primary/rep1.ccr raw/covegas_replay/primary/rep1.meta.json
-python3 user/replay_e3.py raw/covegas_replay/primary/rep1.ccr raw/covegas_replay/primary/rep1.meta.json
+python3 user/replay_e2.py raw/covegas_replay/primary/rep1.ccr raw/covegas_replay/primary/rep1.meta.json \
+  raw/covegas_replay/primary/rep2.ccr raw/covegas_replay/primary/rep2.meta.json \
+  raw/covegas_replay/primary/rep3.ccr raw/covegas_replay/primary/rep3.meta.json
+python3 user/replay_e3.py raw/covegas_replay/primary/rep1.ccr raw/covegas_replay/primary/rep1.meta.json \
+  raw/covegas_replay/primary/rep2.ccr raw/covegas_replay/primary/rep2.meta.json \
+  raw/covegas_replay/primary/rep3.ccr raw/covegas_replay/primary/rep3.meta.json
 ```
 
 ## Relevant commits

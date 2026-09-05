@@ -1,0 +1,32 @@
+=== E1 intermittent: B=250000 rep=2 ===
+bfifo limit (readback) = 250000B, expected = 250000B
+OK
+offloads applied to vh1/vr1/vr2/vh2, log at raw/covegas_replay/primary/rep2_offloads.txt
+recorder attached
+covegas iperf3 exit=0
+recorder exit=0
+=== recorder meta ===
+{
+  "trace_version": 2,
+  "recorder_version": 1,
+  "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+  "invocations": 62900,
+  "emitted": 62900,
+  "drops": 0,
+  "clock_jiffies_stable": 62888,
+  "clock_jiffies_ambiguous": 12,
+  "clock_ktime_stable": 0,
+  "clock_ktime_ambiguous": 62900,
+  "counters_read_ok": true,
+  "events_written_userspace": 62900,
+  "trace_file_bytes": 39249744,
+  "duration_s_requested": 125,
+  "bpf_stats": {
+    "init": {"run_time_ns": 131471, "run_cnt": 2},
+    "cong_avoid": {"run_time_ns": 36774933, "run_cnt": 31152},
+    "ssthresh": {"run_time_ns": 7515, "run_cnt": 8},
+    "undo_cwnd": {"run_time_ns": 0, "run_cnt": 0},
+    "pkts_acked": {"run_time_ns": 784879784, "run_cnt": 31741}
+  }
+}
+DONE E1 rep=2
