@@ -331,6 +331,40 @@ interpret `clock_jiffies32_*` deltas, not a per-event field) and a `clock_ambigu
 `clock_stable_count` pair (aggregate clock-classification accounting across the whole run, per the
 pipeline's "clock ambiguity accounting" requirement).
 
+## v2 concrete instantiation — CoVegas
+
+Full audit: `data/covegas_replay_capability_audit.md` (D3/D4). This section records only the ABI
+delta; the audit is authoritative for rationale.
+
+**Reference implementation:** no kernel-native form exists (ADR-022) — the recorder
+(`bpf/covegas_wrapper.bpf.c`) instruments a copy of `~/cn-spike/covegas/src/covegas.bpf.c`'s
+algorithm logic directly; there is no separable kfunc-delegation split. Oracle strength: validated
+BPF implementation, not independent kernel ground truth (D4's required disclosure, verbatim in the
+audit).
+
+**Callback manifest:** `{init, cong_avoid, ssthresh, undo_cwnd, pkts_acked}` — five callbacks, no
+`set_state`/`cwnd_event` (unlike CUBIC's seven).
+
+**TraceHeader:** `trace_version = 2`; new `reference_implementation_id =
+"ccreplay_covegas_instrumented"` (not a kfunc-delegated kernel ID — the naming reflects ADR-022);
+`private_state_schema_id` identifies the CoVegas mode-dependent schema below.
+
+**EventRecord:** two independent clock brackets (`clock_jiffies32_{before,after}`,
+`clock_ktime_ns_{before,after}`, ADR-024, each independently `CLOCK_STABLE`/`CLOCK_AMBIGUOUS`
+classified); the six v0/v1 CORE fields carried over where applicable; 17 dedicated private fields
+(D3's table) recorded PRE+POST unconditionally; the union's two arms (6 `delay`-mode fields / 7
+`compete`-mode fields) recorded as two mutually-exclusive optional groups, each tagged by the
+recorded `mode` at that snapshot's own PRE or POST point independently; `mode` itself as an
+explicit first-class recorded field (structurally new — no CUBIC/Reno analog).
+
+**Private state:** mode-dependent comparison schema, `comparison_schema(callback, controller_mode,
+replay_phase)` (ADR-023) — PRE-arm fields gated by recorded PRE `mode`, POST-arm fields gated by
+computed POST `mode`, independently. Raw `icsk_ca_priv` bytes (104 bytes) archived diagnostically,
+never entering the oracle for the currently-dead arm, per this document's existing "Private state"
+principle applied to a genuinely-aliased case for the first time.
+
+**v0 and v1 are unchanged by this section** — same versioning discipline as ADR-021.
+
 ## Replay ABI ablation
 
 Only after a full sufficient contract passes:

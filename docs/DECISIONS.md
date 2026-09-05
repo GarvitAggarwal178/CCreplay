@@ -246,3 +246,61 @@ separate `struct ccr_event_v1` (and a new Python parse path dispatched on `Trace
 already generalize to a differently-sized v1 record without requiring a header format change. Every
 change under this ADR must pass the full Phase-1 regression (26 tests, R1 and R2 over all three
 `raw/r0/rep*.ccr` traces) before proceeding, per the pipeline's N2 mandatory-regression requirement.
+
+## ADR-022 — CoVegas has no kernel-native reference; the recorder instruments a copied, unmodified-logic BPF implementation directly (no kfunc delegation)
+
+**Status:** accepted (Part D/E, before any CoVegas recorder code was written).
+
+Reno and CUBIC's recorders delegate to real *kernel-compiled* functions, callable as kfuncs because
+the kernel explicitly registers them via `register_btf_kfunc_id_set` (ADR-017 and its Reno
+precedent). CoVegas has no such kernel entity — `~/cn-spike/covegas/src/covegas.bpf.c` is itself a
+BPF program, and BPF programs cannot call other independently-loaded BPF programs as functions (no
+kfunc registration exists, or could meaningfully exist, for another struct_ops object's callback
+bodies). **Decision:** the CoVegas recorder (`bpf/covegas_wrapper.bpf.c`) copies the read-only
+source's algorithm logic near-verbatim into CCReplay (documented in `docs/PROVENANCE.md`, per
+CLAUDE.md's read-only-repo rule) and adds recording instrumentation (PRE/POST snapshots, sequence
+counters, ring-buffer emission — the same pattern as `reno_wrapper.bpf.c`/`cubic_wrapper.bpf.c`)
+directly around that copied logic, rather than wrapping a delegated call. The recorder *is* the live
+reference — there is no separable "reference vs. instrumentation" split for this controller, which
+is exactly what `data/covegas_replay_capability_audit.md`'s D4 reference-strength statement already
+discloses (Oracle strength: validated-BPF-implementation-as-reference, not independent kernel
+ground truth). This is not a weakening of the recording architecture; it is the only architecture
+available for a controller with no kernel-native form, stated plainly rather than implied.
+
+## ADR-023 — CoVegas private-state comparison is mode-dependent (PRE mode gates PRE-arm fields, POST mode gates POST-arm fields independently)
+
+**Status:** accepted (D3, before any CoVegas recorder/model code was written).
+
+`data/covegas_replay_capability_audit.md`'s D3 audit found `struct covegas`'s `union u` arms
+genuinely alias the same memory across a `MODE_DELAY`/`MODE_COMPETE` transition (confirmed directly
+from the source's own comment, not inferred) — comparing the currently-dead arm's bytes at any
+instant is not merely unnecessary but actively misleading, since those bytes are a *reinterpretation*
+of live data from the other arm, not a semantic value in their own right. **Decision:** the CoVegas
+Replay ABI v2 comparison schema is `comparison_schema(callback, controller_mode, replay_phase)`, not
+merely `comparison_schema(callback)` (CUBIC's v1 shape, sufficient there because CUBIC has no
+union). Concretely: an event's PRE-state union-arm fields are compared only if that event's own
+*recorded PRE* `mode` selects that arm; POST-state union-arm fields are compared only if the
+*computed POST* `mode` selects that arm (independently — a transition event's PRE and POST modes
+can differ). The 17 dedicated (non-union) fields are compared unconditionally, same as any other
+controller's private-state schema. Raw `icsk_ca_priv` bytes remain archived diagnostically
+(`docs/REPLAY_ABI.md`'s existing "Private state" section) but never enter the correctness oracle for
+the dead arm.
+
+## ADR-024 — CoVegas records two independent controller-visible clock brackets (`tcp_jiffies32` and `bpf_ktime_get_ns()`)
+
+**Status:** accepted (D3, before any CoVegas recorder code was written).
+
+Unlike CUBIC's second clock (`tp->tcp_mstamp`, a per-socket field the controller merely *reads*,
+requiring only one PRE snapshot per ADR-018), CoVegas's second clock
+(`now = bpf_ktime_get_ns()` in `covegas_cong_avoid`/`handle_minrtt_probe`/`covegas_pkts_acked`) is
+**computed fresh by the controller itself, once per invocation** — architecturally closer to
+`tcp_jiffies32` than to `tp->tcp_mstamp`. **Decision:** both clocks get an independent
+before/after bracket (`clock_jiffies32_{before,after}`, `clock_ktime_ns_{before,after}`) around the
+recorder's own instrumented call, with the same `CLOCK_STABLE`/`CLOCK_AMBIGUOUS` classification
+applied to each independently (an event could be jiffies-stable but ktime-ambiguous, or vice versa,
+in principle — `bpf_ktime_get_ns()` has far finer resolution than one jiffy, so ktime-ambiguity is
+expected to be exceedingly rare in practice, but this is not assumed, only measured). Whether either
+clock's ambiguity actually manifests in CoVegas traces, and whether CUBIC's
+`ATTRIBUTED_AND_CHARACTERIZED` clock verdict transfers, is proven empirically in Part E3 — not
+assumed from CUBIC's result (`REPORT_CUBIC_CLOCK_BOUNDARY_INVESTIGATION.md`), per the addendum's
+explicit instruction.
