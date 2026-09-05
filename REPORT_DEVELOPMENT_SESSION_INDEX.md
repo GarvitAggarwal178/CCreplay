@@ -15,6 +15,9 @@ this table follows.
 | Part A — evidence-language corrections | **COMPLETE** | 10:16–10:24 UTC | (folded into `REPORT_CUBIC_REPLAY_VALIDATION.md` + new `data/kernel_source_ref/CUBIC_SOURCE_PROVENANCE.md`) | `6e95112` | Yes — proceed to Part B |
 | Part B — `undo_cwnd` auxiliary coverage | **COMPLETE (VALIDATED)** | 10:24–10:29 UTC | (folded into `REPORT_CUBIC_REPLAY_VALIDATION.md`) | `f4276f7` | Yes — R3 remains PARTIAL, proceed to Part C |
 | Part C — clock-boundary investigation | **COMPLETE** (`ATTRIBUTED_AND_CHARACTERIZED`) | 10:29–10:31 UTC | [REPORT_CUBIC_CLOCK_BOUNDARY_INVESTIGATION.md](REPORT_CUBIC_CLOCK_BOUNDARY_INVESTIGATION.md) | `4cb3ee2` | Yes — does not upgrade R3 to PASS; proceed to Part D (CoVegas readiness audit) |
+| Part D — CoVegas selection + predictions + Replay Contract audit | **COMPLETE** | 10:31–10:38 UTC | [data/historical_regression_selection.md](data/historical_regression_selection.md), [data/historical_regression_predictions.md](data/historical_regression_predictions.md), [data/covegas_replay_capability_audit.md](data/covegas_replay_capability_audit.md) | `1fd158e`, `d1998e4`, `e58339f`, `b0aac41` | Yes — proceed to Part E (CoVegas self-replay gate) |
+| Part E — CoVegas self-replay fidelity gate | **PASS** | 10:38–11:09 UTC | [REPORT_COVEGAS_REPLAY_FIDELITY.md](REPORT_COVEGAS_REPLAY_FIDELITY.md) | `84efbe3`, `9e4f155` | Yes — unqualified PASS, proceed to Part F |
+| Part 8 / Part F — historical trigger verification + differential case | **INCOMPLETE** (blocker: `TRIGGER NOT REPRODUCED`) | 11:03–11:09 UTC | [REPORT_HISTORICAL_COVEGAS_REGRESSION.md](REPORT_HISTORICAL_COVEGAS_REGRESSION.md), [data/historical_trigger_validation.md](data/historical_trigger_validation.md) | `5798816` | No — 3 bounded attempts exhausted per the addendum; not a FAIL, Part E's PASS unaffected |
 
 ## Phase 1 summary
 
@@ -98,3 +101,50 @@ written (`data/cubic_replay_model_changes.md`). **R3 verdict: PARTIAL** — cont
 met in full; `undo_cwnd` marked `UNVALIDATED` (0 events across all three reps, as predicted).
 Mandatory Phase-1 regression (40 tests: 26 v0 + 14 v1) reverified clean throughout; source repos
 untouched. Full detail: `REPORT_CUBIC_REPLAY_VALIDATION.md`.
+
+## Parts A–C summary (CUBIC closure)
+
+Tightened evidence language (byte-exact → exact semantic equality; irreducible → characterized
+clock-boundary limitation), added a real-evidence event-count accounting table, narrowed N0's
+root-cause framing, verified callback naming against the fetched kernel source, and wrote
+`data/kernel_source_ref/CUBIC_SOURCE_PROVENANCE.md` (resolved the tag to its exact commit,
+disclosed the one unverified WSL-patch uncertainty). Closed `undo_cwnd` via one targeted auxiliary
+trace (reorder-induced spurious loss, 12 events, 0 mismatches) — `VALIDATED`, R3 correctly left at
+`PARTIAL`. Ran the full expanded clock-boundary investigation (ambiguity-rate arithmetic, two-sided
+`{before,after}` attribution — 4/4 `MATCHES_AFTER_ONLY`, 0 `MATCHES_NEITHER` — stateful
+resynchronization diagnostic showing zero unexplained `CLOCK_STABLE` divergence, and a bounded
+instrumentation feasibility check that came back `NOT CLOSED`): verdict
+`ATTRIBUTED_AND_CHARACTERIZED`, which explicitly does not upgrade R3 to `PASS`.
+
+## Parts D–F summary (CoVegas + historical case study)
+
+Selected the CoVegas v3→v4 "A3 latch-guard" regression (permanent COMPETE-mode capture, isolated to
+one conditional in `handle_compete_mode`) from the read-only `~/cn-spike/covegas` history,
+precommitted predictions (exact event/field left `UNKNOWN`), and audited the Replay Contract —
+confirming directly from source that the union genuinely aliases memory across a mode transition,
+and that `last_max_cwnd`/`epoch_start` sit outside it for exactly the reason the addendum predicted
+(shared-callback mutation regardless of mode).
+
+Built the CoVegas recorder/parser/model from scratch (ADR-022..024): no kernel-native reference
+exists for CoVegas, so the recorder instruments a copy of the algorithm logic directly rather than
+kfunc-delegating. Found and fixed one real recorder bug via a loopback smoke test (duplicate
+`bpf_ktime_get_ns()` reads) before touching primary evidence. **Part E fidelity verdict: PASS**
+(unqualified) — three primary traces on the historically-relevant intermittent-workload topology,
+190,277 events, 4,982,990 field comparisons, **zero mismatches** in event-local replay; first
+divergence = **NONE** in stateful replay across all three traces; all 30 private fields (including
+both union arms) confirmed to change nontrivially. The clock-transfer question was answered
+empirically rather than assumed: neither of CoVegas's two clocks produced a single mismatch on
+these traces, a genuinely different outcome from CUBIC's characterized residual.
+
+Attempted the historical trigger (spurious off-period COMPETE entry) across 3 bounded captures, per
+the addendum's explicit pre-diff verification requirement — all 3 clean, all 3 showing the trigger
+absent (statistically expected: `REPORT_COVEGAS_V4.md`'s own historical rate is ~11%/run,
+`P(0/3)≈70%`). Per the addendum, did not run the diff and report "no divergence," did not retry
+further, and did not manufacture a different trigger. **Part F: `INCOMPLETE`**, blocker
+`TRIGGER NOT REPRODUCED` — not a `FAIL`; Part E's `PASS` is unaffected.
+
+Mandatory Phase-1/CUBIC/CoVegas regression reverified clean throughout Parts A–F (40 automated
+tests + Reno v0 R1/R2 on all three `raw/r0/` traces + CUBIC v1 R3A/R3B on all three
+`raw/cubic_replay/primary/` traces + CoVegas E2/E3 on all three `raw/covegas_replay/primary/`
+traces). Source repos (`~/cn-spike`, `~/cn-spike/covegas`) verified unmodified throughout: zero
+files with an mtime after this session's start, `git status`/`HEAD` unchanged.
