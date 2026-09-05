@@ -85,11 +85,11 @@ callbacks in one `bpf_ringbuf_reserve` each, verifier-accepted on the first atte
 integer semantics against a verbatim-C reference (10,023 cases, zero mismatches) before trusting
 full-trace replay, then ran R3A (event-local) and R3B (stateful). R3A: 100% exact on all 236,042
 `CLOCK_STABLE` events (4,485,714 field comparisons); R3B: 51,323–75,603 consecutive sequential
-transitions replayed byte-exact per trace, all 16 private fields demonstrated to change
-nontrivially (closes `docs/LIMITATIONS.md` #13), before the first divergence in each trace — always
-a `CLOCK_AMBIGUOUS` event (0.02% of events), characterized via a diagnostic (not adopted) as a
-genuinely irreducible measurement-boundary condition, not a model or recorder defect (new
-`docs/LIMITATIONS.md` #14). One real category-B model bug (`_tcp_friendliness` loop→closed-form
+transitions replayed with exact semantic equality per trace, all 16 private fields demonstrated to
+change nontrivially (closes `docs/LIMITATIONS.md` #13), before the first divergence in each trace —
+always a `CLOCK_AMBIGUOUS` event (0.02% of events), characterized via a diagnostic (not adopted) as
+a characterized clock-boundary limitation under the current recorder architecture, not a model or
+recorder defect (new `docs/LIMITATIONS.md` #14). One real category-B model bug (`_tcp_friendliness` loop→closed-form
 off-by-one) was found and fixed via R3A's full-16-field comparison schema before this report was
 written (`data/cubic_replay_model_changes.md`). **R3 verdict: PARTIAL** — continuation condition
 met in full; `undo_cwnd` marked `UNVALIDATED` (0 events across all three reps, as predicted).

@@ -62,16 +62,20 @@ under A/B/C, it is left unresolved and reported as such — never silently patch
   46 `CLOCK_AMBIGUOUS` events and re-ran the comparison. Result: all 4 original mismatches resolve
   exactly with `_after` -- but 2 NEW mismatches appear on different events (`rep1` `seq=18745,41482`)
   that were exact under `_before`. **No single fixed choice (always-before or always-after) resolves
-  every `CLOCK_AMBIGUOUS` event** -- this is not "the wrong pick," it is direct evidence that the
-  real kernel's internal `tcp_jiffies32` reads for these specific events are genuinely
-  unreconstructable from one before/after snapshot pair (different events are individually
-  consistent with different single-read timings, with no universal rule across all of them).
+  every `CLOCK_AMBIGUOUS` event** -- this is not "the wrong pick," it is direct evidence that,
+  under the current wrapper/kfunc observation boundary, the exact value the real kernel's internal
+  `tcp_jiffies32` reads actually saw for these specific events cannot always be reconstructed from
+  the two bracket values the recorder captures (different events are individually consistent with
+  different single-read timings, with no universal rule across all of them).
 * **Category: none of A/B/C.** Per the pipeline's anti-fitting rule, adopting whichever snapshot
   value makes a given event match its recorded outcome would be exactly the forbidden "magic value
   derived from expected output." **No change was made to `cubic_model.py`** as a result of this
   investigation; the `_before` convention (chosen and documented before any mismatch was observed)
-  is retained, and the residual is reported as a characterized, irreducible measurement-boundary
-  limitation in `docs/LIMITATIONS.md` and `REPORT_GATE_R3_CUBIC.md`, not resolved by tuning.
+  is retained, and the residual is reported as a characterized clock-boundary limitation under the
+  current recorder architecture in `docs/LIMITATIONS.md` and `REPORT_CUBIC_REPLAY_VALIDATION.md`
+  (report renamed since this entry was written), not resolved by tuning. See
+  `REPORT_CUBIC_CLOCK_BOUNDARY_INVESTIGATION.md` for the follow-up quantitative/attribution/resync
+  diagnostics that further characterize (without resolving) this limitation.
 * **Reference source region:** none (this is a replay-contract measurement-boundary property, not a
   reference-source discrepancy).
 * **Re-recording required:** no.

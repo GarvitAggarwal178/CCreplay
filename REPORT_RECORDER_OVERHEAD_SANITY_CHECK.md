@@ -5,9 +5,11 @@ non-interference study).
 
 ## Status
 
-**COMPLETE.** Root cause identified and reproducibly confirmed: the ring-buffer wakeup mechanism,
-not `bpf_ktime_get_ns()` or the reference-kfunc/`BPF_CORE_READ` work itself, dominates the
-`cong_avoid` per-callback cost Phase 1 reported.
+**COMPLETE.** Ring-buffer notification/wakeup handling was the dominant measured contributor to
+the `cong_avoid` per-callback cost under the N0 loopback diagnostic — not `bpf_ktime_get_ns()` and
+not the reference-kfunc/`BPF_CORE_READ` work itself. This is a diagnostic finding at loopback rates,
+not a universal claim about what dominates recorder cost under every workload/topology; see
+Limitations for what it does and does not establish.
 
 ## Question
 
@@ -185,9 +187,14 @@ Per N0.5's explicit requirement, added to `docs/LIMITATIONS.md` (not merely stat
   direction being plausible, since both existing reps already sit close to `baseline_production`'s
   own spread.
 - Loopback numbers are not claimed to equal Gate-3-R2 netns numbers; the *mechanism* (wakeup
-  signaling dominates) is the transferable finding, not the absolute ns/callback value. A
-  netns-topology confirmation was not attempted (out of N0's time budget at the achievable event
-  rate — see Environment).
+  signaling as the dominant measured contributor) is the transferable finding, not the absolute
+  ns/callback value. **The absolute figures in this report are diagnostic, not a production
+  performance claim.** Gate-3-R2 was deliberately not used for this high-rate comparison (its
+  ~414 events/s at 10 Mbit/s gives too little signal to resolve microsecond-scale differences — see
+  Environment); a netns-topology confirmation was not attempted this session. **Formal live
+  non-interference measurement (whether the recorder detectably perturbs the connection it
+  instruments under the validated topology) remains a later, separate evaluation** — N0 measures
+  recorder CPU cost in isolation, not interference with the TCP connection being recorded.
 - `bpf_stats`'s own overhead (N0.2) remains an inference, not a direct measurement, for the reason
   stated above; this is a property of what `bpf_stats_enabled` measures, not a gap this session
   could have closed with more time.

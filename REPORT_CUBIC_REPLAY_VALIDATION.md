@@ -13,8 +13,8 @@ recorder defect). Per the pipeline's PARTIAL continuation condition, all three r
 are met:
 
 * central stateful CUBIC path replays exactly — **yes** (51,323 / 75,603 / 61,729 consecutive
-  sequential Mode-B transitions, byte-exact, before the first `CLOCK_AMBIGUOUS` divergence in each
-  trace);
+  sequential Mode-B transitions, with exact semantic equality under the declared CUBIC replay
+  oracle, before the first `CLOCK_AMBIGUOUS` divergence in each trace);
 * private state propagates exactly and nontrivially — **yes** (all 16 semantic fields changed value
   across the replayed sequence, `fields_that_never_changed_in_any_trace = []`);
 * only rare/non-central callbacks remain unvalidated — **yes** (`undo_cwnd`, 0 events across all
@@ -73,6 +73,32 @@ seven (`data/cubic_replay_capability_audit.md`, corrected to seven in
    `init` event is transition #1, not skipped.
 
 ## Evidence
+
+### Event-count accounting (raw primary events vs. replay-qualified events)
+
+Per-trace, from the recorder's own sidecar (`raw/cubic_replay/primary/rep*.meta.json`) and the
+parser's dominant-connection selection (`raw/cubic_replay/primary/rep*_validation.json`), not
+inferred:
+
+| trace | raw primary events | replay-qualified (dominant-connection) events | excluded |
+| --- | ---: | ---: | ---: |
+| rep1 | 78,690 | 78,688 | 2 |
+| rep2 | 78,770 | 78,768 | 2 |
+| rep3 | 78,634 | 78,632 | 2 |
+| **total** | **236,094** | **236,088** | **6** |
+
+**Reason for exclusion, from actual per-event trace evidence** (not inferred): in every one of the
+three traces, the excluded events are exactly two, both carrying the *same* secondary
+`sock_cookie` (a different socket than the dominant one) — one `init` event at `seq=1` (i.e.
+immediately following the dominant connection's own `seq=0` `init`, at the very start of the
+recording window) and one `pkts_acked` event at a `seq` near the very end of the trace (e.g. rep1:
+`seq=78671` of 78,690 total). This is consistent with, and further evidences, ADR-016's
+already-documented pattern (`iperf3 -C <name>` appears to apply the requested congestion-control
+algorithm to its control-channel socket in addition to its data socket) — a second, short-lived
+socket selects `ccr_cubic` too, receives its own `init` early, and one `pkts_acked` call near test
+teardown, then contributes no further events. The parser's dominant-connection selection
+(`select_dominant_connection`, ≥99% threshold) correctly excludes these 6 events from the replayed
+sequence across all three reports in this document.
 
 ### R3A (event-local)
 
@@ -155,9 +181,20 @@ CCReplay's replay architecture, not independently the correctness of CUBIC's alg
 Per `docs/session/OVERNIGHT_EVIDENCE_PIPELINE.md`'s R3 verdict rubric: not PASS (R3B's literal
 "first divergence = NONE" is not met), not FAIL ("central replay semantics cannot be achieved
 without weakening the oracle" does not apply — central replay semantics ARE achieved exactly,
-except for a characterized, irreducible measurement-boundary condition affecting 0.02% of events),
+except for a characterized clock-boundary limitation under the current recorder architecture,
+affecting 0.02% of events),
 not INCOMPLETE (a defensible, fully-characterized result was reached within budget). PARTIAL's
 continuation condition is met in full (see Status section). **Continuation to N4 is authorized.**
+
+## Callback naming verification (Part A5)
+
+Cross-checked against the actual target-kernel source (`data/kernel_source_ref/tcp_cubic.c` lines
+478–488, `struct tcp_congestion_ops cubictcp`): the real kernel's own struct field is literally
+`.cwnd_event = cubictcp_cwnd_event`, matching `vmlinux.h`'s declared prototype
+(`void (*cwnd_event)(struct sock *, enum tcp_ca_event);`). `cwnd_event` — not `cwnd_event_tx_start`
+or any other variant — is used consistently across `bpf/cubic_wrapper.bpf.c`, `bpf/ccr_event_v1.h`,
+`user/ccr_trace_v1.py`, `user/cubic_model.py`, and this report. Verified directly against the
+fetched source, not carried over from an upstream-Linux naming assumption; no rename was needed.
 
 ## Reproduction paths
 

@@ -76,7 +76,10 @@ the N2/N3 CUBIC replay model design — never executed, never linked into the CC
 subject to the `~/cn-spike`/`~/covegas`/`~/cn` read-only-repo rules above (it is not one of those
 repos), but held to the same "record source and treat as authoritative, do not silently alter"
 standard. See `data/cubic_replay_kernel_source_correction.md` for why it superseded
-`~/cn-spike/bpf_src/bpf_cubic.c` as the CUBIC algorithm reference.
+`~/cn-spike/bpf_src/bpf_cubic.c` as the CUBIC algorithm reference. Full provenance detail (resolved
+commit hash, cross-checks performed, disclosed WSL-patch uncertainty) is in
+`data/kernel_source_ref/CUBIC_SOURCE_PROVENANCE.md` — this note is now a pointer, not the primary
+record.
 
 ## Rules
 
