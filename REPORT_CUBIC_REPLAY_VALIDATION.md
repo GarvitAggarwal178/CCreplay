@@ -174,5 +174,5 @@ continuation condition is met in full (see Status section). **Continuation to N4
 ## Relevant commits
 
 `d417b2d` (ABI v1 design), `8b6336d` (recorder+parser), `2c9ba3d` (primary traces + initial model),
-`4019601` (integer-semantics test), and this report's own commit (R3A/R3B engines + the
+`4019601` (integer-semantics test), and `758f945` (R3A/R3B engines + the
 `_tcp_friendliness` fix + this report).
