@@ -1,0 +1,66 @@
+{
+  "phase3_only_a3_difference": {
+    "handle_compete_mode_removed_lines": [
+      "if ca[\"dlv_rate_bps\"] < (ca[\"dlv_rate_max\"] * 3) // 4:",
+      "else:",
+      "cwnd, ca = revert_to_delay(ca, pre, jiffies_now)",
+      "return cwnd, cwnd_cnt, ca"
+    ],
+    "handle_compete_mode_added_lines": [],
+    "guard_is_the_only_difference": true,
+    "transition_delegates_to_base": true,
+    "ONLY_A3_SEMANTIC_DIFFERENCE": true
+  },
+  "phase4_1_synthetic_positive_control": {
+    "source_event": "raw/covegas_replay/primary/rep1.ccr seq=608",
+    "original_dlv_rate_bps": 231866,
+    "original_dlv_rate_max": 566686,
+    "original_ratio": 0.409161,
+    "synthetic_dlv_rate_bps": 566686,
+    "all_other_synthetic_private_fields_changed": "NONE",
+    "fixed_v4_post_mode": "DELAY",
+    "v3_post_mode": "COMPETE",
+    "fixed_v4_post_dlv_rate_compete": 0,
+    "v3_post_dlv_rate_compete": 566686,
+    "semantic_divergence": "YES",
+    "divergent_fields": [
+      "post_snd_cwnd",
+      "post_snd_cwnd_cnt",
+      "priv_post_cubic_ack_cnt",
+      "priv_post_delay_cwnd_at_window_start",
+      "priv_post_delay_detect_hold_until",
+      "priv_post_delay_rtts_in_window",
+      "priv_post_delay_window_start_ack",
+      "priv_post_detect_count",
+      "priv_post_dlv_rate_compete",
+      "priv_post_last_compete_exit_jiffies",
+      "priv_post_mode",
+      "priv_post_recent_min_us"
+    ],
+    "SYNTHETIC_POSITIVE_CONTROL": "PASS"
+  },
+  "phase4_2_4_3_real_trace_negatives": {
+    "rep1": {
+      "fixed_vs_fixed": "NO DIVERGENCE",
+      "fixed_vs_fixed_matched": 63329,
+      "fixed_vs_v3": "NO DIVERGENCE",
+      "fixed_vs_v3_matched": 63329,
+      "fixed_vs_v3_divergence": null
+    },
+    "rep2": {
+      "fixed_vs_fixed": "NO DIVERGENCE",
+      "fixed_vs_fixed_matched": 62899,
+      "fixed_vs_v3": "NO DIVERGENCE",
+      "fixed_vs_v3_matched": 62899,
+      "fixed_vs_v3_divergence": null
+    },
+    "rep3": {
+      "fixed_vs_fixed": "NO DIVERGENCE",
+      "fixed_vs_fixed_matched": 64049,
+      "fixed_vs_v3": "NO DIVERGENCE",
+      "fixed_vs_v3_matched": 64049,
+      "fixed_vs_v3_divergence": null
+    }
+  },
+  "ALL_CONTROLS_PASS": true
+}

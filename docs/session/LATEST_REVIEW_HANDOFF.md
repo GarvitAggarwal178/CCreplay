@@ -120,19 +120,58 @@ A3_TRACK_BLOCKED = NO   -> proceed to Phase 2
 
 ## PHASE 2 — A3 PRECOMMIT
 
-_(appended after Phase 2)_
+`data/a3_reconstructed_candidate_predictions.md` committed at **`b8af8c1`** — BEFORE
+`user/covegas_model_v3_latch.py` existed (git ordering provable). Key precommits:
+
+- 2.1 existing traces: fixed/v4 vs reconstructed-v3 → NO DIVERGENCE ×3 (cross-validation, not
+  historical reproduction).
+- 2.2 synthetic positive control: source event `raw/covegas_replay/primary/rep1.ccr seq=608`
+  (v4 guard TRUE, ratio 231866/566686=0.409); mutate exactly `dlv_rate_bps ← dlv_rate_max`;
+  predicted fixed post mode=DELAY / dlv_rate_compete=0, v3 post mode=COMPETE /
+  dlv_rate_compete=566686, DIVERGENCE=YES.
+- 2.3 historical candidate = H AND D same episode; do NOT assert H⟹D. Archived ratio ≈ 0.9977.
+- 2.4 historical-diff prediction (if H+D obtained and `D_hist == D_first`): first divergence =
+  `D_hist`, callback `cong_avoid`; else no localization claim.
+
+Supporting: `data/a3_settle_latch_events.json` — the 9 settle-latch guard evaluations, all
+guard-PASS.
 
 ## PHASE 3 — RECONSTRUCTED-v3 CANDIDATE
 
-_(appended after Phase 3)_
+`user/covegas_model_v3_latch.py`. Exact semantic patch (`data/a3_reconstructed_candidate_diff.md`):
+the A3 guard `if dlv_rate_bps < ¾·dlv_rate_max { latch } else { revert; return }` becomes an
+unconditional `dlv_rate_compete = dlv_rate_bps`. A1/A2 unchanged; no changed constants; no
+parser/recorder change. `transition()` delegates to `covegas_model.transition` with
+`handle_compete_mode` locally swapped (reversible).
+
+Mechanical verification (`data/a3_candidate_controls.json`): normalised source comparison — lines
+removed from v4 are exactly `if …< ¾·max:`, `else:`, `revert_to_delay(…)`, `return …`; nothing else
+changed; `transition` delegates. **`ONLY_A3_SEMANTIC_DIFFERENCE = YES`.**
+
+`user/ccreplay_diff.py` extended: `trace_version == 2` dispatch + mode-dependent `comparison_fields`
+path (used when a module exposes `comparison_fields` not `COMPARISON_FIELDS`). v0/v1 paths
+unchanged — N4 hard-negative (Reno + CUBIC NO DIVERGENCE), N5 bug1 (DIVERGENCE seq=1705 `ssthresh`
+`result`), `unittest` 40/40 all re-verified.
 
 ## PHASE 4 — CANDIDATE CONTROLS
 
-_(appended after Phase 4)_
+| control | result |
+| --- | --- |
+| 4.1 synthetic positive (rep1 seq=608, `dlv_rate_bps←dlv_rate_max`) | **PASS** — fixed post mode=DELAY / dlv_rate_compete=0; v3 post mode=COMPETE / dlv_rate_compete=566686; DIVERGENCE=YES; all other synthetic private fields changed = NONE — matches precommit exactly |
+| 4.2 fixed/v4 vs fixed/v4 (rep1/2/3) | **NO DIVERGENCE ×3** (63,329 / 62,899 / 64,049 events) |
+| 4.3 fixed/v4 vs reconstructed-v3 (rep1/2/3) | **NO DIVERGENCE ×3** — matches precommit (Predicate D absent) |
+
+`ALL_CONTROLS_PASS = YES`. Interpretation: the synthetic control proves the v3 module is active and
+differs at the A3 branch; the 3 unmodified traces independently produce NO DIVERGENCE, matching the
+scanner's Predicate-D-absent prediction.
 
 ## PHASE 5 — GUARD-RATIO ANALYSIS
 
-_(appended after Phase 5)_
+`data/a3_guard_ratio_analysis.md`. All 9 current eligible settle-latch evaluations (one per COMPETE
+episode, all ON-period): ratio `dlv_rate_bps/dlv_rate_max` range **0.2402 – 0.4092**, all **PASS**
+the v4 `< 0.75` guard. Archived off-period positive: **0.9977 → FAIL**. Mechanism-consistent
+empirical evidence; **not** proof that workload phase causally determines the ratio, and **not**
+`H ⟹ D`.
 
 ## PHASE 6 — PROFESSOR DEMO PACKAGE
 
