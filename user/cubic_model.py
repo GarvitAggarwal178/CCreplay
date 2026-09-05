@@ -253,32 +253,35 @@ def _usecs_to_jiffies(usecs):
 def _tcp_friendliness(ca, cwnd):
     """tcp_cubic.c lines 299-321 (the `tcp_friendliness:` label onward).
 
-    Disclosed model deviation (category: none of A/B/C -- a Python-
-    practicality substitution, not a correctness fix, flagged per the
-    anti-fitting rule's "leave unresolved and report it" spirit rather than
-    silently included): the real source's loop is
-    `while (ca->ack_cnt > delta) { ca->ack_cnt -= delta; ca->tcp_cwnd++; }`,
-    unconditionally -- if delta were ever 0 this would be a genuine
-    infinite loop in the compiled kernel too, which cannot have actually
-    happened in any trace this model is validated against (a recording
-    that hung would never have completed). Reproduced here as the
-    mathematically identical closed form for delta>0 (n = ack_cnt // delta,
-    matching data/kernel_source_ref/tcp_cubic.c's own predecessor's
-    documented equivalence, independently re-derived here rather than
-    trusted from bpf_cubic.c's port); delta==0 is left as a no-op rather
-    than hung, since it should never be reached on a real completed trace,
-    and if it ever is, the resulting comparison mismatch will surface it
-    rather than mask it.
+    Model-change log entry (data/cubic_replay_model_changes.md, category B
+    -- transcription error, found and fixed via R3A against
+    raw/cubic_replay/primary/rep1.ccr seq=25641 before this model had ever
+    been declared to pass anything): the real source's loop is
+    `while (ca->ack_cnt > delta) { ca->ack_cnt -= delta; ca->tcp_cwnd++; }`
+    -- a STRICT inequality. The naive closed form `n = ack_cnt // delta`
+    is wrong exactly when ack_cnt is a positive multiple of delta (e.g.
+    ack_cnt==delta==331): the real loop's condition `331 > 331` is false,
+    so it does not execute at all and ack_cnt is left at 331 unchanged,
+    but `331 // 331 == 1` incorrectly performs one iteration, zeroing
+    ack_cnt and incrementing tcp_cwnd. The correct closed form for a
+    strict-inequality countdown loop is the standard identity
+    `ceil(a/b) - 1 == (a-1)//b` for a>=1: n = (ack_cnt-1)//delta.
+    Verified against real recorded events after the fix (R3A, this file's
+    git history for the exact commit). delta==0 is still treated as a
+    no-op (undisclosed as a "substitution" now that the loop condition is
+    exact: the real loop's condition `ack_cnt > 0` would be a genuine
+    infinite loop for delta==0, which cannot have occurred in any trace
+    that finished recording, so it is simply unreachable in practice, not
+    a modeled behavior).
     """
     ca = dict(ca)
     if TCP_FRIENDLINESS:
         scale = BETA_SCALE
         delta = u32((cwnd * scale) >> 3)
-        if delta:
-            n = ca["ack_cnt"] // delta
-            if n:
-                ca["ack_cnt"] = u32(ca["ack_cnt"] - n * delta)
-                ca["tcp_cwnd"] = u32(ca["tcp_cwnd"] + n)
+        if delta and ca["ack_cnt"] > delta:
+            n = (ca["ack_cnt"] - 1) // delta
+            ca["ack_cnt"] = u32(ca["ack_cnt"] - n * delta)
+            ca["tcp_cwnd"] = u32(ca["tcp_cwnd"] + n)
 
         if ca["tcp_cwnd"] > cwnd:
             delta = u32(ca["tcp_cwnd"] - cwnd)

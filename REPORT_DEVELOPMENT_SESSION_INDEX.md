@@ -8,6 +8,7 @@ this table follows.
 | Phase 1 — recorder viability + Reno replay (R0/R1/R2) | **PASS** | one session | [REPORT_PHASE1_RENO_REPLAY_VALIDATION.md](REPORT_PHASE1_RENO_REPLAY_VALIDATION.md) | `9ebe25a` (report), `a9253dc` (purity-check fix) | Stopped by design — [docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.md](docs/archive/PHASE1_R0_R2_IMPLEMENTATION_BRIEF.md) §23: "Once R0/R1/R2 are complete, STOP. Do not continue automatically into R3." |
 | N0 — recorder overhead sanity investigation | **COMPLETE** | 22:22–22:39 UTC (17 min, budget 1h) | [REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md](REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md) | `a89a39c` | Yes — proceed to N1 (CUBIC capability + contract audit) |
 | N1 — CUBIC capability + contract audit | **COMPLETE** | 22:41–23:10 UTC (29 min, budget 3h) | [data/cubic_replay_capability_audit.md](data/cubic_replay_capability_audit.md), [data/cubic_replay_contract_predictions.md](data/cubic_replay_contract_predictions.md), [data/cubic_replay_callback_manifest.md](data/cubic_replay_callback_manifest.md), [data/cubic_replay_callback_coverage_plan.md](data/cubic_replay_callback_coverage_plan.md), [data/cubic_replay_kernel_source_correction.md](data/cubic_replay_kernel_source_correction.md) | `958ea88`, `9b51caf`, `346ed0d` | Yes — proceed to N2/N3 (Replay ABI v1 + CUBIC recorder) |
+| N2/N3 — Replay ABI v1 + CUBIC recorder + R3A/R3B replay | **PARTIAL** | 23:10–02:0x UTC (~2h50m, budget 4h) | [REPORT_CUBIC_REPLAY_VALIDATION.md](REPORT_CUBIC_REPLAY_VALIDATION.md) | `d417b2d`, `8b6336d`, `2c9ba3d`, `4019601`, (this phase's final commit) | Yes — PARTIAL meets continuation condition, proceed to N4 (differential debugger core) |
 
 ## Phase 1 summary
 
@@ -72,3 +73,22 @@ where the port hardcodes a constant) — reversing Prediction #1 (`snd_una`) fro
 REQUIRED. Documented transparently in `data/cubic_replay_kernel_source_correction.md` rather than
 silently edited into the original files. The real kernel source is now the sole authoritative
 reference for the N2/N3 replay model.
+
+## N2/N3 summary
+
+Designed and implemented Replay ABI v1 (ADR-017..021), built `bpf/cubic_wrapper.bpf.c` (all seven
+callbacks in one `bpf_ringbuf_reserve` each, verifier-accepted on the first attempt), captured
+3×90s primary CUBIC traces on validated Gate-3-R2 (zero drops, gapless), isolated `cubic_root`'s
+integer semantics against a verbatim-C reference (10,023 cases, zero mismatches) before trusting
+full-trace replay, then ran R3A (event-local) and R3B (stateful). R3A: 100% exact on all 236,042
+`CLOCK_STABLE` events (4,485,714 field comparisons); R3B: 51,323–75,603 consecutive sequential
+transitions replayed byte-exact per trace, all 16 private fields demonstrated to change
+nontrivially (closes `docs/LIMITATIONS.md` #13), before the first divergence in each trace — always
+a `CLOCK_AMBIGUOUS` event (0.02% of events), characterized via a diagnostic (not adopted) as a
+genuinely irreducible measurement-boundary condition, not a model or recorder defect (new
+`docs/LIMITATIONS.md` #14). One real category-B model bug (`_tcp_friendliness` loop→closed-form
+off-by-one) was found and fixed via R3A's full-16-field comparison schema before this report was
+written (`data/cubic_replay_model_changes.md`). **R3 verdict: PARTIAL** — continuation condition
+met in full; `undo_cwnd` marked `UNVALIDATED` (0 events across all three reps, as predicted).
+Mandatory Phase-1 regression (40 tests: 26 v0 + 14 v1) reverified clean throughout; source repos
+untouched. Full detail: `REPORT_CUBIC_REPLAY_VALIDATION.md`.

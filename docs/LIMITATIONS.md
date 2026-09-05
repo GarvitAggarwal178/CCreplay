@@ -62,6 +62,24 @@ Reno R2 did not independently validate non-trivial private-state propagation bec
 private controller state under ABI v0 (ADR-014). Mode B's private-state thread-through was proven
 to work mechanically (the sentinel is carried unchanged across all 112,051 sequential transitions,
 `tests/test_reno_model.py::TestPrivateStateThreading`), but no controller exercised in Phase 1 ever
-had a private field actually change value between events. Stateful private-state replay in the
-sense of "does a nonzero, evolving field propagate correctly" remains an R3/CUBIC question — see
-`REPORT_RECORDER_OVERHEAD_SANITY_CHECK.md` N0.5.
+had a private field actually change value between events.
+
+**Closed by R3B (CUBIC):** all 16 semantic private fields (ADR-019) were confirmed to change value
+across the replayed sequence on all three primary traces (`fields_that_never_changed_in_any_trace`
+is empty), carried through 51,323–75,603 consecutive sequential transitions per trace without ever
+being resynchronized from the recording, byte-exact until the clock-ambiguity residual (item 14).
+See `REPORT_GATE_R3_CUBIC.md`.
+
+## 14. Controller-visible clock ambiguity is not always resolvable from a before/after snapshot pair
+
+CUBIC (unlike Reno) depends on a global, non-per-socket clock (`tcp_jiffies32`) that the recorder
+cannot inject at replay time — only snapshot immediately before and after the real kfunc call
+(ADR-018). When the snapshot pair differs (`CLOCK_AMBIGUOUS`, ~0.02% of primary-trace events), the
+exact value the real kernel's internal computation actually read is not always recoverable: a
+diagnostic substitution (`data/cubic_replay_model_changes.md` Investigation 2) found that neither
+"always use the before value" nor "always use the after value" resolves every `CLOCK_AMBIGUOUS`
+event — different individual events are each consistent with a different single-read timing, with
+no universal rule. This is a genuine measurement-boundary property of the replay contract for any
+CC implementation that reads a global (non-per-socket) clock, not a recorder or model defect, and
+is not "fixed" by picking a different snapshot convention — see `REPORT_GATE_R3_CUBIC.md`'s R3
+verdict for how this was scored.
