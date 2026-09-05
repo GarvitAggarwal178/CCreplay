@@ -1,0 +1,9 @@
+{
+  "test": "cubic_root integer-semantics isolation",
+  "reference": "data/audit_src/integer_semantics_check.c (verbatim copy of data/kernel_source_ref/tcp_cubic.c lines 167-209)",
+  "n_checked": 10023,
+  "n_mismatches": 0,
+  "pass": true,
+  "mismatches": [],
+  "range_description": "every integer 0..10000 (exhaustive over the table-lookup path a<64 and the immediately-following Newton-Raphson path), plus a log-spaced sweep of milestone values up to 2^62, including the practical ceiling for cube_factor*(last_max_cwnd-cwnd) under the source's own documented cwnd<1,000,000-packets precondition"
+}
