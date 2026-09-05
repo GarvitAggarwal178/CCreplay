@@ -11,6 +11,7 @@ this table follows.
 | N2/N3 — Replay ABI v1 + CUBIC recorder + R3A/R3B replay | **PARTIAL** | 23:10–02:07 UTC (~2h57m, budget 4h) | [REPORT_CUBIC_REPLAY_VALIDATION.md](REPORT_CUBIC_REPLAY_VALIDATION.md) | `d417b2d`, `8b6336d`, `2c9ba3d`, `4019601`, `758f945` | Yes — PARTIAL meets continuation condition, proceed to N4 (differential debugger core) |
 | N4 — differential debugger core | **COMPLETE** | 02:07–02:11 UTC (budget 1.5h) | [REPORT_DIFFERENTIAL_DEBUGGER.md](REPORT_DIFFERENTIAL_DEBUGGER.md) | `9097835` | Yes — hard negative oracle PASS for both Reno and CUBIC, proceed to N5 (controlled regression case study) |
 | N5 — controlled regression case study | **PASS** | 02:11–02:16 UTC (budget 1.5h) | [REPORT_CONTROLLED_REGRESSION_CASE_STUDY.md](REPORT_CONTROLLED_REGRESSION_CASE_STUDY.md) | `4d2972e` (predictions), `2f82a9c` (results) | Yes — proceed to N6 (checkpoint + suffix reproducer) |
+| N6 — checkpoint + suffix reproducer | **COMPLETE** | 02:17–02:19 UTC (budget 1h) | [REPORT_CHECKPOINT_REPRODUCER.md](REPORT_CHECKPOINT_REPRODUCER.md) | (this phase's commit) | Session ends here per pipeline — do not begin the historical CoVegas case study |
 
 ## Phase 1 summary
 
