@@ -52,6 +52,38 @@ IDENTICAL RESULT:       True
 
 PASS -- suffix replay reproduces the identical first divergence.
 
+
+==============================================================
+ CCReplay demo 4/4 (OPTIONAL) -- HISTORICAL A3 REGRESSION
+==============================================================
+TRACE:            raw/covegas_campaign/rep4.ccr  (Replay ABI v2, CoVegas; captured, real)
+REFERENCE:        user.covegas_model            (fixed/v4)
+CANDIDATE:        user.covegas_model_v3_latch   (reconstructed v3 -- v4 with the A3 guard reverted)
+
+This trace contains, in ONE COMPETE episode:
+  * Predicate H: a spurious DELAY->COMPETE transition at seq=9533 during a cross-traffic OFF period
+  * Predicate D: a settle-latch guard evaluation at seq=10421 (~1s later) with
+                 dlv_rate_bps/dlv_rate_max ~= 0.996  ->  the v4 A3 guard FAILS (reverts)
+
+MATCHING EVENTS BEFORE DIVERGENCE: 10420
+
+========= FIRST DIVERGENCE =========
+EVENT INDEX: 10420
+SEQ:         10421  (the Predicate-D settle-latch event)
+CALLBACK:    cong_avoid
+FIELD:       priv_post_mode
+  fixed/v4 (revert): 0
+  recon-v3 (latch):  1
+FIELD:       priv_post_dlv_rate_compete
+  fixed/v4 (revert): 0
+  recon-v3 (latch):  1192908
+OTHER DIFFERING FIELDS: post_snd_cwnd, post_snd_cwnd_cnt, priv_post_recent_min_us, priv_post_detect_count, priv_post_last_compete_exit_jiffies, priv_post_delay_window_start_ack, priv_post_delay_cwnd_at_window_start, priv_post_delay_rtts_in_window, priv_post_delay_detect_hold_until
+  (v4 executed revert_to_delay(); v3 executed cubic_growth())
+====================================
+
+PASS -- fixed/v4 and reconstructed-v3 first differ at exactly the historical Predicate-D event.
+        NOT a claim about alternate throughput/RTT or a recreated network outcome.
+
 ==============================================================
  DEMO RUN-ALL: PASS  (negative control clean, first divergence localized, reproduced from suffix)
 ==============================================================

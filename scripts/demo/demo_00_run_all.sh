@@ -11,6 +11,14 @@ for step in demo_01_negative_control.sh demo_02_first_divergence.sh demo_03_chec
   echo
 done
 
+# Optional historical add-on -- runs only if a qualifying trace was acquired.
+# It does not affect the main demo's PASS/FAIL.
+if [ -f "$HERE/../../raw/covegas_campaign/rep4.ccr" ]; then
+  echo
+  bash "$HERE/demo_04_historical_a3.sh" || true
+  echo
+fi
+
 echo "=============================================================="
 if [ "$FAIL" -eq 0 ]; then
   echo " DEMO RUN-ALL: PASS  (negative control clean, first divergence localized, reproduced from suffix)"

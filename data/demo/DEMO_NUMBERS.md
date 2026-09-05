@@ -57,14 +57,21 @@ Caveat: `undo_cwnd` for CoVegas is **Outcome A** — function-level evidence via
 `tcp_reno_undo_cwnd` helper only; **0 CoVegas ABI-v2 trace invocations** (`docs/CURRENT_STATE.md`
 §5; `REPORT_COVEGAS_REPLAY_FIDELITY.md` "`undo_cwnd` coverage audit").
 
-## Historical CoVegas A3 case (status at Phase 6)
+## Historical CoVegas A3 case — CLOSED SUCCESSFULLY (updated Phase 12)
 
 | value | source |
 | --- | --- |
-| **INCOMPLETE** — historical off-period trigger not reproduced; buggy-vs-fixed differential replay not run | `REPORT_HISTORICAL_COVEGAS_REGRESSION.md`; `docs/CURRENT_STATE.md` §5 |
-| historical `HOLD_MS=500` descriptive rate: 1 spurious off-period re-entry / 9 off-period boundaries (3 runs) | `data/historical_trigger_validation.md`; `~/cn-spike/covegas/REPORT_COVEGAS_V4.md` B2 |
-| existing-trace scan: Predicate H and Predicate D both **absent** in all 3 v2 traces (interpretation **CASE 4**) | `data/historical_a3_existing_trace_scan.md`; `REPORT_EVIDENCE_RECONCILIATION_AND_A3_PREDICATE_AUDIT.md` |
-| reconstructed-v3 A3 candidate: `ONLY_A3_SEMANTIC_DIFFERENCE = YES`; synthetic positive control PASS; fixed/v3 real-trace diff NO DIVERGENCE ×3 | `data/a3_reconstructed_candidate_diff.md`; `data/a3_candidate_controls.json` |
+| Originally **INCOMPLETE** (trigger not reproduced in 3 bounded attempts) → **CLOSED SUCCESSFULLY** (narrow-sense differential-replay PASS) | `REPORT_HISTORICAL_COVEGAS_REGRESSION.md`; `data/historical_case_freeze_decision.md`; `docs/CURRENT_STATE.md` §10 |
+| capped acquisition campaign: 4 attempts / 4 valid runs / 12 valid boundaries; H=1, D=1, **H+D same episode = 1** on valid run 4; stopped on first acquisition (cap 9 valid / 12 total) | `REPORT_FINAL_HISTORICAL_CAPTURE_CAMPAIGN.md`; `data/historical_capture_campaign_results.json` |
+| acquired trace `raw/covegas_campaign/rep4.ccr` (sha256 `1aeabe0283e3f0a52936391dde18ec86093c524b4f90cad319b901ef067d65de`): H DELAY→COMPETE `seq=9533` (`ROBUST_OFF`); D settle-latch guard FAIL `seq=10421`, ratio 1,192,908/1,197,822 = **0.9959** | same |
+| `fixed/v4` vs `reconstructed-v3`: first divergence **event 10420 / seq 10421 / `cong_avoid`** (10,420 events matched before); `priv_post_mode` DELAY↔COMPETE, `priv_post_dlv_rate_compete` 0↔1,192,908, + `revert_to_delay`-vs-`cubic_growth` field set; divergent event is `CLOCK_STABLE` | `REPORT_FINAL_HISTORICAL_CAPTURE_CAMPAIGN.md`; `scripts/demo/demo_04_historical_a3.sh` |
+| matches precommitted prediction `data/a3_reconstructed_candidate_predictions.md` §2.4 (commit `b8af8c1`, before capture) exactly | `data/historical_regression_predictions.md` RESULTS section |
+| historical suffix reproducer: checkpoint@event 10000 + **420-event suffix** reproduces the identical divergence | `data/demo/historical_a3_checkpoints.json` |
+| reconstructed-v3 A3 candidate: `ONLY_A3_SEMANTIC_DIFFERENCE = YES`; synthetic positive control PASS; fixed/v3 on the 3 *original* traces NO DIVERGENCE ×3 | `data/a3_reconstructed_candidate_diff.md`; `data/a3_candidate_controls.json` |
+
+Narrow claim only — **not** alternate throughput / RTT / queue state, **not** a recreated network
+outcome. `reconstructed-v3` is a documented reconstruction (v4 source, A3 guard reverted), not
+original committed v3 source.
 
 ## Demo re-run (Phase 6.7 rehearsal)
 

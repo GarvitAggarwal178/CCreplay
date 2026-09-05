@@ -97,7 +97,28 @@ none removed.
 Do **not** claim the first divergence proves later throughput / RTT causality — it is a software
 result about what the controller computes, localized to a callback boundary.
 
-## Optional add-on
+## Optional add-on — historical A3 regression (real captured trace)
 
-`demo_04_historical_a3.sh` exists **only if** a qualifying historical CoVegas trace was acquired
-(Phase 10A). The main demonstration above works without it.
+`demo_04_historical_a3.sh` runs against `raw/covegas_campaign/rep4.ccr` — a real captured Replay
+ABI v2 CoVegas trace acquired by the capped historical campaign (valid run 4 of 4). It contains,
+in one COMPETE episode: a spurious `DELAY→COMPETE` transition during a cross-traffic OFF period
+(`seq=9533`), and ≈ 1 s later a settle-latch guard evaluation (`seq=10421`) with
+`dlv_rate_bps / dlv_rate_max ≈ 0.996` — so the fixed/v4 "A3" guard **reverts** (no real competitor
+is depressing the rate). The reconstructed v3 build (v4 source with **only** that guard reverted to
+an unconditional latch) **latches** instead.
+
+```text
+FIRST DIVERGENCE:  event 10420 / seq 10421 / cong_avoid
+  priv_post_mode              fixed/v4 = DELAY (revert)   recon-v3 = COMPETE (latch)
+  priv_post_dlv_rate_compete  fixed/v4 = 0                recon-v3 = 1,192,908
+  + post_snd_cwnd and the full revert_to_delay()-vs-cubic_growth() field set
+```
+
+**Disclosure:** `reconstructed-v3` is a documented reconstruction (v4's committed source with one
+conditional reverted), **not** original committed v3 source — v3's `src/covegas.bpf.c` was never
+committed to the read-only repo. Narrow claim only: on the recorded fixed/v4 callback stream,
+reconstructed-v3 first differs from fixed/v4 at that Predicate-D event. **Not** a claim about
+alternate throughput / RTT / queue state or a recreated 120 s network outcome.
+
+The main demonstration (steps 1–3) works without this add-on; `demo_00_run_all.sh` appends it only
+when the trace is present.
