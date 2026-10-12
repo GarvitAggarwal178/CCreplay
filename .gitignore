@@ -9,3 +9,23 @@ __pycache__/
 # (build/reno_wrapper.bpf.o, the production recorder object, predates this
 # rule and stays committed -- not retroactively removed.)
 build/diagnostic/
+
+# Agent workflow files (owner's local-run artifacts, not project deliverables)
+CLAUDE.md
+docs/session/
+CCREPLAY_STUDIO_PLAN.md
+STUDIO_CONTEXT.md
+STUDIO_STATUS.md
+STUDIO_AUTORUN.md
+.autorun/
+.claude/settings.local.json
+instructions.md
+
+# Studio app build/runtime artifacts
+cache/
+uploads/
+studio_data/
+frontend/node_modules/
+frontend/dist/
+results/**/*.ccr
+.venv-studio/
