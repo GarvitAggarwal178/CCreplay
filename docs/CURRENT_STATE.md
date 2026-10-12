@@ -515,6 +515,18 @@ RECORDER OVERHEAD (N0, loopback diagnostic only)
   ratio baseline/nowakeup ~= 34x
 ```
 
+## 15. CCReplay Studio (interactive front end, ADR-025)
+
+A local web app (`ccreplay/` + `backend/` + `frontend/`, started with `./run_studio.sh`) wraps the
+engine above for interactive use -- browse traces, build controller variants, run the differential
+debugger and checkpoint reproducer, export results. It is a UI layer only: it calls `user/*.py`
+directly, re-implements none of its logic, and displays this document's ABI validation table
+verbatim (ADR-025). It does not change, supersede, or add to any verdict in §5-§12 above. All of
+STUDIO_CONTEXT.md §8's expected values (seeded-bug seq 1,705, checkpoint suffix 204, BETA=819
+divergence seq 742, historical divergence seq 10,421, negative-control NO DIVERGENCE) are verified
+through the Studio's own wrappers (`scripts/studio_smoke.py`) and through a real browser session
+driving the running app (`scripts/studio_e2e.py`).
+
 ---
 
 *Source material read to build this document: `CLAUDE.md`, `README.md`, `docs/PROJECT.md`,

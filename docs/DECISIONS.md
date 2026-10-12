@@ -304,3 +304,39 @@ clock's ambiguity actually manifests in CoVegas traces, and whether CUBIC's
 `ATTRIBUTED_AND_CHARACTERIZED` clock verdict transfers, is proven empirically in Part E3 — not
 assumed from CUBIC's result (`REPORT_CUBIC_CLOCK_BOUNDARY_INVESTIGATION.md`), per the addendum's
 explicit instruction.
+
+## ADR-025 — CCReplay Studio wraps the existing engine; it does not re-implement or re-derive any verdict
+
+**Status:** accepted (Studio build, 13 Oct 2026).
+
+**Context.** CCReplay Studio is a local web app (FastAPI backend + React/Vite frontend) that lets
+a user browse recorded traces, construct controller variants (parameter overrides or hand-written
+Python), run the differential debugger and checkpoint reproducer, and export results, all without
+leaving a browser. This is purely an interactive front end over work already proven correct
+elsewhere in this project; it must not become a second, divergent implementation of replay
+semantics.
+
+**Decision.**
+1. `ccreplay/*.py` (new package) only *wraps* `user/ccr_trace*.py`, `user/ccreplay_diff.py`,
+   `user/ccreplay_checkpoint.py`, and the `user/*_model.py` controller modules -- it calls them
+   directly and never re-implements parsing, replay, or comparison logic. `bpf/`, `user/*.py`,
+   `tests/`, and `raw/` are not modified by the Studio build.
+2. Every value the UI displays comes from a real call into this wrapper layer at request time; the
+   frontend holds no hardcoded trace/controller/divergence data.
+3. Parameter variants and user-written controllers are built by executing a **fresh copy** of an
+   existing model module's source into a new module object (`ccreplay.controllers.clone_base`),
+   because `transition()` calls sibling functions through its own module's namespace --
+   `import`-then-monkeypatch does not work (verified empirically before this was adopted; see
+   `STUDIO_CONTEXT.md` §9).
+4. The Studio's ABI-validation table (Reno PASS / CUBIC PARTIAL / CoVegas PASS, with the same
+   caveats as `docs/CURRENT_STATE.md` §5) is displayed verbatim in the UI and is never recomputed
+   or softened by the Studio layer.
+5. Studio-created artifacts (`controllers/user/*.py`, `studio_data/`, `uploads/`) are local
+   application state, not project evidence; they do not retroactively validate or invalidate any
+   existing gate. A Studio-run differential-debugger result is exactly as authoritative as running
+   `user/ccreplay_diff.py` directly from the command line, because it is the same code path.
+
+**Consequence.** Studio bugs (a wrapper bug, a UI bug) can misreport what the engine computed; they
+cannot change what the engine actually computes, because the engine is not forked. If the Studio
+and the command-line tools ever disagree on the same trace/reference/candidate, that is a defect in
+the wrapper layer to be fixed, not a basis for a new verdict.

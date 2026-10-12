@@ -70,3 +70,26 @@ The central correctness requirement is:
 Reno is the first correctness target. CUBIC is the genericity gate because it introduces private historical state and controller-visible time.
 
 Start with `docs/PROJECT.md`, `docs/SEMANTICS.md`, `docs/REPLAY_ABI.md`, and `docs/GATES.md`.
+
+## Run CCReplay Studio
+
+CCReplay Studio is a local web app over the engine above: browse recorded traces, build a
+controller variant (parameters or Python code), diff it against a reference on real recorded
+inputs, see the first divergence, reproduce it from a checkpoint, and export the result. It does
+not change any replay semantics, model, or verdict above -- it only wraps `user/*.py` for
+interactive use (see ADR-025).
+
+```sh
+python3 -m venv .venv && .venv/bin/pip install -r requirements-studio.txt
+cd frontend && npm ci && npm run build && cd ..
+./run_studio.sh
+# http://127.0.0.1:8000
+```
+
+The backend binds `127.0.0.1` only and never runs as root. Controller code written in the editor
+runs locally in a child process with a timeout -- that bounds a slow/crashing run, it is not a
+security sandbox; the editor shows a one-time notice that it runs Python on your machine.
+
+Smoke-check the engine wrappers without a browser: `.venv/bin/python scripts/studio_smoke.py`.
+End-to-end browser check (Playwright/Chromium, drives the real running app): `./run_studio.sh
+--port 8765 --daemon && .venv/bin/python scripts/studio_e2e.py http://127.0.0.1:8765`.
