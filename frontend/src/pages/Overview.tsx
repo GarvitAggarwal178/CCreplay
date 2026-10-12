@@ -120,12 +120,18 @@ export default function Overview() {
       const { id } = await api.createExperiment('diff', tid, 'covegas', 'covegas_v3_latch')
       const exp = await pollExperiment(id)
       const seq = exp.result?.divergence?.first_divergent_event.seq
+      const modeDiff = exp.result?.divergence?.private_state_diff?.['priv_post_mode'] as
+        | { reference: unknown; candidate: unknown }
+        | undefined
+      const MODE_NAME: Record<string, string> = { '0': 'DELAY', '1': 'COMPETE' }
       const ok = seq === 10421
       setStep(4, {
         status: ok ? 'done' : 'error',
         ok,
         experimentId: id,
-        summary: `seq=${seq}, DELAY<->COMPETE mode transition`,
+        summary: modeDiff
+          ? `seq=${seq}, priv_post_mode: ${MODE_NAME[String(modeDiff.reference)] ?? modeDiff.reference} <-> ${MODE_NAME[String(modeDiff.candidate)] ?? modeDiff.candidate}`
+          : `seq=${seq}`,
       })
     } catch (e) {
       setStep(4, { status: 'error', summary: String(e) })

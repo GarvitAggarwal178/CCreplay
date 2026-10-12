@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import type { DiffResult } from '../api'
+import { useEffect, useState } from 'react'
+import type { Shape } from 'plotly.js-dist-min'
+import { api, type DiffResult, type SeriesResponse } from '../api'
 import { fmtNum } from '../lib/format'
+import Chart from './Chart'
 
 function Collapsible({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -33,6 +35,31 @@ function KVTable({ data }: { data: Record<string, unknown> }) {
 
 export default function DivergenceCard({ result }: { result: DiffResult }) {
   const d = result.divergence
+  const [series, setSeries] = useState<SeriesResponse | null>(null)
+
+  useEffect(() => {
+    setSeries(null)
+    api
+      .getSeries(result.trace_id, ['pre_snd_cwnd', 'seq'], 2000)
+      .then(setSeries)
+      .catch(() => void 0)
+  }, [result.trace_id])
+
+  const divergenceShape: Partial<Shape>[] | undefined = d
+    ? [
+        {
+          type: 'line',
+          xref: 'x',
+          yref: 'paper',
+          x0: d.first_divergent_event.seq,
+          x1: d.first_divergent_event.seq,
+          y0: 0,
+          y1: 1,
+          line: { color: '#b42318', width: 2, dash: 'dash' },
+        },
+      ]
+    : undefined
+
   return (
     <div>
       <div className={`verdict-banner ${d ? 'verdict-divergence' : 'verdict-none'}`}>
@@ -43,6 +70,21 @@ export default function DivergenceCard({ result }: { result: DiffResult }) {
         {fmtNum(result.matched_event_count_before_divergence)} before{' '}
         {d ? 'divergence' : 'the end (no divergence)'}.
       </p>
+
+      {series && (
+        <Chart
+          traces={[{ x: series.series['seq'] || [], y: series.series['pre_snd_cwnd'] || [], name: 'snd_cwnd' }]}
+          xLabel="seq"
+          yLabel="snd_cwnd"
+          shapes={divergenceShape}
+          height={220}
+          caption={
+            d
+              ? `trace ${result.trace_id} · recorded data · dashed line marks first divergence at seq ${d.first_divergent_event.seq}`
+              : `trace ${result.trace_id} · recorded data`
+          }
+        />
+      )}
 
       {d && (
         <>

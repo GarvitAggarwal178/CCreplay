@@ -154,5 +154,13 @@ def list_experiments(limit: int = 100) -> list:
 
 
 def run_validate_sync(controller_id: str, timeout_s: int = 60) -> dict:
+    """Returns the validate() report itself (`{ok, checks, ...}`), not the
+    worker's outer `{ok, result}` envelope -- a caller that only checks the
+    envelope's `ok` (true whenever the subprocess didn't crash) would report
+    PASS for a controller whose own checks failed, which is exactly the kind
+    of fake success this project must never produce."""
     job = {"type": "validate", "controller_id": controller_id}
-    return _run_worker_subprocess(job, timeout_s=timeout_s)
+    outcome = _run_worker_subprocess(job, timeout_s=timeout_s)
+    if outcome.get("ok"):
+        return outcome["result"]
+    return {"ok": False, "checks": [], "error": outcome.get("error", "validation job failed")}

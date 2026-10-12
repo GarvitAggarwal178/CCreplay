@@ -1,8 +1,9 @@
 """CCReplay Studio backend. FastAPI app serving /api/* and the built
-frontend (frontend/dist) at /. Binds 127.0.0.1 only, never runs as root
-(see run_studio.sh). No made-up output: every value returned by /api comes
-from a real call into ccreplay/*.py, which wraps the existing user/*.py
-replay engine -- no hardcoded results."""
+frontend (frontend/dist) at /. Binds 127.0.0.1 only; intended to run as a
+non-root user (this file does not itself enforce or check that -- see the
+README's "Run CCReplay Studio" section). No made-up output: every value
+returned by /api comes from a real call into ccreplay/*.py, which wraps the
+existing user/*.py replay engine -- no hardcoded results."""
 import json
 import pathlib
 import subprocess
@@ -97,7 +98,10 @@ async def upload_trace(file: UploadFile = File(...), meta: UploadFile | None = F
     data = await file.read()
     if data[:8] != b"CCRPLAY0":
         raise HTTPException(status_code=400, detail="bad magic: not a CCReplay trace file")
-    dest = traces_mod.UPLOADS_DIR / file.filename
+    safe_name = pathlib.Path(file.filename).name  # strip any directory components (path traversal)
+    if not safe_name or not safe_name.endswith(".ccr"):
+        raise HTTPException(status_code=400, detail="invalid filename")
+    dest = traces_mod.UPLOADS_DIR / safe_name
     dest.write_bytes(data)
     if meta is not None:
         meta_data = await meta.read()
@@ -106,7 +110,7 @@ async def upload_trace(file: UploadFile = File(...), meta: UploadFile | None = F
         except Exception:
             raise HTTPException(status_code=400, detail="meta file is not valid JSON")
         (traces_mod.UPLOADS_DIR / (dest.stem + ".meta.json")).write_bytes(meta_data)
-    tid = traces_mod._slug(f"uploads/{file.filename}")
+    tid = traces_mod._slug(f"uploads/{safe_name}")
     try:
         info = traces_mod.get_trace(tid)
     except Exception as exc:
@@ -146,9 +150,9 @@ class ParamRequest(BaseModel):
 def create_param_controller(req: ParamRequest):
     try:
         controllers_mod.make_param(req.base, req.name, req.params)  # validate it builds
+        cid = controllers_mod.save_param_variant(req.base, req.name, req.params)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"invalid parameters: {exc}")
-    cid = controllers_mod.save_param_variant(req.base, req.name, req.params)
+        raise HTTPException(status_code=400, detail=f"invalid request: {exc}")
     validation = jobs.run_validate_sync(cid)
     return {"id": cid, "validation": validation}
 
@@ -161,7 +165,10 @@ class UserControllerRequest(BaseModel):
 
 @app.post("/api/controllers/user")
 def create_user_controller(req: UserControllerRequest):
-    cid = controllers_mod.save_user_controller(req.name, req.abi_base, req.code)
+    try:
+        cid = controllers_mod.save_user_controller(req.name, req.abi_base, req.code)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"invalid request: {exc}")
     validation = jobs.run_validate_sync(cid)
     return {"id": cid, "validation": validation}
 

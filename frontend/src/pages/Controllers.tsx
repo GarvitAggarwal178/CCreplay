@@ -58,9 +58,13 @@ export default function Controllers() {
     api.getTemplate(editorBase).then(setCode).catch(() => void 0)
   }, [editorBase])
 
-  const betaScale = (8 * (1024 + beta)) / 3 / (1024 - beta)
+  // Mirrors ccreplay.controllers._recompute_cubic_derived exactly (Python //
+  // truncates toward -infinity same as Math.floor for these non-negative
+  // operands) -- a preview that doesn't match what Create actually computes
+  // would mislead the user before they commit to a variant.
+  const betaScale = Math.floor(Math.floor((8 * (1024 + beta)) / 3) / (1024 - beta))
   const cubeRttScale = bicScale * 10
-  const cubeFactor = Math.pow(2, 10 + 3 * 10) / (bicScale * 10)
+  const cubeFactor = Math.floor(Math.pow(2, 10 + 3 * 10) / (bicScale * 10))
 
   async function createParam() {
     setParamBusy(true)

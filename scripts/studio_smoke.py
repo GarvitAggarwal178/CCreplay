@@ -48,6 +48,7 @@ def main():
     expect("seeded bug seq == 1705", seq == 1705, str(seq))
     expect("seeded bug callback == ssthresh", cb == "ssthresh", str(cb))
     expect("seeded bug 145 vs 146", res.get("reference") == 145 and res.get("candidate") == 146, str(res))
+    expect("seeded bug kind == result (M2 done-when)", r.get("kind") == "result", str(r.get("kind")))
 
     ck = run_checkpoint(cubic_rep1, "cubic", "cubic_bug_ssthresh", 500)
     expect("checkpoint @ event 1500", ck["nearest_checkpoint"]["event_index"] == 1500,
@@ -66,6 +67,51 @@ def main():
     seq = d.get("first_divergent_event", {}).get("seq")
     expect("BETA=819 divergence seq == 742", seq == 742, str(seq))
     expect("BETA=819 callback == cong_avoid", d.get("callback") == "cong_avoid", str(d.get("callback")))
+    expect("BETA=819 kind == private_state_only (M2 done-when)", r.get("kind") == "private_state_only",
+           str(r.get("kind")))
+
+    # Reno parameter variants (r0 rep1) -- the num/den retention-fraction path,
+    # separate code from the CUBIC path above and never exercised until now.
+    reno_rep1 = None
+    for tr in traces_mod.list_traces():
+        if tr.get("path") == "raw/r0/rep1.ccr":
+            reno_rep1 = tr["id"]
+    expect("reno r0 rep1 found", reno_rep1 is not None, str(reno_rep1))
+    if reno_rep1:
+        cid_std = controllers_mod.save_param_variant("reno", "reno_std_1_2", {"num": 1, "den": 2})
+        r = run_diff(reno_rep1, "reno", cid_std)
+        expect("reno 1/2 (standard) == NO DIVERGENCE", r["result"] == "NO DIVERGENCE", r["result"])
+
+        cid_gentle = controllers_mod.save_param_variant("reno", "reno_3_4", {"num": 3, "den": 4})
+        r = run_diff(reno_rep1, "reno", cid_gentle)
+        expect("reno 3/4 (gentler) diverges", r["result"] == "DIVERGENCE", r["result"])
+
+    # User-written controller path (the code editor): template unchanged must
+    # be a no-op (NO DIVERGENCE), OFFSET=1 must reproduce STUDIO_CONTEXT.md
+    # SS8's verified "User override" row exactly.
+    template = controllers_mod.get_template("cubic")
+    cid_unchanged = controllers_mod.save_user_controller("smoke_template_unchanged", "cubic", template)
+    v = controllers_mod.validate_controller(cid_unchanged)
+    expect("template-unchanged controller validates OK", v["ok"], str(v))
+    r = run_diff(cubic_rep1, "cubic", cid_unchanged)
+    expect("template unchanged (OFFSET=0) == NO DIVERGENCE", r["result"] == "NO DIVERGENCE", r["result"])
+
+    offset1_code = template.replace("OFFSET = 0", "OFFSET = 1")
+    expect("OFFSET=1 substitution actually changed the source", offset1_code != template)
+    cid_offset1 = controllers_mod.save_user_controller("smoke_template_offset1", "cubic", offset1_code)
+    r = run_diff(cubic_rep1, "cubic", cid_offset1)
+    d = r.get("divergence") or {}
+    seq = d.get("first_divergent_event", {}).get("seq")
+    res = d.get("callback_result_diff", {}).get("result", {})
+    expect("User override seq == 1705", seq == 1705, str(seq))
+    expect("User override 145 vs 144", res.get("reference") == 145 and res.get("candidate") == 144, str(res))
+
+    # Broken Python must fail validation with a readable reason, never a fake PASS.
+    cid_broken = controllers_mod.save_user_controller("smoke_broken", "cubic", "this is not valid python +++")
+    v = controllers_mod.validate_controller(cid_broken)
+    expect("broken controller validation ok == False", v["ok"] is False, str(v))
+    expect("broken controller reason mentions syntax",
+           any("syntax" in c.get("detail", "").lower() for c in v.get("checks", [])), str(v.get("checks")))
 
     covegas_rep4 = None
     for tr in traces_mod.list_traces():

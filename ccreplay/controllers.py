@@ -9,6 +9,7 @@ module's own namespace, not through imported references.
 import importlib
 import json
 import pathlib
+import re
 import types
 
 import ccreplay  # noqa: F401
@@ -20,6 +21,17 @@ PARAM_STORE = ROOT / "studio_data" / "param_variants.json"
 PARAM_STORE.parent.mkdir(exist_ok=True)
 
 ABI_BY_NAME = {"reno": 0, "cubic": 1, "covegas": 2}
+
+_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,80}$")
+
+
+def _require_safe_name(name: str):
+    """Names become filenames (controllers/user/<id>.py, studio_data param
+    keys) -- reject anything that isn't a plain identifier so a crafted name
+    like `../../etc/passwd` or `foo/bar` can't escape the intended directory."""
+    if not _NAME_RE.match(name):
+        raise ValueError(
+            f"invalid name {name!r}: must match {_NAME_RE.pattern} (letters, digits, underscore only)")
 
 DEFAULT_TRACE_FOR_ABI = {
     0: "raw/r0/rep1.ccr",
@@ -90,10 +102,12 @@ def make_param(base: str, name: str, params: dict) -> types.ModuleType:
         den = int(params.get("den", 2))
         min_ssthresh = int(params.get("min_ssthresh", 2))
         m = clone_base("reno", name)
-        orig_cong_avoid = m.transition
 
-        def model_ssthresh(cwnd):
-            return max((cwnd * num) // den, min_ssthresh)
+        # Real signature (user/reno_model.py): model_ssthresh(pre, private_state)
+        # -> (result, next_private_state) -- NOT a plain int-returning function
+        # of cwnd alone. `num/den` is the fraction of cwnd retained on loss.
+        def model_ssthresh(pre, private_state):
+            return max((pre["snd_cwnd"] * num) // den, min_ssthresh), private_state
 
         m.model_ssthresh = model_ssthresh
         return m
@@ -120,6 +134,7 @@ def _param_store_save(store: dict):
 
 
 def save_param_variant(base: str, name: str, params: dict) -> str:
+    _require_safe_name(name)
     cid = f"param_{name}"
     store = _param_store_load()
     store[cid] = {"base": base, "name": name, "params": params}
@@ -132,9 +147,16 @@ def list_param_variants() -> dict:
 
 
 def save_user_controller(name: str, abi_base: str, code: str) -> str:
+    _require_safe_name(name)
+    if abi_base not in ABI_BY_NAME:
+        raise ValueError(f"unknown abi_base: {abi_base!r} (must be one of {sorted(ABI_BY_NAME)})")
     cid = f"user_{name}"
     path = USER_DIR / f"{cid}.py"
     path.write_text(code)
+    # Sidecar so the API process can answer "what ABI is this" (list_controllers,
+    # ABI-compatibility checks) WITHOUT exec'ing user-submitted code in-process --
+    # only the timed child-process worker (ccreplay.worker) ever executes it.
+    (USER_DIR / f"{cid}.meta.json").write_text(json.dumps({"abi_base": abi_base}))
     return cid
 
 
@@ -144,6 +166,16 @@ def list_user_controllers() -> dict:
         cid = p.stem
         out[cid] = {"path": str(p)}
     return out
+
+
+def _user_controller_abi_base(cid: str) -> str | None:
+    meta_path = USER_DIR / f"{cid}.meta.json"
+    if meta_path.exists():
+        try:
+            return json.loads(meta_path.read_text()).get("abi_base")
+        except Exception:
+            return None
+    return None
 
 
 def load_controller(controller_id: str) -> types.ModuleType:
@@ -166,23 +198,21 @@ def load_controller(controller_id: str) -> types.ModuleType:
 
 
 def abi_of(controller_id: str) -> int:
+    """Must never exec user-submitted code -- this is called from the API
+    process (list_controllers, pre-experiment ABI-compatibility checks), not
+    from inside the timed child-process worker. User controllers declare
+    their ABI via the sidecar written by save_user_controller; a controller
+    with no sidecar (e.g. hand-placed file, pre-ADR-025 upload) has unknown
+    ABI until it is validated, which DOES run in the worker."""
     if controller_id in BUILTINS:
         return BUILTINS[controller_id]["abi"]
     params = _param_store_load()
     if controller_id in params:
         return ABI_BY_NAME[params[controller_id]["base"]]
-    mod = load_controller(controller_id)
-    base_hint = getattr(mod, "CCREPLAY_ABI_BASE", None)
-    if base_hint in ABI_BY_NAME:
-        return ABI_BY_NAME[base_hint]
-    # Fall back to introspecting which field-shape the module exposes.
-    if hasattr(mod, "comparison_fields"):
-        return 2
-    if hasattr(mod, "INITIAL_PRIVATE_STATE") and "last_max_cwnd" in getattr(mod, "INITIAL_PRIVATE_STATE", {}):
-        return 1
-    if hasattr(mod, "INITIAL_PRIVATE_STATE"):
-        return 2
-    return 0
+    base = _user_controller_abi_base(controller_id)
+    if base in ABI_BY_NAME:
+        return ABI_BY_NAME[base]
+    raise KeyError(f"no declared ABI for controller {controller_id!r} (missing/invalid sidecar)")
 
 
 def list_controllers():
@@ -218,37 +248,47 @@ def get_source(controller_id: str) -> str:
 
 
 TEMPLATES = {
-    "cubic": '''"""Example user controller: CUBIC with ssthresh reduced by 1 once cwnd >= 100.
-Edit, Save, then Validate. CONTROLLER must be a module-like object exposing
+    # OFFSET=0 is a deliberate no-op default: saving the template UNCHANGED
+    # must self-replay as NO DIVERGENCE against the reference (it's the same
+    # computation), so "did my edit actually do anything" has a clean
+    # baseline. Setting OFFSET=1 reproduces STUDIO_CONTEXT.md SS8's verified
+    # "User override" row: cubic rep1, seq 1,705, ssthresh, 145 vs 144.
+    "cubic": '''"""Example user controller: subtract OFFSET from the ssthresh result once
+cwnd >= 100. OFFSET=0 (the default) is a no-op -- saving this file unchanged
+diffs as NO DIVERGENCE against the reference. Set OFFSET=1 and re-validate to
+see a real divergence. CONTROLLER must be a module-like object exposing
 transition(event, private_state), INITIAL_PRIVATE_STATE, COMPARISON_FIELDS."""
 from ccreplay.controllers import clone_base
 
-base = clone_base("cubic", name="my_cubic")
-CCREPLAY_ABI_BASE = "cubic"
-base.CCREPLAY_ABI_BASE = "cubic"
+OFFSET = 0
 
+base = clone_base("cubic", name="my_cubic")
 _orig_transition = base.transition
 
 def my_transition(event, ca):
     computed, next_ca = _orig_transition(event, ca)
     if event["callback_id"] == 1 and event.get("pre_snd_cwnd", 0) >= 100:  # ssthresh
         computed = dict(computed)
-        computed["result"] = computed["result"] - 1
+        computed["result"] = computed["result"] - OFFSET
     return computed, next_ca
 
 base.transition = my_transition
 CONTROLLER = base
 ''',
-    "reno": '''"""Example user controller: Reno retaining 3/4 of cwnd on loss instead of 1/2.
-Edit, Save, then Validate."""
+    "reno": '''"""Example user controller: Reno retaining NUM/DEN of cwnd on loss instead of
+the standard 1/2. NUM=1, DEN=2 (the default) is a no-op -- saving this file
+unchanged diffs as NO DIVERGENCE against the reference. Edit, Save, Validate."""
 from ccreplay.controllers import clone_base
 
-base = clone_base("reno", name="my_reno")
-CCREPLAY_ABI_BASE = "reno"
-base.CCREPLAY_ABI_BASE = "reno"
+NUM = 1
+DEN = 2
 
-def model_ssthresh(cwnd):
-    return max((cwnd * 3) // 4, 2)
+base = clone_base("reno", name="my_reno")
+
+# Real signature (user/reno_model.py): model_ssthresh(pre, private_state)
+# -> (result, next_private_state).
+def model_ssthresh(pre, private_state):
+    return max((pre["snd_cwnd"] * NUM) // DEN, 2), private_state
 
 base.model_ssthresh = model_ssthresh
 CONTROLLER = base

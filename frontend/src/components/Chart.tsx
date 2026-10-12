@@ -3,7 +3,7 @@ import Plotly from 'plotly.js-dist-min'
 import type { Data, Layout, Shape } from 'plotly.js-dist-min'
 
 export interface ChartTrace {
-  x: (number | null)[]
+  x: (number | string | null)[]
   y: (number | null)[]
   name: string
   color?: string
@@ -21,13 +21,26 @@ interface ChartProps {
   height?: number
   shapes?: Partial<Shape>[]
   caption?: string
+  chartType?: 'scatter' | 'bar'
+  xType?: 'category'
 }
 
 function isDark(): boolean {
   return document.documentElement.getAttribute('data-theme') !== 'light'
 }
 
-export default function Chart({ traces, title, xLabel, yLabel, y2Label, height = 320, shapes, caption }: ChartProps) {
+export default function Chart({
+  traces,
+  title,
+  xLabel,
+  yLabel,
+  y2Label,
+  height = 320,
+  shapes,
+  caption,
+  chartType = 'scatter',
+  xType,
+}: ChartProps) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,17 +57,21 @@ export default function Chart({ traces, title, xLabel, yLabel, y2Label, height =
     // the key is simply absent from the rendered plot otherwise. Every
     // conditional field below is added with a spread so the key is omitted
     // entirely rather than present-with-undefined.
-    const data: Partial<Data>[] = traces.map((t, i) => ({
+    const data = traces.map((t, i) => ({
       x: t.x as number[],
       y: t.y as number[],
-      type: 'scatter',
-      mode: t.mode || 'lines',
+      type: chartType,
+      ...(chartType === 'scatter' ? { mode: t.mode || 'lines' } : {}),
       name: t.name,
       yaxis: t.yaxis === 'y2' ? 'y2' : 'y',
       ...(t.fill ? { fill: t.fill } : {}),
-      line: { color: t.color || palette[i % palette.length], width: 1.6 },
-      marker: { color: t.color || palette[i % palette.length], size: 4 },
-    }))
+      ...(chartType === 'scatter'
+        ? {
+            line: { color: t.color || palette[i % palette.length], width: 1.6 },
+            marker: { color: t.color || palette[i % palette.length], size: 4 },
+          }
+        : { marker: { color: t.color || palette[i % palette.length] } }),
+    })) as Partial<Data>[]
 
     const layout: Partial<Layout> = {
       ...(title ? { title: { text: title, font: { size: 13, color: fg } } } : {}),
@@ -63,7 +80,7 @@ export default function Chart({ traces, title, xLabel, yLabel, y2Label, height =
       paper_bgcolor: bg,
       plot_bgcolor: bg,
       font: { color: fg, size: 11 },
-      xaxis: { title: { text: xLabel }, gridcolor: grid, zerolinecolor: grid, color: fg },
+      xaxis: { title: { text: xLabel }, gridcolor: grid, zerolinecolor: grid, color: fg, ...(xType ? { type: xType } : {}) },
       yaxis: { title: { text: yLabel }, gridcolor: grid, zerolinecolor: grid, color: fg },
       ...(y2Label
         ? { yaxis2: { title: { text: y2Label }, overlaying: 'y', side: 'right', color: fg, gridcolor: 'transparent' } }
@@ -74,7 +91,7 @@ export default function Chart({ traces, title, xLabel, yLabel, y2Label, height =
     }
 
     Plotly.react(ref.current, data, layout, { responsive: true, displayModeBar: false })
-  }, [traces, title, xLabel, yLabel, y2Label, height, shapes])
+  }, [traces, title, xLabel, yLabel, y2Label, height, shapes, chartType, xType])
 
   return (
     <div>

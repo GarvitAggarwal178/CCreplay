@@ -86,7 +86,11 @@ cd frontend && npm ci && npm run build && cd ..
 # http://127.0.0.1:8000
 ```
 
-The backend binds `127.0.0.1` only and never runs as root. Controller code written in the editor
+The backend binds `127.0.0.1` only. It should be run as a non-root user in normal use (the plan's
+"trusted local tool" posture assumes that); this development environment happens to run everything
+as `root` because the whole WSL session does, which is a property of the environment, not something
+the app enforces -- `./run_studio.sh` does not itself drop privileges or refuse to start as root.
+Controller code written in the editor
 runs locally in a child process with a timeout -- that bounds a slow/crashing run, it is not a
 security sandbox; the editor shows a one-time notice that it runs Python on your machine.
 

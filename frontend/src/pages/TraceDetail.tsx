@@ -5,10 +5,19 @@ import { api, type EventsResponse, type SeriesResponse, type TraceDetail as Trac
 import Chart from '../components/Chart'
 import { fmtBytes, fmtDuration, fmtNum } from '../lib/format'
 
-// "Infinite" ssthresh is recorded as a large sentinel before the first loss --
-// observed as either INT32_MAX (2147483647, CoVegas) or UINT32_MAX
-// (4294967295, CUBIC/Reno). Clip anything at or above INT32_MAX.
+// "Infinite" ssthresh is recorded as INT32_MAX (2147483647) before the
+// first loss -- observed directly in all three ABIs' raw trace data
+// (max pre_snd_ssthresh in raw/r0/rep1.ccr and raw/cubic_replay/primary/rep1.ccr
+// is exactly 2147483647, matching Linux's actual tcp_sock.snd_ssthresh init
+// value of 0x7fffffff -- not the UINT32_MAX previously assumed here without
+// checking). Clip anything at or above it.
 const INFINITE_SSTHRESH = 2147483647
+
+// tp->srtt_us (CoVegas's pre_srtt_us) is stored left-shifted by 3 in the
+// kernel (see user/covegas_model.py: `srtt = srtt_us >> 3`); CUBIC's
+// in_sample_rtt_us is a plain already-unshifted microsecond sample and
+// needs no correction.
+const SRTT_SHIFT = 3
 
 function modeShapes(t: number[], mode: (number | null)[]) {
   const shapes: Partial<Shape>[] = []
@@ -132,6 +141,20 @@ export default function TraceDetailPage() {
 
       <div className="panel">
         <h2>Callback mix</h2>
+        <Chart
+          traces={[
+            {
+              x: Object.keys(detail.callback_counts),
+              y: Object.values(detail.callback_counts),
+              name: 'events',
+            },
+          ]}
+          chartType="bar"
+          xType="category"
+          yLabel="events"
+          height={240}
+          caption={`trace ${detail.id} · recorded data`}
+        />
         <table>
           <thead>
             <tr>
@@ -185,14 +208,17 @@ export default function TraceDetailPage() {
                 traces={[
                   {
                     x: series.t,
-                    y: series.series[detail.abi === 1 ? 'in_sample_rtt_us' : 'pre_srtt_us'] || [],
-                    name: detail.abi === 1 ? 'sample_rtt_us' : 'srtt_us',
+                    y:
+                      detail.abi === 1
+                        ? series.series['in_sample_rtt_us'] || []
+                        : (series.series['pre_srtt_us'] || []).map((v) => (v === null ? null : v >> SRTT_SHIFT)),
+                    name: detail.abi === 1 ? 'sample_rtt_us' : 'srtt_us (>>3)',
                     mode: detail.abi === 1 ? 'markers' : 'lines',
                   },
                 ]}
                 xLabel="t (s)"
                 yLabel="µs"
-                caption={`trace ${detail.id} · recorded data${detail.abi === 1 ? ' · only present on pkts_acked events with a real sample' : ''}`}
+                caption={`trace ${detail.id} · recorded data${detail.abi === 1 ? ' · only present on pkts_acked events with a real sample' : ' · raw tp->srtt_us is stored <<3; shown here right-shifted back to microseconds'}`}
               />
             </>
           )}
