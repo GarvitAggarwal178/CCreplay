@@ -17,7 +17,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-PIDFILE=".autorun/server.pid"
+# Port-specific, not a single shared ".autorun/server.pid" -- a shared
+# pidfile meant `--stop` (or any script that calls it, e.g.
+# studio_measure_load.py) always killed whichever daemon happened to be
+# running on ANY port, not the one just started/being targeted.
+PIDFILE=".autorun/server-$PORT.pid"
 
 if [[ "$STOP" == "1" ]]; then
   if [[ -f "$PIDFILE" ]]; then

@@ -521,15 +521,43 @@ def main():
         expect("doomed-controller experiment completed before deleting its controller", exp["status"] == "done", exp["status"])
         (ROOT / "controllers" / "user" / f"user_{doomed_name}.py").unlink(missing_ok=True)
         (ROOT / "controllers" / "user" / f"user_{doomed_name}.meta.json").unlink(missing_ok=True)
+
+        # Drive the actual failure message through the real History page, not
+        # only the API -- the API-level check above proves the backend logic;
+        # this proves History.tsx actually renders the "failed" branch rather
+        # than the old "differs" text for this exact case.
+        page.goto(BASE_URL + "/#/history")
+        page.wait_for_selector("text=History")
+        page.wait_for_timeout(500)
+        doomed_row = page.locator(f"tr:has-text('user_{doomed_name}')").first
+        doomed_row.locator("button:has-text('Rerun')").click()
+        page.wait_for_function(
+            "() => { const t = document.body.innerText; return t.includes('rerun') && (t.includes('failed') || t.includes('identical') || t.includes('differs')); }",
+            timeout=30000,
+        )
+        ui_rerun_text = page.locator("p.hint").first.inner_text()
+        expect("UI rerun of a deleted controller shows 'failed', not 'differs'",
+               "failed" in ui_rerun_text and "differs" not in ui_rerun_text, ui_rerun_text)
+        expect("UI rerun failure message names the real reason",
+               "unknown controller" in ui_rerun_text.lower(), ui_rerun_text)
+        shot(page, "m5-history-rerun-failed")
+
         rerun_result = post_json(BASE_URL + f"/api/experiments/{doomed_exp['id']}/rerun")
         expect("rerun of a deleted controller reports status=error, not same_as_original=false-as-differs",
                rerun_result["status"] == "error" and rerun_result["same_as_original"] is False, str(rerun_result))
         expect("rerun error message is present and readable",
                bool(rerun_result.get("error")) and "unknown controller" in rerun_result["error"].lower(),
                str(rerun_result.get("error")))
+
+        # Clean up every experiment row this block created (the API rerun
+        # above, plus whatever id(s) the UI rerun click produced) by exact
+        # candidate id -- not by parsing an id out of rendered text.
         import sqlite3
         conn = sqlite3.connect(str(ROOT / "studio_data" / "studio.db"))
-        conn.execute("DELETE FROM experiments WHERE id IN (?, ?)", (doomed_exp["id"], rerun_result["id"]))
+        rows = conn.execute("SELECT id, config FROM experiments").fetchall()
+        doomed_cid = f"user_{doomed_name}"
+        doomed_exp_ids = [rid for rid, cfg in rows if json.loads(cfg).get("candidate") == doomed_cid]
+        conn.executemany("DELETE FROM experiments WHERE id = ?", [(rid,) for rid in doomed_exp_ids])
         conn.commit()
         conn.close()
 

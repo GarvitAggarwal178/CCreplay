@@ -17,7 +17,6 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PORT = 8766
 BASE = f"http://127.0.0.1:{PORT}"
-PIDFILE = ROOT / ".autorun" / f"server-measure-{PORT}.pid"
 
 
 def timed_get(url):
@@ -39,7 +38,11 @@ def rss_kb(pid):
 
 
 def main():
-    subprocess.run(["bash", str(ROOT / "run_studio.sh"), "--stop"], cwd=str(ROOT),
+    # --stop/--port must target the SAME port -- run_studio.sh's pidfile is
+    # now per-port (".autorun/server-<port>.pid"); without --port here this
+    # used to stop whatever daemon happened to own the default port 8000,
+    # not the one this script is about to start/measure on PORT.
+    subprocess.run(["bash", str(ROOT / "run_studio.sh"), "--port", str(PORT), "--stop"], cwd=str(ROOT),
                     capture_output=True)
     time.sleep(0.5)
     proc = subprocess.run(
@@ -47,7 +50,7 @@ def main():
         cwd=str(ROOT), capture_output=True, text=True,
     )
     print(proc.stdout)
-    pidfile = ROOT / ".autorun" / "server.pid"
+    pidfile = ROOT / ".autorun" / f"server-{PORT}.pid"
     pid = int(pidfile.read_text().strip())
     time.sleep(1.0)  # let uvicorn finish binding
 
@@ -79,7 +82,7 @@ def main():
 
     report["server_rss_kb_after_largest_trace_load"] = rss_kb(pid)
 
-    subprocess.run(["bash", str(ROOT / "run_studio.sh"), "--stop"], cwd=str(ROOT),
+    subprocess.run(["bash", str(ROOT / "run_studio.sh"), "--port", str(PORT), "--stop"], cwd=str(ROOT),
                     capture_output=True)
 
     print(json.dumps(report, indent=2))
