@@ -248,7 +248,7 @@ def export_experiment(exp_id: str, format: str = "json"):
     if exp is None:
         raise HTTPException(status_code=404, detail="unknown experiment id")
     if format == "json":
-        return JSONResponse(exp)
+        return JSONResponse(exp, headers={"Content-Disposition": f'attachment; filename="ccreplay_{exp_id}.json"'})
     if format == "md":
         lines = [
             f"# CCReplay Studio experiment {exp_id}",
@@ -265,7 +265,10 @@ def export_experiment(exp_id: str, format: str = "json"):
             lines.append("```")
         if exp.get("error"):
             lines.append(f"**Error:** {exp['error']}")
-        return PlainTextResponse("\n".join(lines), media_type="text/markdown")
+        return PlainTextResponse(
+            "\n".join(lines), media_type="text/markdown",
+            headers={"Content-Disposition": f'attachment; filename="ccreplay_{exp_id}.md"'},
+        )
     raise HTTPException(status_code=400, detail="format must be json or md")
 
 

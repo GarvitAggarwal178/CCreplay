@@ -88,7 +88,7 @@ export default function DivergenceCard({ result }: { result: DiffResult }) {
 
       {d && (
         <>
-          <div className="panel" style={{ background: 'var(--bg-raised)' }}>
+          <div className="panel" style={{ background: 'var(--bg-raised)' }} data-testid="first-divergence-panel">
             <h2>First divergence</h2>
             <table>
               <tbody>
@@ -123,7 +123,7 @@ export default function DivergenceCard({ result }: { result: DiffResult }) {
           </div>
 
           <h3>Differing fields</h3>
-          <table>
+          <table data-testid="diff-fields-table">
             <thead>
               <tr>
                 <th>Field</th>

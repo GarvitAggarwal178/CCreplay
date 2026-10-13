@@ -106,6 +106,30 @@ def main():
     expect("User override seq == 1705", seq == 1705, str(seq))
     expect("User override 145 vs 144", res.get("reference") == 145 and res.get("candidate") == 144, str(res))
 
+    # Reno template path (separate code from CUBIC's above, never exercised until now).
+    reno_template = controllers_mod.get_template("reno")
+    expect("reno template contains the NUM/DEN no-op default", "NUM = 1" in reno_template and "DEN = 2" in reno_template,
+           reno_template[:200])
+    cid_reno_unchanged = controllers_mod.save_user_controller("smoke_reno_template_unchanged", "reno", reno_template)
+    v = controllers_mod.validate_controller(cid_reno_unchanged)
+    expect("reno template-unchanged validates OK", v["ok"], str(v))
+    if reno_rep1:
+        r = run_diff(reno_rep1, "reno", cid_reno_unchanged)
+        expect("reno template unchanged (1/2) == NO DIVERGENCE", r["result"] == "NO DIVERGENCE", r["result"])
+
+        reno_3_4_code = reno_template.replace("NUM = 1", "NUM = 3").replace("DEN = 2", "DEN = 4")
+        cid_reno_3_4 = controllers_mod.save_user_controller("smoke_reno_template_3_4", "reno", reno_3_4_code)
+        r = run_diff(reno_rep1, "reno", cid_reno_3_4)
+        expect("reno template NUM=3,DEN=4 diverges", r["result"] == "DIVERGENCE", r["result"])
+
+    # A controller file that doesn't define CONTROLLER must fail validation
+    # with a readable reason (plan §3 A1 "missing CONTROLLER" done-when).
+    cid_no_controller = controllers_mod.save_user_controller("smoke_no_controller", "cubic", "x = 1\n")
+    v = controllers_mod.validate_controller(cid_no_controller)
+    expect("missing-CONTROLLER module fails validation", v["ok"] is False, str(v))
+    expect("missing-CONTROLLER reason names CONTROLLER",
+           any("CONTROLLER" in c.get("detail", "") for c in v.get("checks", [])), str(v.get("checks")))
+
     # Broken Python must fail validation with a readable reason, never a fake PASS.
     cid_broken = controllers_mod.save_user_controller("smoke_broken", "cubic", "this is not valid python +++")
     v = controllers_mod.validate_controller(cid_broken)

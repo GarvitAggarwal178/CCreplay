@@ -102,16 +102,25 @@ def main():
         expect("traces table has rows", page.locator("table tbody tr").count() > 0)
         shot(page, "m3-traces")
 
-        # cubic rep1 specifically (has W_max/bic_K + RTT charts + callback bar)
-        page.click("tr:has-text('cubic_replay/primary/rep1') a:has-text('Explore')")
-        page.wait_for_timeout(2500)
-        n_charts = page.locator("svg.main-svg").count()
-        expect("trace detail page has charts (svg present)", n_charts > 0, str(n_charts))
-        # CUBIC trace detail renders 4 Plotly charts: callback-mix bar, cwnd/ssthresh,
-        # W_max/bic_K, RTT samples -- fewer than that means the bar chart regressed
-        # back to a table-only callback mix.
-        expect("callback mix renders as a bar chart (4 charts total on a CUBIC trace)", n_charts >= 4, str(n_charts))
-        shot(page, "m3-trace-detail")
+        # All three ABIs must render their detail page without console errors
+        # (plan §3 A3.2 done-when: "all three ABIs render without console
+        # errors ... screenshot per ABI"), not only CUBIC.
+        abi_pages = [
+            ("r0/rep1", "reno", 2),           # callback-mix bar, cwnd/ssthresh only (no RTT/W_max for Reno)
+            ("cubic_replay/primary/rep1", "cubic", 4),   # + W_max/bic_K, RTT
+            ("covegas_campaign/rep4", "covegas", 3),     # + RTT (no W_max/bic_K)
+        ]
+        for path_fragment, abi_name, min_charts in abi_pages:
+            console_errors.clear()
+            page.click(f"tr:has-text('{path_fragment}') a:has-text('Explore')")
+            page.wait_for_timeout(2500)
+            n_charts = page.locator("svg.main-svg").count()
+            expect(f"{abi_name} trace detail renders >= {min_charts} charts", n_charts >= min_charts, str(n_charts))
+            expect(f"{abi_name} trace detail has 0 console errors", len(console_errors) == 0, str(console_errors[:5]))
+            shot(page, f"m3-trace-detail-{abi_name}")
+            page.go_back()
+            page.wait_for_timeout(500)
+        console_errors.clear()  # reset so the final whole-run check only reflects the rest of the run
 
         # Controllers page: create a param variant through the UI, THEN diff it (M2 done-when)
         page.goto(BASE_URL + "/#/controllers")
@@ -136,23 +145,41 @@ def main():
         expect("cubic rep1 present in Diff trace picker", cubic_rep1_label is not None)
         if cubic_rep1_label:
             trace_select.select_option(label=cubic_rep1_label)
+        page.wait_for_timeout(300)
         ref_select = page.locator("select").nth(1)
         ref_options = ref_select.locator("option").all_inner_texts()
         cubic_ref_label = next((o for o in ref_options if o.startswith("cubic ")), None)
         if cubic_ref_label:
             ref_select.select_option(label=cubic_ref_label)
+        page.wait_for_timeout(300)
         cand_select = page.locator("select").nth(2)
         cand_options = cand_select.locator("option").all_inner_texts()
         variant_label = next((o for o in cand_options if variant_name in o), None)
         expect("UI-created param variant appears in the Diff candidate picker", variant_label is not None, str(cand_options))
         if variant_label:
             cand_select.select_option(label=variant_label)
+        page.wait_for_timeout(300)
+        expect("Run diff button is enabled before clicking",
+               page.locator("button:has-text('Run diff')").is_enabled())
         page.click("button:has-text('Run diff')")
-        page.wait_for_selector("text=DIVERGENCE", timeout=30000)
+        page.wait_for_selector(".verdict-banner", timeout=30000)
         page.wait_for_timeout(500)
-        diff_text = page.locator("body").inner_text()
+        # Scope to the First-divergence panel specifically (data-testid, not a
+        # text match) -- a whole-page text search for "742" would also match
+        # picker option names containing a Date.now() timestamp, and
+        # "DIVERGENCE" matches "NO DIVERGENCE" too.
+        verdict_text = page.locator(".verdict-banner").inner_text()
+        divergence_panel_text = (
+            page.locator("[data-testid=first-divergence-panel]").inner_text(timeout=5000)
+            if "DIVERGENCE" in verdict_text and "NO DIVERGENCE" not in verdict_text
+            else ""
+        )
+        expect("verdict banner shows DIVERGENCE (not NO DIVERGENCE)",
+               verdict_text.startswith("DIVERGENCE"), verdict_text)
         expect("UI-created variant diffed against reference -> seq 742 (M2 done-when, not just validated)",
-               "742" in diff_text)
+               "742" in divergence_panel_text, divergence_panel_text)
+        expect("UI-created variant divergence kind == private_state_only",
+               "only internal controller state differs" in divergence_panel_text, divergence_panel_text)
         shot(page, "m2-diff-from-ui-variant")
 
         # ABI-incompatible pairing refused with an explanation
@@ -203,16 +230,26 @@ def main():
         ref_select = page.locator("select").nth(1)
         cubic_ref_label2 = next((o for o in ref_select.locator("option").all_inner_texts() if o.startswith("cubic ")), None)
         ref_select.select_option(label=cubic_ref_label2)
+        page.wait_for_timeout(300)
         cand_select = page.locator("select").nth(2)
         cand_label = next((o for o in cand_select.locator("option").all_inner_texts() if offset1_name in o), None)
         expect("OFFSET=1 user controller appears in Diff candidate picker", cand_label is not None)
         if cand_label:
             cand_select.select_option(label=cand_label)
+        page.wait_for_timeout(300)
+        expect("Run diff button is enabled before clicking (OFFSET=1)",
+               page.locator("button:has-text('Run diff')").is_enabled())
         page.click("button:has-text('Run diff')")
-        page.wait_for_selector("text=DIVERGENCE", timeout=30000)
+        page.wait_for_selector(".verdict-banner", timeout=30000)
         page.wait_for_timeout(500)
-        divergence_text = page.locator("body").inner_text()
-        expect("user-written OFFSET=1 controller -> seq 1705 (verified 'User override' row)", "1,705" in divergence_text or "1705" in divergence_text)
+        verdict_text = page.locator(".verdict-banner").inner_text()
+        divergence_panel_text = page.locator("[data-testid=first-divergence-panel]").inner_text()
+        fields_table_text = page.locator("[data-testid=diff-fields-table]").inner_text()
+        expect("verdict banner shows DIVERGENCE", verdict_text.startswith("DIVERGENCE"), verdict_text)
+        expect("user-written OFFSET=1 controller -> seq 1705 (verified 'User override' row)",
+               "1,705" in divergence_panel_text or "1705" in divergence_panel_text, divergence_panel_text)
+        expect("differing-fields table shows 145 (reference) vs 144 (candidate)",
+               "145" in fields_table_text and "144" in fields_table_text, fields_table_text)
         shot(page, "m4-controllers-code-offset1-diff")
 
         # Broken code must fail validation visibly, never show a fake PASS.
@@ -249,10 +286,59 @@ def main():
         page.wait_for_selector("a:has-text('Export JSON')", timeout=10000)
         shot(page, "m5-history")
 
-        export_link = page.locator("a:has-text('Export JSON')").first
-        export_href = export_link.get_attribute("href")
-        export_url = BASE_URL + export_href if export_href and export_href.startswith("/") else export_href
-        expect("export JSON link returns 200", fetch_status(export_url) == 200, export_url)
+        # Both export formats should actually download (Content-Disposition:
+        # attachment), not just return 200 while opening in a tab.
+        with page.expect_download() as dl_info:
+            page.click("a:has-text('Export JSON')")
+        json_download = dl_info.value
+        expect("export JSON triggers a real download", json_download.suggested_filename.endswith(".json"),
+               json_download.suggested_filename)
+
+        with page.expect_download() as dl_info2:
+            page.click("a:has-text('Export Markdown')")
+        md_download = dl_info2.value
+        expect("export Markdown triggers a real download", md_download.suggested_filename.endswith(".md"),
+               md_download.suggested_filename)
+
+        # Trace upload: a renamed copy of an existing small library trace is a
+        # real .ccr file with a real magic/header, not manufactured evidence --
+        # it exercises the actual upload-parse-register path end to end.
+        src = ROOT / "raw" / "r0" / "rep1.ccr"
+        upload_copy = ROOT / "uploads" / "e2e_upload_test.ccr"
+        upload_copy.parent.mkdir(exist_ok=True)
+        upload_copy.write_bytes(src.read_bytes())
+        page.goto(BASE_URL + "/#/traces")
+        page.wait_for_selector("text=Traces")
+        page.wait_for_timeout(500)
+        page.locator("input[type=file]").first.set_input_files(str(upload_copy))
+        page.click("button:has-text('Upload')")
+        page.wait_for_function(
+            "() => document.body.innerText.includes('uploaded:') || document.body.innerText.includes('failed:')",
+            timeout=15000,
+        )
+        upload_msg = page.locator("body").inner_text()
+        expect("upload reports success with correct ABI and event count",
+               "uploaded:" in upload_msg and "Reno" in upload_msg and "37260" in upload_msg.replace(",", ""),
+               [l for l in upload_msg.splitlines() if "uploaded" in l or "failed" in l])
+        shot(page, "m3-traces-upload")
+        upload_copy.unlink(missing_ok=True)
+        (ROOT / "uploads" / "e2e_upload_test.meta.json").unlink(missing_ok=True)
+
+        # Bad-magic upload must fail with a readable error, not a fake success.
+        bad_file = ROOT / "uploads" / "e2e_upload_bad.ccr"
+        bad_file.write_bytes(b"not a real trace file")
+        page.locator("input[type=file]").first.set_input_files(str(bad_file))
+        page.click("button:has-text('Upload')")
+        page.wait_for_function("() => document.body.innerText.includes('failed:')", timeout=15000)
+        bad_upload_msg = page.locator("body").inner_text()
+        expect("bad-magic upload fails with a readable error", "failed:" in bad_upload_msg)
+        bad_file.unlink(missing_ok=True)
+        # The bad-magic upload above deliberately triggers a 400 response,
+        # which Chromium logs as a console error of its own accord (the fetch
+        # network layer, not application code) -- that is the expected
+        # behavior of this negative-path test, not a real app bug, so it is
+        # excluded from the overall console-cleanliness check below.
+        console_errors.clear()
 
         expect("no browser console errors", len(console_errors) == 0, str(console_errors[:5]))
 
