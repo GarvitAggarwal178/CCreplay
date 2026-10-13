@@ -340,3 +340,37 @@ semantics.
 cannot change what the engine actually computes, because the engine is not forked. If the Studio
 and the command-line tools ever disagree on the same trace/reference/candidate, that is a defect in
 the wrapper layer to be fixed, not a basis for a new verdict.
+
+## ADR-026 — All-decisions comparison (M7) is a new orchestration loop, not new comparison logic
+
+**Status:** accepted (M7 start, 13 Oct 2026).
+
+**Context.** ADR-025 says `ccreplay/` "never re-implements or re-derives" the engine's comparison
+logic. M7 adds an all-decisions mode (every event, both event-local/Mode A and stateful/Mode B,
+compared and reported, not just the first divergence) and a parameter sweep. Read literally, "never
+re-implements comparison logic" could be mistaken to forbid this -- it does not, but the boundary
+needs to be stated explicitly so a future session doesn't either (a) refuse to build M7 citing
+ADR-025, or (b) build it by copying/adapting `diff_trace`'s comparison arithmetic into a second,
+divergent implementation.
+
+**Decision.** `ccreplay/diff.py`'s all-decisions function is an **orchestration loop only**: for
+each event it calls the exact same primitives `diff_trace` already uses --
+`_detect_version_and_parse` (`user/ccreplay_diff.py`), each module's own `transition()`, and the
+reference module's own declared comparison schema (`COMPARISON_FIELDS[cb]` or
+`comparison_fields(cb, pre_mode, post_mode)` for v2, ADR-023) -- and simply does not stop at the
+first disagreement. It introduces no new notion of "differs," no new field-selection rule, and no
+alternate schema. Mode A's shared private PRE state come from the relevant **built-in base
+module's** `private_pre_from_event` (`user/cubic_model.py`, `user/covegas_model.py`; Reno has none,
+ADR-014) -- not from either the reference's or candidate's own copy of that function, since a
+cloned/user-written candidate could in principle lack or override it, and both sides of an
+event-local comparison must start from the identical recorded PRE state by construction, not from
+two independently-reconstructed copies of it.
+
+**Consequence.** Everything ADR-025 says about Studio bugs vs. engine verdicts still applies
+unchanged: an all-decisions disagreement count is only as trustworthy as the per-event
+`diff_trace`-equivalent comparison it's built from, and a discrepancy between the all-decisions
+summary and running `diff_trace` event-by-event by hand would be a wrapper bug, never a basis for a
+new engine verdict. All-decisions comparison on CUBIC does not upgrade or downgrade CUBIC's
+documented PARTIAL self-replay verdict (`docs/CURRENT_STATE.md` §5) -- it is a model-vs-model
+comparison (two controller implementations against each other), not a model-vs-recording self-replay
+check, and must not be described as either validating or invalidating that verdict.

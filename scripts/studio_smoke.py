@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from ccreplay import traces as traces_mod
 from ccreplay import controllers as controllers_mod
-from ccreplay.diff import run_diff
+from ccreplay.diff import run_diff, run_all_decisions
 from ccreplay.checkpoint import run_checkpoint
 
 FAILURES = []
@@ -164,6 +164,39 @@ def main():
     expect("broken controller validation ok == False", v["ok"] is False, str(v))
     expect("broken controller reason mentions syntax",
            any("syntax" in c.get("detail", "").lower() for c in v.get("checks", [])), str(v.get("checks")))
+
+    # M7 all-decisions (ADR-026): precommitted predictions, each independently
+    # verified against the real engine before being written here (see
+    # STUDIO_STATUS.md's M7 section) -- not fitted to whatever the first run
+    # happened to produce.
+    r = run_all_decisions(cubic_rep1, "cubic", "cubic", mode="A")
+    expect("all-decisions cubic vs cubic Mode A: 0 disagreements", r["n_disagree"] == 0, str(r["n_disagree"]))
+    expect("all-decisions cubic vs cubic Mode A: all 78688 events checked", r["n_events"] == 78688, str(r["n_events"]))
+
+    r = run_all_decisions(cubic_rep1, "cubic", "cubic_bug_dormant_undo", mode="A")
+    expect("all-decisions dormant_undo vs cubic Mode A: 0 disagreements (rep1 has no undo_cwnd events)",
+           r["n_disagree"] == 0, str(r["n_disagree"]))
+
+    r = run_all_decisions(cubic_rep1, "cubic", "cubic_bug_ssthresh", mode="A")
+    expect("all-decisions seeded ssthresh bug Mode A: exactly 14 disagreements (unconditional +1, "
+           "rep1 has 14 ssthresh events -- verified via `diff user/cubic_model.py "
+           "user/cubic_model_bug_ssthresh.py` before this assertion was written)",
+           r["n_disagree"] == 14, str(r["n_disagree"]))
+    expect("all-decisions seeded ssthresh bug: disagreements are ssthresh-only",
+           r["per_callback_disagree"] == {"ssthresh": 14}, str(r["per_callback_disagree"]))
+    expect("all-decisions seeded ssthresh bug: first disagreement matches diff_trace's seq 1705",
+           r["first_disagreement_seq"] == 1705, str(r["first_disagreement_seq"]))
+
+    r = run_all_decisions(cubic_rep1, "cubic", "cubic_bug_ssthresh", mode="B")
+    expect("all-decisions seeded ssthresh bug Mode B: same first-divergence location as Mode A/diff_trace",
+           r["first_disagreement_seq"] == 1705, str(r["first_disagreement_seq"]))
+    expect("all-decisions seeded ssthresh bug Mode B: bug does not cascade into other callbacks",
+           r["n_disagree"] == 14, str(r["n_disagree"]))
+
+    cid_default = save_param("cubic", "sweep_default_check", {"BETA": 717})
+    r = run_all_decisions(cubic_rep1, "cubic", cid_default, mode="A")
+    expect("all-decisions BETA=717 (identical to the reference default): 0 disagreements",
+           r["n_disagree"] == 0, str(r["n_disagree"]))
 
     covegas_rep4 = None
     for tr in traces_mod.list_traces():
