@@ -10,7 +10,7 @@ export default function Sweep() {
   const [base, setBase] = useState<'cubic' | 'reno'>('cubic')
   const [tunables, setTunables] = useState<Record<string, TunableSpec>>({})
   const [param, setParam] = useState('BETA')
-  const [valuesText, setValuesText] = useState('512,614,717,819,921')
+  const [valuesText, setValuesText] = useState('')
   const [selectedTraceIds, setSelectedTraceIds] = useState<string[]>([])
   const [running, setRunning] = useState(false)
   const [exp, setExp] = useState<Experiment | null>(null)
@@ -33,6 +33,27 @@ export default function Sweep() {
 
   const matchingTraces = useMemo(() => traces.filter((t) => t.abi === ABI_BY_BASE[base]), [traces, base])
   const spec = tunables[param]
+
+  // Switching base or param (e.g. CUBIC BETA -> Reno num) previously left
+  // the old value list in place, so Reno showed an immediate out-of-range
+  // error with BETA-scale numbers still in the box. Reprefill a small list
+  // around the new param's own default, always including the default
+  // itself, whenever the active spec changes.
+  useEffect(() => {
+    if (!spec) return
+    const span = spec.max - spec.min
+    let candidates: number[]
+    if (span <= 1) {
+      candidates = [spec.min, spec.max]
+    } else {
+      candidates = [0.6, 0.8, 1.0, 1.2, 1.4]
+        .map((m) => Math.round(spec.default * m))
+        .map((v) => Math.min(spec.max, Math.max(spec.min, v)))
+    }
+    const unique = Array.from(new Set([...candidates, spec.default])).sort((a, b) => a - b)
+    setValuesText(unique.join(','))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [param, spec?.default, spec?.min, spec?.max])
 
   function parseValues(): number[] {
     return valuesText
@@ -170,29 +191,39 @@ export default function Sweep() {
                 <th>Events</th>
                 <th>Disagree</th>
                 <th>Rate</th>
-                <th>Median |Δ|</th>
+                <th>Median Δ result</th>
+                <th>Median Δ post_snd_cwnd</th>
                 <th>First seq</th>
               </tr>
             </thead>
             <tbody>
               {result.points.map((p, i) => (
-                <tr key={i} style={{ fontWeight: p.value === result.default_value ? 700 : 400 }}>
+                <tr
+                  key={i}
+                  data-testid={`sweep-row-${p.value}-${p.trace_id}`}
+                  style={{ fontWeight: p.value === result.default_value ? 700 : 400 }}
+                >
                   <td className="mono">
                     {p.value}
                     {p.value === result.default_value ? ' (default)' : ''}
                   </td>
                   <td className="mono">{p.trace_id}</td>
                   {p.error ? (
-                    <td colSpan={5} className="error-box">
+                    <td colSpan={6} className="error-box">
                       {p.error}
                     </td>
                   ) : (
                     <>
                       <td>{fmtNum(p.n_events)}</td>
-                      <td>{fmtNum(p.n_disagree)}</td>
-                      <td>{((p.disagreement_rate ?? 0) * 100).toFixed(3)}%</td>
-                      <td>{p.median_abs_delta ?? '—'}</td>
-                      <td className="mono">{p.first_disagreement_seq ?? '—'}</td>
+                      <td data-testid={`sweep-n-disagree-${p.value}-${p.trace_id}`}>{fmtNum(p.n_disagree)}</td>
+                      <td data-testid={`sweep-rate-${p.value}-${p.trace_id}`}>
+                        {((p.disagreement_rate ?? 0) * 100).toFixed(3)}%
+                      </td>
+                      <td className="mono">{p.result_median_delta ?? '—'}</td>
+                      <td className="mono">{p.post_snd_cwnd_median_delta ?? '—'}</td>
+                      <td className="mono" data-testid={`sweep-first-seq-${p.value}-${p.trace_id}`}>
+                        {p.first_disagreement_seq ?? '—'}
+                      </td>
                     </>
                   )}
                 </tr>

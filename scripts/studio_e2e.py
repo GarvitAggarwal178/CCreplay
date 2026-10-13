@@ -297,29 +297,60 @@ def main():
         page.check("input[type=checkbox]")
         page.wait_for_timeout(200)
         page.click("button:has-text('Run diff')")
-        page.wait_for_selector("text=Compare all decisions", timeout=30000)
+        page.wait_for_selector("[data-testid=all-decisions-panel]", timeout=30000)
         page.wait_for_timeout(1500)
-        all_decisions_text = page.locator("[data-testid=all-decisions-panel]").inner_text()
-        expect("all-decisions panel shows 14/78,688 disagreements",
-               "14" in all_decisions_text and "78,688" in all_decisions_text, all_decisions_text[:300])
-        expect("all-decisions panel shows ssthresh at 100% disagreement, others at 0%",
-               "ssthresh" in all_decisions_text and "100.00%" in all_decisions_text, all_decisions_text[:500])
+        # Exact values via data-testid, not a loose substring search ("14" in
+        # text also matches "114"/"1,400" -- found by review, not by an
+        # earlier draft of this check).
+        summary_text = page.locator("[data-testid=all-decisions-summary]").inner_text()
+        expect("all-decisions panel shows exactly 14 / 78,688 disagreements",
+               summary_text.strip().startswith("14 / 78,688"), summary_text)
+        expect("all-decisions panel ssthresh row: 14 checked, 14 disagree, 100.00% rate",
+               page.locator("[data-testid=all-decisions-callback-checked-ssthresh]").inner_text() == "14"
+               and page.locator("[data-testid=all-decisions-callback-disagree-ssthresh]").inner_text() == "14"
+               and page.locator("[data-testid=all-decisions-callback-rate-ssthresh]").inner_text().strip() == "100.00%")
+        for cb in ("init", "pkts_acked", "cong_avoid", "cwnd_event", "set_state"):
+            rate = page.locator(f"[data-testid=all-decisions-callback-rate-{cb}]").inner_text().strip()
+            expect(f"all-decisions panel {cb} row: 0.00% disagree rate", rate == "0.00%", rate)
         shot(page, "m7-diff-all-decisions")
 
+        # Mode B, in the browser: same seeded bug, first disagreement must
+        # land at the same seq 1,705 diff_trace/Mode A already found.
+        page.locator("select:has(option:has-text('Mode B'))").select_option(label="Mode B (stateful, cascaded)")
+        page.wait_for_timeout(200)
+        page.click("button:has-text('Run diff')")
+        page.wait_for_selector("[data-testid=all-decisions-first-seq]", timeout=30000)
+        page.wait_for_timeout(1000)
+        mode_b_seq_text = page.locator("[data-testid=all-decisions-first-seq]").inner_text()
+        expect("Mode B in the browser: first disagreement at seq 1705", "1705" in mode_b_seq_text, mode_b_seq_text)
+        shot(page, "m7-diff-all-decisions-mode-b")
+
         # M7: Sweep page -- real engine calls across 4 BETA values, default
-        # value (717) must show as a visible 0%-disagreement zero point.
+        # value (717) must show as a visible, EXACT 0%-disagreement zero
+        # point, and BETA=819's row must show the exact already-verified
+        # seq 742 -- both via data-testid, not a page-wide substring search.
         page.goto(BASE_URL + "/#/sweep")
         page.wait_for_selector("text=Sweep")
         page.wait_for_timeout(800)
+        # Override the auto-prefilled value list with the exact known set --
+        # the page reprefills values around the param's default whenever the
+        # param changes (fixed this round so switching base/param doesn't
+        # leave a stale, out-of-range value list in the box), so this test
+        # cannot rely on a specific default list surviving page load.
+        values_input = page.locator("input[type=text]").first
+        values_input.fill("512,614,717,819,921")
         page.click("label:has-text('cubic_replay/primary/rep1')")
         page.wait_for_timeout(300)
         page.click("button:has-text('Run sweep')")
         page.wait_for_selector("text=Table", timeout=30000)
         page.wait_for_timeout(1000)
-        sweep_text = page.locator("body").inner_text()
-        expect("sweep table shows the default value marked explicitly", "(default)" in sweep_text, sweep_text[:500])
-        expect("sweep table shows BETA=819 -> seq 742 (matches the already-verified value)",
-               "742" in sweep_text, sweep_text[:500])
+        default_row_disagree = page.locator("[data-testid=sweep-n-disagree-717-raw__cubic_replay__primary__rep1]").inner_text()
+        default_row_rate = page.locator("[data-testid=sweep-rate-717-raw__cubic_replay__primary__rep1]").inner_text()
+        expect("sweep default value (717) row shows exactly 0 disagreements, 0.000% rate",
+               default_row_disagree == "0" and default_row_rate.strip() == "0.000%",
+               f"{default_row_disagree} / {default_row_rate}")
+        beta_819_seq = page.locator("[data-testid=sweep-first-seq-819-raw__cubic_replay__primary__rep1]").inner_text()
+        expect("sweep BETA=819 row shows exactly first seq 742", beta_819_seq.strip() == "742", beta_819_seq)
         shot(page, "m7-sweep")
 
         # Controllers page: write a controller from the template, verify the
@@ -443,11 +474,54 @@ def main():
                "CONTROLLER" in no_controller_panel_text, no_controller_panel_text[-300:])
         shot(page, "m4-controllers-code-no-controller")
 
-        # History page: rerun + export
+        # History page: must render diff/all_decisions/checkpoint/sweep rows
+        # all correctly -- an earlier draft of the type-aware columns (added
+        # this session) rendered literal "undefined" for sweep rows and gave
+        # both all_decisions and sweep rows an empty red badge, because the
+        # column logic assumed every config has trace_id/reference/candidate
+        # and every result has a top-level "result" field. Caught by review,
+        # not by the original e2e check, which only asserted "has rows".
         page.goto(BASE_URL + "/#/history")
         page.wait_for_selector("text=History")
         page.wait_for_timeout(500)
-        expect("history has rows", page.locator("table tbody tr").count() > 0)
+        n_rows = page.locator("table tbody tr").count()
+        expect("history has rows", n_rows > 0, str(n_rows))
+        row_types = page.locator("table tbody tr td:nth-child(2)").all_inner_texts()
+        expect("history contains at least one sweep row", "sweep" in row_types, str(row_types))
+        expect("history contains at least one all_decisions row", "all_decisions" in row_types, str(row_types))
+        table_text = page.locator("table").inner_text()
+        expect("no History cell renders literal 'undefined'", "undefined" not in table_text,
+               table_text[:2000] if "undefined" in table_text else "ok")
+        done_rows = page.locator("table tbody tr")
+        empty_badges = 0
+        for i in range(n_rows):
+            badge = done_rows.nth(i).locator("span.badge")
+            if badge.count() > 0 and badge.inner_text().strip() == "":
+                empty_badges += 1
+        expect("no History row has an empty verdict badge", empty_badges == 0, f"{empty_badges} empty badge(s)")
+        shot(page, "m5-history-table")
+
+        # Open each experiment TYPE present (not just whatever sorts first)
+        # and confirm each renders its own real panel rather than crashing or
+        # showing nothing.
+        type_to_row = {}
+        for i in range(n_rows):
+            t = page.locator("table tbody tr").nth(i).locator("td").nth(1).inner_text()
+            if t not in type_to_row:
+                type_to_row[t] = i
+        for exp_type, row_idx in type_to_row.items():
+            page.locator("table tbody tr").nth(row_idx).locator("button:has-text('Open')").click()
+            page.wait_for_timeout(500)
+            open_panel_text = page.locator(".panel:has-text('Experiment')").inner_text()
+            # The panel header alone is "Experiment <id>" (~20-40 chars); real
+            # content (a divergence card, an all-decisions summary, or a JSON
+            # dump) pushes this well past that -- a blank/crashed panel would
+            # stay at header-only length.
+            expect(f"Open renders real content for a '{exp_type}' row (not just the header)",
+                   len(open_panel_text.strip()) > 60, open_panel_text[:200])
+            page.click("button:has-text('close')")
+            page.wait_for_timeout(200)
+
         first_rerun = page.locator("table tbody tr button:has-text('Rerun')").first
         first_rerun.click()
         page.wait_for_function(

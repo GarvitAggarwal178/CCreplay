@@ -283,6 +283,15 @@ def create_sweep(req: SweepRequest):
         raise HTTPException(status_code=400, detail="values must be non-empty")
     if not req.trace_ids:
         raise HTTPException(status_code=400, detail="trace_ids must be non-empty")
+    # A sweep is one worker job with a 120 s budget; measured ~1 s per
+    # (value, trace) pair on a CUBIC-size trace, so an unbounded combination
+    # count can time out and lose the whole sweep, not just the slow part.
+    n_combinations = len(req.values) * len(req.trace_ids)
+    if n_combinations > 60:
+        raise HTTPException(status_code=400, detail=(
+            f"{len(req.values)} values x {len(req.trace_ids)} traces = {n_combinations} combinations "
+            f"exceeds the 60-combination limit for a single sweep (one worker job, 120 s budget) -- "
+            f"reduce the number of values or traces."))
     for tid in req.trace_ids:
         try:
             trace_abi = traces_mod.get_abi(tid)

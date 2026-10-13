@@ -1,5 +1,6 @@
 """Differential-debugger wrapper (wraps user/ccreplay_diff.diff_trace)."""
 import importlib
+import statistics
 
 import ccreplay  # noqa: F401
 from user.ccreplay_diff import diff_trace, _detect_version_and_parse, _initial_state
@@ -118,7 +119,22 @@ def all_decisions_core(trace_path, trace_abi: int, ref_mod, cand_mod, mode: str)
     per_callback_disagree = {}
     first_disagreement_index = None
     detailed = []
-    delta_samples = []  # [{field, reference, candidate, delta}], numeric fields only, capped
+    delta_samples = []  # [{field, reference, candidate, delta}], numeric fields only, capped -- histogram only
+    field_deltas = {}  # field -> list[signed delta], UNCAPPED -- exact stats, not an estimate
+    disagree_runs = []  # [[start_index, length], ...], UNCAPPED -- RLE over the full trace. Cheap even
+    # for a long Mode-B cascade (one run can cover tens of thousands of
+    # events in a single [start, length] pair); for isolated Mode-A
+    # disagreements each run is length 1, no worse than a flat list.
+    run_start = None
+
+    # Mode B "cascaded" means the PRIVATE STATE the two sides carry into this
+    # event already differs (a consequence of an earlier disagreement), not
+    # merely "some earlier event disagreed" -- a bug can disagree on every
+    # recurrence of one callback (e.g. the seeded ssthresh +1) without ever
+    # touching private state, in which case none of its recurrences are
+    # cascades of each other.
+    def _states_differ(a, b):
+        return a != b
 
     for idx, e in enumerate(dominant_events):
         cb = e["callback_id"]
@@ -129,6 +145,8 @@ def all_decisions_core(trace_path, trace_abi: int, ref_mod, cand_mod, mode: str)
             cand_pre = base_pre_fn(e) if base_pre_fn else None
         else:
             ref_pre, cand_pre = ref_state, cand_state
+
+        pre_state_diverged = mode == "B" and _states_differ(ref_pre, cand_pre)
 
         ref_computed, ref_next = ref_mod.transition(e, ref_pre)
         cand_computed, cand_next = cand_mod.transition(e, cand_pre)
@@ -142,18 +160,39 @@ def all_decisions_core(trace_path, trace_abi: int, ref_mod, cand_mod, mode: str)
         if diffs:
             n_disagree += 1
             per_callback_disagree[cb_name] = per_callback_disagree.get(cb_name, 0) + 1
-            cascaded = mode == "B" and first_disagreement_index is not None
+            cascaded = pre_state_diverged
             if first_disagreement_index is None:
                 first_disagreement_index = idx
+            if run_start is None:
+                run_start = idx
             if len(detailed) < MAX_DETAILED_DISAGREEMENTS:
                 detailed.append({
                     "event_index": idx, "seq": e["seq"], "callback": cb_name, "cascaded": cascaded,
                     "diff_fields": diffs,
                 })
-                for f in diffs:
-                    rv, cv = ref_computed.get(f), cand_computed.get(f)
-                    if isinstance(rv, (int, float)) and isinstance(cv, (int, float)) and not isinstance(rv, bool):
-                        delta_samples.append({"field": f, "reference": rv, "candidate": cv, "delta": cv - rv})
+            for f in diffs:
+                rv, cv = ref_computed.get(f), cand_computed.get(f)
+                if isinstance(rv, (int, float)) and isinstance(cv, (int, float)) and not isinstance(rv, bool):
+                    delta = cv - rv
+                    field_deltas.setdefault(f, []).append(delta)
+                    if len(delta_samples) < MAX_DETAILED_DISAGREEMENTS:
+                        delta_samples.append({"field": f, "reference": rv, "candidate": cv, "delta": delta})
+        else:
+            if run_start is not None:
+                disagree_runs.append([run_start, idx - run_start])
+                run_start = None
+    if run_start is not None:
+        disagree_runs.append([run_start, n_events - run_start])
+
+    delta_stats = {}
+    for field, deltas in field_deltas.items():
+        delta_stats[field] = {
+            "count": len(deltas),
+            "median": statistics.median(deltas),
+            "mean": statistics.fmean(deltas),
+            "min": min(deltas),
+            "max": max(deltas),
+        }
 
     return {
         "mode": mode,
@@ -164,13 +203,17 @@ def all_decisions_core(trace_path, trace_abi: int, ref_mod, cand_mod, mode: str)
         "per_callback_disagree": per_callback_disagree,
         "first_disagreement_index": first_disagreement_index,
         "first_disagreement_seq": dominant_events[first_disagreement_index]["seq"] if first_disagreement_index is not None else None,
-        # Sparse, not a dense per-event mask (which would be up to ~236k ints
-        # over the wire for a single response): "disagreements" already
-        # carries event_index/seq for every disagreement up to the cap,
-        # which is what the UI's strip chart plots.
+        # Sparse (capped) per-event detail for the table view, plus an
+        # UNCAPPED run-length-encoded [start, length] list for the strip
+        # chart -- a long Mode-B cascade compresses to one or a few runs
+        # instead of tens of thousands of per-event entries.
         "disagreements": detailed,
         "disagreements_truncated": n_disagree > MAX_DETAILED_DISAGREEMENTS,
+        "disagree_runs": disagree_runs,
         "delta_samples": delta_samples,
+        # Exact per-field signed-delta statistics over EVERY disagreement,
+        # never just the capped sample above (plan §4: "Δ statistics").
+        "delta_stats": delta_stats,
     }
 
 

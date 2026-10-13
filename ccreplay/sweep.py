@@ -10,19 +10,17 @@ writes to studio_data/param_variants.json or appears in the Controllers
 registry -- the registry stays exactly what the user explicitly created,
 run after run (this was explicit review guidance before M7 began).
 """
-import statistics
-
 import ccreplay  # noqa: F401
 from ccreplay import controllers as controllers_mod
 from ccreplay import traces as traces_mod
 from ccreplay.diff import all_decisions_core, UnknownEntityError
 
 TUNABLES_BY_BASE = {"cubic": controllers_mod.CUBIC_TUNABLES, "reno": controllers_mod.RENO_TUNABLES}
-
-
-def _median_abs_delta(delta_samples: list):
-    deltas = [abs(d["delta"]) for d in delta_samples]
-    return statistics.median(deltas) if deltas else None
+# plan §4 C2: "median/mean Δ of ssthresh result and post_snd_cwnd" --
+# specific fields, not every numeric field pooled together (pooling mixed a
+# jiffies-scale field with a cwnd-segment-scale field into one meaningless
+# number in an earlier version of this function).
+SWEEP_DELTA_FIELDS = ("result", "post_snd_cwnd")
 
 
 def run_sweep(base: str, param: str, values: list, trace_ids: list, reference_id: str | None = None) -> dict:
@@ -65,16 +63,21 @@ def run_sweep(base: str, param: str, values: list, trace_ids: list, reference_id
                 continue
 
             result = all_decisions_core(trace_path, trace_abi, ref_mod, cand_mod, "A")
-            points.append({
+            delta_stats = result["delta_stats"]
+            point = {
                 "param": param,
                 "value": value,
                 "trace_id": trace_id,
                 "n_events": result["n_events"],
                 "n_disagree": result["n_disagree"],
                 "disagreement_rate": result["disagreement_rate"],
-                "median_abs_delta": _median_abs_delta(result["delta_samples"]),
                 "first_disagreement_seq": result["first_disagreement_seq"],
-            })
+            }
+            for f in SWEEP_DELTA_FIELDS:
+                stats = delta_stats.get(f)
+                point[f"{f}_median_delta"] = stats["median"] if stats else None
+                point[f"{f}_mean_delta"] = stats["mean"] if stats else None
+            points.append(point)
 
     return {
         "base": base,

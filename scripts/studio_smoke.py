@@ -216,6 +216,44 @@ def main():
            sorted(p.name for p in controllers_mod.USER_DIR.glob("*")) == user_files_before,
            "controllers/user/ changed after sweep")
 
+    # Mode B "cascaded" must mean the controllers' PRIVATE STATE has actually
+    # diverged at PRE, not merely "some earlier event also disagreed" -- the
+    # seeded ssthresh bug disagrees on every ssthresh event's RESULT but never
+    # touches private state, so none of its 14 recurrences are cascades of
+    # each other (each is an independent, isolated disagreement).
+    r = run_all_decisions(cubic_rep1, "cubic", "cubic_bug_ssthresh", mode="B")
+    n_cascaded = sum(1 for d in r["disagreements"] if d["cascaded"])
+    expect("all-decisions seeded ssthresh bug Mode B: 0 disagreements labelled cascaded "
+           "(the bug never diverges private state, only the ssthresh result)",
+           n_cascaded == 0, str(n_cascaded))
+    expect("all-decisions seeded ssthresh bug Mode B: 14 isolated runs of length 1 (not one long run)",
+           r["disagree_runs"] == [[d["event_index"], 1] for d in r["disagreements"]], str(r["disagree_runs"]))
+
+    # Reno all-decisions path (never exercised before this check): reno vs
+    # reno must agree everywhere; a gentler (3/4) retention fraction vs the
+    # standard (1/2) must disagree ONLY on ssthresh, and only on the events
+    # where the two integer-division formulas actually give different
+    # results -- derived from r0 rep1's own recorded pre_snd_cwnd at each of
+    # its 6 ssthresh events (all have cwnd > 3, so all 6 disagree) before
+    # this assertion was written, not fitted to whatever the run produced.
+    reno_rep1 = None
+    for tr in traces_mod.list_traces():
+        if tr.get("path") == "raw/r0/rep1.ccr":
+            reno_rep1 = tr["id"]
+    expect("reno r0 rep1 found (all-decisions)", reno_rep1 is not None, str(reno_rep1))
+    if reno_rep1:
+        r = run_all_decisions(reno_rep1, "reno", "reno", mode="A")
+        expect("all-decisions reno vs reno Mode A: 0 disagreements", r["n_disagree"] == 0, str(r["n_disagree"]))
+
+        cid_reno_gentle = save_param("reno", "smoke_predict_3_4", {"num": 3, "den": 4})
+        r = run_all_decisions(reno_rep1, "reno", cid_reno_gentle, mode="A")
+        expect("all-decisions reno 3/4 vs reno Mode A: exactly 6 disagreements "
+               "(r0 rep1 has 6 ssthresh events, all with cwnd > 3 -- verified from the recorded "
+               "pre_snd_cwnd at each one before this assertion was written)",
+               r["n_disagree"] == 6, str(r["n_disagree"]))
+        expect("all-decisions reno 3/4 vs reno Mode A: disagreements are ssthresh-only",
+               r["per_callback_disagree"] == {"ssthresh": 6}, str(r["per_callback_disagree"]))
+
     covegas_rep4 = None
     for tr in traces_mod.list_traces():
         if tr.get("path") == "raw/covegas_campaign/rep4.ccr":
@@ -228,6 +266,28 @@ def main():
         expect("historical divergence seq == 10421", seq == 10421, str(seq))
         mode_diff = d.get("private_state_diff", {}).get("priv_post_mode", {})
         expect("historical mode DELAY<->COMPETE", set(mode_diff.values()) == {0, 1}, str(mode_diff))
+
+        # All-decisions on the v2/CoVegas path (never exercised before this
+        # check): covegas vs itself must agree everywhere; vs the
+        # reconstructed v3 latch, Mode A finds EXACTLY the one Predicate-D
+        # event the historical case study identified (seq 10421, cong_avoid)
+        # -- not "at least one", not "several" -- and Mode B's single long
+        # cascade must start at that same event and match diff_trace's own
+        # first-divergence index exactly.
+        r = run_all_decisions(covegas_rep4, "covegas", "covegas", mode="A")
+        expect("all-decisions covegas vs covegas Mode A: 0 disagreements", r["n_disagree"] == 0, str(r["n_disagree"]))
+
+        r = run_all_decisions(covegas_rep4, "covegas", "covegas_v3_latch", mode="A")
+        expect("all-decisions covegas vs v3_latch Mode A: exactly 1 disagreement at seq 10421",
+               r["n_disagree"] == 1 and r["first_disagreement_seq"] == 10421, str(r))
+        expect("all-decisions covegas vs v3_latch Mode A: disagreement is cong_avoid-only",
+               r["per_callback_disagree"] == {"cong_avoid": 1}, str(r["per_callback_disagree"]))
+
+        r = run_all_decisions(covegas_rep4, "covegas", "covegas_v3_latch", mode="B")
+        expect("all-decisions covegas vs v3_latch Mode B: first disagreement matches diff_trace's seq 10421",
+               r["first_disagreement_seq"] == 10421, str(r["first_disagreement_seq"]))
+        expect("all-decisions covegas vs v3_latch Mode B: one long cascade run (not scattered isolated events)",
+               len(r["disagree_runs"]) == 1, str(r["disagree_runs"]))
 
     print()
     if FAILURES:

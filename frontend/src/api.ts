@@ -156,7 +156,9 @@ export interface AllDecisionsResult {
   first_disagreement_seq: number | null
   disagreements: AllDecisionsDisagreement[]
   disagreements_truncated: boolean
+  disagree_runs: [number, number][]
   delta_samples: { field: string; reference: number; candidate: number; delta: number }[]
+  delta_stats: Record<string, { count: number; median: number; mean: number; min: number; max: number }>
 }
 
 export interface TunableSpec {
@@ -173,7 +175,10 @@ export interface SweepPoint {
   n_events?: number
   n_disagree?: number
   disagreement_rate?: number
-  median_abs_delta?: number | null
+  result_median_delta?: number | null
+  result_mean_delta?: number | null
+  post_snd_cwnd_median_delta?: number | null
+  post_snd_cwnd_mean_delta?: number | null
   first_disagreement_seq?: number | null
   error?: string
 }
