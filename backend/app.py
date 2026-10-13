@@ -5,6 +5,7 @@ README's "Run CCReplay Studio" section). No made-up output: every value
 returned by /api comes from a real call into ccreplay/*.py, which wraps the
 existing user/*.py replay engine -- no hardcoded results."""
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -377,6 +378,35 @@ def export_experiment(exp_id: str, format: str = "json"):
             headers={"Content-Disposition": f'attachment; filename="ccreplay_{exp_id}.md"'},
         )
     raise HTTPException(status_code=400, detail="format must be json or md")
+
+
+RESULTS_LAB_DIR = ROOT / "results" / "lab"
+
+
+@app.get("/api/lab/capabilities")
+def lab_capabilities():
+    """Network Lab is deferred/unprivileged-only in this environment. This
+    always reports can_run_lab=false regardless of root status -- privileged
+    network operations (tc/ip netns/ethtool) are disabled here by explicit
+    project rule, not by a missing permission check. See
+    .autorun/SUDO_RUNBOOK.md for the manual steps a human owner would run.
+    Also lists any JSON result files already present under results/lab/ (a
+    real directory listing, not a fabricated one) so the Lab page's results
+    browser has something real to read without a second endpoint."""
+    is_root = os.geteuid() == 0
+    result_files: list[str] = []
+    if RESULTS_LAB_DIR.exists():
+        result_files = sorted(p.name for p in RESULTS_LAB_DIR.glob("*.json") if p.is_file())
+    return {
+        "is_root": is_root,
+        "can_run_lab": False,
+        "reason": (
+            "privileged network operations (tc, ip netns, ethtool) are disabled in this "
+            "environment regardless of root status; see .autorun/SUDO_RUNBOOK.md to run "
+            "them manually as a human operator"
+        ),
+        "result_files": result_files,
+    }
 
 
 # --- static frontend (built by frontend/) -----------------------------------

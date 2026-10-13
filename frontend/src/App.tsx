@@ -7,6 +7,7 @@ import Controllers from './pages/Controllers'
 import Diff from './pages/Diff'
 import Sweep from './pages/Sweep'
 import History from './pages/History'
+import Lab from './pages/Lab'
 
 const SEMANTIC_RULE =
   'CCReplay answers what a congestion-control implementation computes at a recorded Linux ' +
@@ -40,6 +41,7 @@ export default function App() {
           <NavLink to="/diff">Diff</NavLink>
           <NavLink to="/sweep">Sweep</NavLink>
           <NavLink to="/history">History</NavLink>
+          <NavLink to="/lab">Network Lab</NavLink>
         </nav>
         <button className="theme-toggle" onClick={toggle}>
           {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
@@ -54,6 +56,7 @@ export default function App() {
           <Route path="/diff" element={<Diff />} />
           <Route path="/sweep" element={<Sweep />} />
           <Route path="/history" element={<History />} />
+          <Route path="/lab" element={<Lab />} />
         </Routes>
       </main>
       <footer className="app-footer">{SEMANTIC_RULE}</footer>
