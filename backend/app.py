@@ -204,9 +204,22 @@ class ExperimentRequest(BaseModel):
 
 
 def _check_abi_compat(trace_id, reference, candidate):
-    trace_abi = traces_mod.get_abi(trace_id)
-    ref_abi = controllers_mod.abi_of(reference)
-    cand_abi = controllers_mod.abi_of(candidate)
+    # A rerun (or a stale History/Diff-Workbench link) can reference a trace
+    # or controller that no longer exists (e.g. an e2e-created controller
+    # that's since been cleaned up) -- that must surface as a readable 404,
+    # not a bare 500 from an uncaught KeyError deep in resolve_id/abi_of.
+    try:
+        trace_abi = traces_mod.get_abi(trace_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"unknown trace: {trace_id}")
+    try:
+        ref_abi = controllers_mod.abi_of(reference)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"unknown controller: {reference}")
+    try:
+        cand_abi = controllers_mod.abi_of(candidate)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"unknown controller: {candidate}")
     if ref_abi != trace_abi or cand_abi != trace_abi:
         raise HTTPException(status_code=400, detail=(
             f"ABI mismatch: trace is ABI v{trace_abi}, reference={reference} is v{ref_abi}, "
@@ -256,7 +269,19 @@ def rerun_experiment(exp_id: str):
         original["status"] == "done" and new_exp["status"] == "done"
         and original["result"] == new_exp["result"]
     )
-    return {"id": new_id, "status": new_exp["status"], "same_as_original": same}
+    # same_as_original=false collapses two different situations the UI must
+    # not present identically: "both ran and produced different results" vs.
+    # "the rerun didn't finish/errored, so there's nothing to compare" (e.g.
+    # a controller deleted between the original run and the rerun). Surface
+    # the rerun's own error so the frontend can tell them apart -- showing
+    # "result differs from original" for a failed rerun would be exactly the
+    # fake-signal problem already fixed once for validation (ADR-025 spirit).
+    return {
+        "id": new_id,
+        "status": new_exp["status"],
+        "same_as_original": same,
+        "error": new_exp.get("error") if new_exp["status"] != "done" else None,
+    }
 
 
 @app.get("/api/experiments/{exp_id}/export")

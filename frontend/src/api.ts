@@ -192,7 +192,10 @@ export const api = {
   getExperiment: (id: string) => req<Experiment>(`/experiments/${id}`),
   listExperiments: () => req<Experiment[]>('/experiments'),
   rerunExperiment: (id: string) =>
-    req<{ id: string; status: string; same_as_original: boolean }>(`/experiments/${id}/rerun`, { method: 'POST' }),
+    req<{ id: string; status: string; same_as_original: boolean; error: string | null }>(
+      `/experiments/${id}/rerun`,
+      { method: 'POST' }
+    ),
   exportUrl: (id: string, format: 'json' | 'md') => `${BASE}/experiments/${id}/export?format=${format}`,
 }
 

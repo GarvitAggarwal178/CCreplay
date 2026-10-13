@@ -21,11 +21,31 @@ class AbiMismatchError(ValueError):
     pass
 
 
+class UnknownEntityError(ValueError):
+    pass
+
+
 def run_diff(trace_id: str, ref_id: str, cand_id: str) -> dict:
-    trace_path = traces_mod.resolve_id(trace_id)
-    trace_abi = traces_mod.get_abi(trace_id)
-    ref_abi = controllers_mod.abi_of(ref_id)
-    cand_abi = controllers_mod.abi_of(cand_id)
+    # Runs inside the worker subprocess (ccreplay.worker), reached both from
+    # a fresh POST /api/experiments (behind backend/app.py's own
+    # _check_abi_compat, which gives a 404 before the job is even queued)
+    # and from POST /api/experiments/{id}/rerun (which does NOT go through
+    # that check -- a rerun whose controller was deleted since the original
+    # run must still fail with a readable reason here, not a bare KeyError
+    # str() that doesn't say which entity is missing or why).
+    try:
+        trace_path = traces_mod.resolve_id(trace_id)
+        trace_abi = traces_mod.get_abi(trace_id)
+    except KeyError:
+        raise UnknownEntityError(f"unknown trace: {trace_id}")
+    try:
+        ref_abi = controllers_mod.abi_of(ref_id)
+    except KeyError:
+        raise UnknownEntityError(f"unknown controller: {ref_id}")
+    try:
+        cand_abi = controllers_mod.abi_of(cand_id)
+    except KeyError:
+        raise UnknownEntityError(f"unknown controller: {cand_id}")
     if ref_abi != trace_abi or cand_abi != trace_abi:
         raise AbiMismatchError(
             f"ABI mismatch: trace is ABI v{trace_abi}, reference={ref_id} is v{ref_abi}, "

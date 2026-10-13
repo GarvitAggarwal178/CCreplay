@@ -7,6 +7,7 @@ and asserts the expected values appear on screen. Saves screenshots (light
 theme, per AUTORUN) to studio_data/screens/ and copies the key ones to
 .autorun/evidence/.
 """
+import json
 import pathlib
 import shutil
 import sys
@@ -43,6 +44,13 @@ def fetch_text(url):
         return r.read().decode()
 
 
+def post_json(url, payload=None):
+    data = json.dumps(payload).encode() if payload is not None else b""
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read().decode())
+
+
 def fetch_status(url):
     try:
         with urllib.request.urlopen(url, timeout=10) as r:
@@ -51,25 +59,49 @@ def fetch_status(url):
         return e.code
 
 
+CREATED_PARAM_NAMES = []  # bare names passed to createParamController, e.g. "e2e_beta_123"
+CREATED_USER_NAMES = []   # bare names passed to createUserController, e.g. "e2e_broken_123"
+
+
 def cleanup_e2e_artifacts():
-    """Removes exactly the controllers THIS SCRIPT creates (name prefix
-    e2e_*, and legacy timestamped beta_0_8_* entries from before the guided
-    demo's step 4 used a fixed id) -- never a blanket wipe of
-    controllers/user/ or param_variants.json, which would delete real
-    owner data (see STUDIO_STATUS.md). The fixed-name param_beta_0_8_demo
-    entry (created by the guided demo's step 4) is deliberately left alone:
-    it is meant to persist and be reused, not cleaned up per run."""
+    """Removes exactly the controllers and experiment rows THIS RUN
+    created -- never a blanket wipe or prefix sweep (an earlier version of
+    this function swept every `param_e2e_*`/`user_e2e_*` entry, which is
+    still a blanket pattern match, not an exact-id delete, and could catch
+    a real owner's similarly-named controller). The fixed-name
+    param_beta_0_8_demo entry (guided demo step 4) is never touched here --
+    it's meant to persist and be reused, not cleaned up per run."""
+    import sqlite3
+
+    param_cids = [f"param_{n}" for n in CREATED_PARAM_NAMES]
+    user_cids = [f"user_{n}" for n in CREATED_USER_NAMES]
+
     user_dir = ROOT / "controllers" / "user"
-    for p in user_dir.glob("user_e2e_*"):
-        p.unlink(missing_ok=True)
+    for cid in user_cids:
+        (user_dir / f"{cid}.py").unlink(missing_ok=True)
+        (user_dir / f"{cid}.meta.json").unlink(missing_ok=True)
+
     store_path = ROOT / "studio_data" / "param_variants.json"
-    if store_path.exists():
-        import json
+    if store_path.exists() and param_cids:
         store = json.loads(store_path.read_text())
-        for cid in list(store.keys()):
-            if cid.startswith("param_e2e_") or (cid.startswith("param_beta_0_8_") and cid != "param_beta_0_8_demo"):
-                del store[cid]
+        for cid in param_cids:
+            store.pop(cid, None)
         store_path.write_text(json.dumps(store, indent=2, sort_keys=True))
+
+    # Experiment rows referencing a now-deleted controller would otherwise
+    # sit in History pointing at nothing -- opening or rerunning one is
+    # exactly the "unknown controller" case this round's review flagged.
+    all_cids = set(param_cids) | set(user_cids)
+    db_path = ROOT / "studio_data" / "studio.db"
+    if all_cids and db_path.exists():
+        conn = sqlite3.connect(str(db_path))
+        rows = conn.execute("SELECT id, config FROM experiments").fetchall()
+        to_delete = [rid for rid, cfg in rows
+                     if json.loads(cfg).get("reference") in all_cids or json.loads(cfg).get("candidate") in all_cids]
+        if to_delete:
+            conn.executemany("DELETE FROM experiments WHERE id = ?", [(rid,) for rid in to_delete])
+            conn.commit()
+        conn.close()
 
 
 def main():
@@ -173,6 +205,7 @@ def main():
         page.goto(BASE_URL + "/#/controllers")
         page.wait_for_selector("text=Controllers")
         variant_name = f"e2e_beta_{int(time.time())}"
+        CREATED_PARAM_NAMES.append(variant_name)
         page.fill(".panel:has-text('Create a parameter variant') input[placeholder='my_variant']", variant_name)
         page.fill(".panel:has-text('Create a parameter variant') input[type=number] >> nth=0", "819")
         page.click(".panel:has-text('Create a parameter variant') button:has-text('Create')")
@@ -253,6 +286,7 @@ def main():
         expect("cubic template contains the OFFSET no-op knob", "OFFSET = 0" in template, template[:200])
 
         unchanged_name = f"e2e_tmpl_unchanged_{int(time.time())}"
+        CREATED_USER_NAMES.append(unchanged_name)
         page.fill(".panel:has-text('Write a controller') input[placeholder='my_controller']", unchanged_name)
         page.click(".panel:has-text('Write a controller') button:has-text('Save')")
         page.wait_for_selector(".panel:has-text('Write a controller') >> text=Validation:", timeout=30000)
@@ -260,7 +294,36 @@ def main():
         expect("template-unchanged controller validates PASS", "PASS" in code_panel_text, code_panel_text[-300:])
         shot(page, "m4-controllers-code-unchanged")
 
+        # Validation passing is not the same claim as "diffs as NO DIVERGENCE"
+        # -- actually run it through the Diff page too, the same way the
+        # OFFSET=1 variant is diffed below.
+        page.goto(BASE_URL + "/#/diff")
+        page.wait_for_timeout(500)
+        trace_select = page.locator("select").nth(0)
+        trace_select.select_option(label=cubic_rep1_label)
+        page.wait_for_timeout(300)
+        ref_select = page.locator("select").nth(1)
+        cubic_ref_label_u = next((o for o in ref_select.locator("option").all_inner_texts() if o.startswith("cubic ")), None)
+        ref_select.select_option(label=cubic_ref_label_u)
+        page.wait_for_timeout(300)
+        cand_select = page.locator("select").nth(2)
+        unchanged_label = next((o for o in cand_select.locator("option").all_inner_texts() if unchanged_name in o), None)
+        expect("template-unchanged controller appears in Diff candidate picker", unchanged_label is not None)
+        if unchanged_label:
+            cand_select.select_option(label=unchanged_label)
+        page.wait_for_timeout(300)
+        page.click("button:has-text('Run diff')")
+        page.wait_for_selector(".verdict-banner", timeout=30000)
+        page.wait_for_timeout(500)
+        unchanged_verdict = page.locator(".verdict-banner").inner_text()
+        expect("template unchanged diffs as NO DIVERGENCE through the real Diff page",
+               unchanged_verdict.startswith("NO DIVERGENCE"), unchanged_verdict)
+
         offset1_name = f"e2e_tmpl_offset1_{int(time.time())}"
+        CREATED_USER_NAMES.append(offset1_name)
+        page.goto(BASE_URL + "/#/controllers")
+        page.wait_for_selector("text=Controllers")
+        page.wait_for_timeout(500)
         editor = page.locator(".cm-content").last
         editor.click()
         page.keyboard.press("Control+A")
@@ -303,6 +366,7 @@ def main():
         page.goto(BASE_URL + "/#/controllers")
         page.wait_for_timeout(500)
         broken_name = f"e2e_broken_{int(time.time())}"
+        CREATED_USER_NAMES.append(broken_name)
         editor = page.locator(".cm-content").last
         editor.click()
         page.keyboard.press("Control+A")
@@ -314,6 +378,25 @@ def main():
         expect("broken controller shows FAIL, not PASS", "FAIL" in broken_panel_text and "PASS" not in broken_panel_text.split("Validation:")[-1][:50], broken_panel_text[-300:])
         expect("broken controller shows the real syntax error", "syntax" in broken_panel_text.lower(), broken_panel_text[-300:])
         shot(page, "m4-controllers-code-broken")
+
+        # A controller file that doesn't define CONTROLLER must also fail
+        # validation visibly through the real editor, not just at the smoke-
+        # test (ccreplay-wrapper) level.
+        no_controller_name = f"e2e_no_controller_{int(time.time())}"
+        CREATED_USER_NAMES.append(no_controller_name)
+        editor = page.locator(".cm-content").last
+        editor.click()
+        page.keyboard.press("Control+A")
+        page.keyboard.insert_text("x = 1\n")
+        page.fill(".panel:has-text('Write a controller') input[placeholder='my_controller']", no_controller_name)
+        page.click(".panel:has-text('Write a controller') button:has-text('Save')")
+        page.wait_for_selector(".panel:has-text('Write a controller') >> text=Validation:", timeout=30000)
+        no_controller_panel_text = page.locator(".panel:has-text('Write a controller')").inner_text()
+        expect("missing-CONTROLLER module shows FAIL in the real editor",
+               "FAIL" in no_controller_panel_text, no_controller_panel_text[-300:])
+        expect("missing-CONTROLLER reason mentions CONTROLLER",
+               "CONTROLLER" in no_controller_panel_text, no_controller_panel_text[-300:])
+        shot(page, "m4-controllers-code-no-controller")
 
         # History page: rerun + export
         page.goto(BASE_URL + "/#/history")
@@ -397,6 +480,69 @@ def main():
         # behavior of this negative-path test, not a real app bug, so it is
         # excluded from the overall console-cleanliness check below.
         console_errors.clear()
+
+        # Invariant check (BEFORE the deliberately-orphaning test below):
+        # every experiment in History must reference controllers that still
+        # exist. A violation here would mean some EARLIER run (a prior
+        # session, or an earlier step in this one) left orphaned experiment
+        # rows -- exactly the state that made rerun/"Diff Workbench" show a
+        # misleading "failed" or raise a bare 500 before this round's fixes.
+        known_ids = {c["id"] for c in json.loads(fetch_text(BASE_URL + "/api/controllers"))}
+        experiments = json.loads(fetch_text(BASE_URL + "/api/experiments"))
+        dangling = [
+            e["id"] for e in experiments
+            if e["config"].get("reference") not in known_ids or e["config"].get("candidate") not in known_ids
+        ]
+        expect("no pre-existing experiment references a deleted controller", len(dangling) == 0, str(dangling[:5]))
+
+        # A rerun whose controller was deleted since the original run must be
+        # reported as failed, never as "result differs from original" -- the
+        # same fake-signal failure mode as the validation-envelope bug fixed
+        # earlier. Exercised at the API level (backend/app.py's rerun +
+        # _check_abi_compat), since this is backend behavior, not a UI click.
+        # This test deliberately creates exactly the orphaned-reference state
+        # the invariant above checks for, so it cleans up its OWN experiment
+        # row immediately afterward rather than leaving it for the final
+        # cleanup -- the invariant must hold again once this block finishes.
+        doomed_name = f"e2e_doomed_{int(time.time())}"
+        CREATED_USER_NAMES.append(doomed_name)
+        post_json(BASE_URL + "/api/controllers/user",
+                  {"name": doomed_name, "abi_base": "cubic", "code": fetch_text(BASE_URL + "/api/controllers/templates/cubic")})
+        cubic_trace_id = next(t["id"] for t in json.loads(fetch_text(BASE_URL + "/api/traces"))
+                               if t["path"] == "raw/cubic_replay/primary/rep1.ccr")
+        doomed_exp = post_json(BASE_URL + "/api/experiments",
+                                {"type": "diff", "trace_id": cubic_trace_id, "reference": "cubic", "candidate": f"user_{doomed_name}"})
+        deadline = time.time() + 30
+        while time.time() < deadline:
+            exp = json.loads(fetch_text(BASE_URL + f"/api/experiments/{doomed_exp['id']}"))
+            if exp["status"] in ("done", "error"):
+                break
+            time.sleep(0.3)
+        expect("doomed-controller experiment completed before deleting its controller", exp["status"] == "done", exp["status"])
+        (ROOT / "controllers" / "user" / f"user_{doomed_name}.py").unlink(missing_ok=True)
+        (ROOT / "controllers" / "user" / f"user_{doomed_name}.meta.json").unlink(missing_ok=True)
+        rerun_result = post_json(BASE_URL + f"/api/experiments/{doomed_exp['id']}/rerun")
+        expect("rerun of a deleted controller reports status=error, not same_as_original=false-as-differs",
+               rerun_result["status"] == "error" and rerun_result["same_as_original"] is False, str(rerun_result))
+        expect("rerun error message is present and readable",
+               bool(rerun_result.get("error")) and "unknown controller" in rerun_result["error"].lower(),
+               str(rerun_result.get("error")))
+        import sqlite3
+        conn = sqlite3.connect(str(ROOT / "studio_data" / "studio.db"))
+        conn.execute("DELETE FROM experiments WHERE id IN (?, ?)", (doomed_exp["id"], rerun_result["id"]))
+        conn.commit()
+        conn.close()
+
+        # Post-cleanup invariant: the doomed-controller test above must not
+        # have left a dangling reference behind once it cleaned up after
+        # itself.
+        known_ids = {c["id"] for c in json.loads(fetch_text(BASE_URL + "/api/controllers"))}
+        experiments = json.loads(fetch_text(BASE_URL + "/api/experiments"))
+        dangling = [
+            e["id"] for e in experiments
+            if e["config"].get("reference") not in known_ids or e["config"].get("candidate") not in known_ids
+        ]
+        expect("no experiment references a deleted controller", len(dangling) == 0, str(dangling[:5]))
 
         expect("no browser console errors", len(console_errors) == 0, str(console_errors[:5]))
 

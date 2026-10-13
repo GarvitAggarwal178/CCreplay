@@ -6,14 +6,26 @@ from user.ccreplay_checkpoint import (
 
 from ccreplay import controllers as controllers_mod
 from ccreplay import traces as traces_mod
-from ccreplay.diff import AbiMismatchError
+from ccreplay.diff import AbiMismatchError, UnknownEntityError
 
 
 def run_checkpoint(trace_id: str, ref_id: str, cand_id: str, interval: int) -> dict:
-    trace_path = traces_mod.resolve_id(trace_id)
-    trace_abi = traces_mod.get_abi(trace_id)
-    ref_abi = controllers_mod.abi_of(ref_id)
-    cand_abi = controllers_mod.abi_of(cand_id)
+    # Same reasoning as ccreplay.diff.run_diff: this runs in the worker
+    # subprocess, reachable from a rerun that bypasses the API's own
+    # pre-check, so a deleted trace/controller must fail readably here too.
+    try:
+        trace_path = traces_mod.resolve_id(trace_id)
+        trace_abi = traces_mod.get_abi(trace_id)
+    except KeyError:
+        raise UnknownEntityError(f"unknown trace: {trace_id}")
+    try:
+        ref_abi = controllers_mod.abi_of(ref_id)
+    except KeyError:
+        raise UnknownEntityError(f"unknown controller: {ref_id}")
+    try:
+        cand_abi = controllers_mod.abi_of(cand_id)
+    except KeyError:
+        raise UnknownEntityError(f"unknown controller: {cand_id}")
     if ref_abi != trace_abi or cand_abi != trace_abi:
         raise AbiMismatchError(
             f"ABI mismatch: trace is ABI v{trace_abi}, reference={ref_id} is v{ref_abi}, "

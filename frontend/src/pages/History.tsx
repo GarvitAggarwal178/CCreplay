@@ -25,7 +25,15 @@ export default function History() {
     setRerunMsg('rerunning…')
     try {
       const r = await api.rerunExperiment(id)
-      setRerunMsg(r.same_as_original ? `rerun ${r.id}: identical to original ✓` : `rerun ${r.id}: result differs from original`)
+      // A rerun that didn't finish is not the same thing as a rerun that
+      // finished and produced a different result -- conflating them would
+      // show "result differs" for e.g. a controller deleted since the
+      // original run, which is misleading, not a real behavioral finding.
+      if (r.status !== 'done') {
+        setRerunMsg(`rerun ${r.id}: failed (${r.status}) -- ${r.error || 'no error detail'}`)
+      } else {
+        setRerunMsg(r.same_as_original ? `rerun ${r.id}: identical to original ✓` : `rerun ${r.id}: result differs from original`)
+      }
       refresh()
     } catch (e) {
       setRerunMsg(String(e))
