@@ -1,0 +1,62 @@
+[
+  {
+    "case": "positive_1_ssthresh",
+    "trace_id": "raw__cubic_replay__primary__rep1",
+    "reference": "cubic",
+    "candidate": "cubic_bug_ssthresh",
+    "expected_result": "DIVERGENCE",
+    "observed_result": "DIVERGENCE",
+    "matches_expected": true,
+    "first_divergent_seq": 1705,
+    "callback": "ssthresh",
+    "kind": "result"
+  },
+  {
+    "case": "positive_2_epoch_reset",
+    "trace_id": "raw__cubic_replay__primary__rep1",
+    "reference": "cubic",
+    "candidate": "cubic_bug_epoch_reset",
+    "expected_result": "DIVERGENCE",
+    "observed_result": "DIVERGENCE",
+    "matches_expected": true,
+    "first_divergent_seq": 1705,
+    "callback": "ssthresh",
+    "kind": "private_state_only"
+  },
+  {
+    "case": "positive_3_ack_accounting",
+    "trace_id": "raw__cubic_replay__primary__rep1",
+    "reference": "cubic",
+    "candidate": "cubic_bug_ack_accounting",
+    "expected_result": "DIVERGENCE",
+    "observed_result": "DIVERGENCE",
+    "matches_expected": true,
+    "first_divergent_seq": 588,
+    "callback": "cong_avoid",
+    "kind": "private_state_only"
+  },
+  {
+    "case": "negative_dormant_undo",
+    "trace_id": "raw__cubic_replay__primary__rep1",
+    "reference": "cubic",
+    "candidate": "cubic_bug_dormant_undo",
+    "expected_result": "NO DIVERGENCE",
+    "observed_result": "NO DIVERGENCE",
+    "matches_expected": true,
+    "first_divergent_seq": null,
+    "callback": null,
+    "kind": "none"
+  },
+  {
+    "case": "historical_a3",
+    "trace_id": "raw__covegas_campaign__rep4",
+    "reference": "covegas",
+    "candidate": "covegas_v3_latch",
+    "expected_result": "DIVERGENCE",
+    "observed_result": "DIVERGENCE",
+    "matches_expected": true,
+    "first_divergent_seq": 10421,
+    "callback": "cong_avoid",
+    "kind": "result"
+  }
+]

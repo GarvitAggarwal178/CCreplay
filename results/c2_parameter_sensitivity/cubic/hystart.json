@@ -1,0 +1,95 @@
+{
+  "base": "cubic",
+  "param": "HYSTART",
+  "reference_id": "cubic",
+  "default_value": 1,
+  "values": [
+    0,
+    1
+  ],
+  "trace_ids": [
+    "raw__cubic_replay__primary__rep1",
+    "raw__cubic_replay__primary__rep2",
+    "raw__cubic_replay__primary__rep3"
+  ],
+  "points": [
+    {
+      "param": "HYSTART",
+      "value": 0,
+      "trace_id": "raw__cubic_replay__primary__rep1",
+      "n_events": 78688,
+      "n_disagree": 39,
+      "disagreement_rate": 0.0004956283041886945,
+      "first_disagreement_seq": 0,
+      "result_median_delta": null,
+      "result_mean_delta": null,
+      "post_snd_cwnd_median_delta": null,
+      "post_snd_cwnd_mean_delta": null
+    },
+    {
+      "param": "HYSTART",
+      "value": 0,
+      "trace_id": "raw__cubic_replay__primary__rep2",
+      "n_events": 78768,
+      "n_disagree": 39,
+      "disagreement_rate": 0.0004951249238269348,
+      "first_disagreement_seq": 0,
+      "result_median_delta": null,
+      "result_mean_delta": null,
+      "post_snd_cwnd_median_delta": null,
+      "post_snd_cwnd_mean_delta": null
+    },
+    {
+      "param": "HYSTART",
+      "value": 0,
+      "trace_id": "raw__cubic_replay__primary__rep3",
+      "n_events": 78632,
+      "n_disagree": 49,
+      "disagreement_rate": 0.000623155967036321,
+      "first_disagreement_seq": 0,
+      "result_median_delta": null,
+      "result_mean_delta": null,
+      "post_snd_cwnd_median_delta": null,
+      "post_snd_cwnd_mean_delta": null
+    },
+    {
+      "param": "HYSTART",
+      "value": 1,
+      "trace_id": "raw__cubic_replay__primary__rep1",
+      "n_events": 78688,
+      "n_disagree": 0,
+      "disagreement_rate": 0.0,
+      "first_disagreement_seq": null,
+      "result_median_delta": null,
+      "result_mean_delta": null,
+      "post_snd_cwnd_median_delta": null,
+      "post_snd_cwnd_mean_delta": null
+    },
+    {
+      "param": "HYSTART",
+      "value": 1,
+      "trace_id": "raw__cubic_replay__primary__rep2",
+      "n_events": 78768,
+      "n_disagree": 0,
+      "disagreement_rate": 0.0,
+      "first_disagreement_seq": null,
+      "result_median_delta": null,
+      "result_mean_delta": null,
+      "post_snd_cwnd_median_delta": null,
+      "post_snd_cwnd_mean_delta": null
+    },
+    {
+      "param": "HYSTART",
+      "value": 1,
+      "trace_id": "raw__cubic_replay__primary__rep3",
+      "n_events": 78632,
+      "n_disagree": 0,
+      "disagreement_rate": 0.0,
+      "first_disagreement_seq": null,
+      "result_median_delta": null,
+      "result_mean_delta": null,
+      "post_snd_cwnd_median_delta": null,
+      "post_snd_cwnd_mean_delta": null
+    }
+  ]
+}

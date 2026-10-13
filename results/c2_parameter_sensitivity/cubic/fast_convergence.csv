@@ -1,0 +1,7 @@
+param,value,trace_id,n_events,n_disagree,disagreement_rate,result_median_delta,post_snd_cwnd_median_delta,first_disagreement_seq
+FAST_CONVERGENCE,0,raw__cubic_replay__primary__rep1,78688,7,8.895892639284262e-05,,,5105
+FAST_CONVERGENCE,0,raw__cubic_replay__primary__rep2,78768,7,8.886857607150112e-05,,,5109
+FAST_CONVERGENCE,0,raw__cubic_replay__primary__rep3,78632,7,8.902228100518873e-05,,,5106
+FAST_CONVERGENCE,1,raw__cubic_replay__primary__rep1,78688,0,0.0,,,
+FAST_CONVERGENCE,1,raw__cubic_replay__primary__rep2,78768,0,0.0,,,
+FAST_CONVERGENCE,1,raw__cubic_replay__primary__rep3,78632,0,0.0,,,

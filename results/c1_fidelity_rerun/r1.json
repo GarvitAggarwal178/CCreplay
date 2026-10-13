@@ -1,0 +1,45 @@
+{
+  "gate": "R1",
+  "pass": true,
+  "traces": [
+    "raw/r0/rep1.ccr",
+    "raw/r0/rep2.ccr",
+    "raw/r0/rep3.ccr"
+  ],
+  "total_events_checked": 112051,
+  "total_fields_compared": 224120,
+  "total_mismatches": 0,
+  "first_mismatch": null,
+  "per_trace": [
+    {
+      "trace": "raw/r0/rep1.ccr",
+      "n_events_total": 37260,
+      "n_events_dominant": 37260,
+      "n_events_other": 0,
+      "n_checked": 37260,
+      "n_fields_compared": 74526,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    {
+      "trace": "raw/r0/rep2.ccr",
+      "n_events_total": 37391,
+      "n_events_dominant": 37391,
+      "n_events_other": 0,
+      "n_checked": 37391,
+      "n_fields_compared": 74788,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    },
+    {
+      "trace": "raw/r0/rep3.ccr",
+      "n_events_total": 37400,
+      "n_events_dominant": 37400,
+      "n_events_other": 0,
+      "n_checked": 37400,
+      "n_fields_compared": 74806,
+      "mismatch_count": 0,
+      "first_mismatch": null
+    }
+  ]
+}

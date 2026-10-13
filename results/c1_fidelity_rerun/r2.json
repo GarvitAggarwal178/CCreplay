@@ -1,0 +1,35 @@
+{
+  "gate": "R2",
+  "pass": true,
+  "traces": [
+    "raw/r0/rep1.ccr",
+    "raw/r0/rep2.ccr",
+    "raw/r0/rep3.ccr"
+  ],
+  "total_events_replayed_sequentially": 112051,
+  "first_divergence": null,
+  "per_trace": [
+    {
+      "trace": "raw/r0/rep1.ccr",
+      "n_events_dominant": 37260,
+      "n_checked_before_stop": 37260,
+      "first_divergence": null,
+      "final_private_state": null
+    },
+    {
+      "trace": "raw/r0/rep2.ccr",
+      "n_events_dominant": 37391,
+      "n_checked_before_stop": 37391,
+      "first_divergence": null,
+      "final_private_state": null
+    },
+    {
+      "trace": "raw/r0/rep3.ccr",
+      "n_events_dominant": 37400,
+      "n_checked_before_stop": 37400,
+      "first_divergence": null,
+      "final_private_state": null
+    }
+  ],
+  "note": "Reno has no controller-private state (ADR-014); private_state is NONE throughout by construction, not by omission -- see module docstring."
+}

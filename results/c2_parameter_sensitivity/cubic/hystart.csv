@@ -1,0 +1,7 @@
+param,value,trace_id,n_events,n_disagree,disagreement_rate,result_median_delta,post_snd_cwnd_median_delta,first_disagreement_seq
+HYSTART,0,raw__cubic_replay__primary__rep1,78688,39,0.0004956283041886945,,,0
+HYSTART,0,raw__cubic_replay__primary__rep2,78768,39,0.0004951249238269348,,,0
+HYSTART,0,raw__cubic_replay__primary__rep3,78632,49,0.000623155967036321,,,0
+HYSTART,1,raw__cubic_replay__primary__rep1,78688,0,0.0,,,
+HYSTART,1,raw__cubic_replay__primary__rep2,78768,0,0.0,,,
+HYSTART,1,raw__cubic_replay__primary__rep3,78632,0,0.0,,,

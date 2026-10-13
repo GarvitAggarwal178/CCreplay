@@ -1,0 +1,13 @@
+{
+  "command": ".venv/bin/python results/c3_engine_performance/run.py",
+  "git_commit": "dba91fea6486ad622e99503add6599f1464c7728",
+  "dirty": true,
+  "git_status": "?? check_controllers.py\n?? docs/LIMITATIONS.zip\n?? results/\n?? scripts/lab/",
+  "host": {
+    "uname_r": "6.18.33.2-microsoft-standard-WSL2",
+    "python": "Python 3.14.4",
+    "nproc": 16
+  },
+  "started": "2026-10-13T08:18:00Z",
+  "finished": "2026-10-13T08:20:03.230609Z"
+}

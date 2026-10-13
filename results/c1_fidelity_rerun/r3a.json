@@ -1,0 +1,372 @@
+======================================================================
+MISMATCH  trace=raw/cubic_replay/primary/rep1.ccr  seq=51323  callback=cong_avoid  ts_ns=66750487999982  clock=CLOCK_AMBIGUOUS
+  shared PRE: snd_cwnd=163 snd_ssthresh=140 snd_cwnd_cnt=0 snd_cwnd_clamp=4294967295 is_cwnd_limited=1 snd_nxt=2069577540 snd_una=2069345860 lsndtime=16612603
+  private PRE: {'cnt': 81, 'last_max_cwnd': 170, 'last_cwnd': 162, 'last_time': 16612603, 'bic_origin_point': 170, 'bic_K': 4316, 'delay_min': 40073, 'epoch_start': 16612190, 'ack_cnt': 220, 'tcp_cwnd': 144, 'sample_cnt': 8, 'found': 1, 'round_start': 2267611606, 'end_seq': 1999762220, 'last_ack': 2267621309, 'curr_rtt': 83141}
+  callback inputs: ack=2069345860 acked=2 new_state=0 cwnd_event=0 sample_rtt_us=0
+  clock_jiffies32_before=16612603 clock_jiffies32_after=16612604
+  expected: {'post_snd_cwnd': 163, 'post_snd_cwnd_cnt': 2, 'post_snd_ssthresh': 140, 'priv_post_cnt': 81, 'priv_post_last_max_cwnd': 170, 'priv_post_last_cwnd': 162, 'priv_post_last_time': 16612603, 'priv_post_bic_origin_point': 170, 'priv_post_bic_K': 4316, 'priv_post_delay_min': 40073, 'priv_post_epoch_start': 16612190, 'priv_post_ack_cnt': 222, 'priv_post_tcp_cwnd': 144, 'priv_post_sample_cnt': 8, 'priv_post_found': 1, 'priv_post_round_start': 2267611606, 'priv_post_end_seq': 1999762220, 'priv_post_last_ack': 2267621309, 'priv_post_curr_rtt': 83141}
+  actual (recorded): {'post_snd_cwnd': 163, 'post_snd_cwnd_cnt': 2, 'post_snd_ssthresh': 140, 'priv_post_cnt': 163, 'priv_post_last_max_cwnd': 170, 'priv_post_last_cwnd': 163, 'priv_post_last_time': 16612604, 'priv_post_bic_origin_point': 170, 'priv_post_bic_K': 4316, 'priv_post_delay_min': 40073, 'priv_post_epoch_start': 16612190, 'priv_post_ack_cnt': 222, 'priv_post_tcp_cwnd': 144, 'priv_post_sample_cnt': 8, 'priv_post_found': 1, 'priv_post_round_start': 2267611606, 'priv_post_end_seq': 1999762220, 'priv_post_last_ack': 2267621309, 'priv_post_curr_rtt': 83141}
+  differing fields: ['priv_post_cnt', 'priv_post_last_cwnd', 'priv_post_last_time']
+  context [51317:51328):
+     seq=51318 cb=pkts_acked pre_cwnd=162 post_cwnd=162 result=0
+     seq=51319 cb=cong_avoid pre_cwnd=162 post_cwnd=162 result=0
+     seq=51320 cb=pkts_acked pre_cwnd=162 post_cwnd=162 result=0
+     seq=51321 cb=cong_avoid pre_cwnd=162 post_cwnd=163 result=0
+     seq=51322 cb=pkts_acked pre_cwnd=163 post_cwnd=163 result=0
+  >> seq=51323 cb=cong_avoid pre_cwnd=163 post_cwnd=163 result=0
+     seq=51324 cb=pkts_acked pre_cwnd=163 post_cwnd=163 result=0
+     seq=51325 cb=cong_avoid pre_cwnd=163 post_cwnd=163 result=0
+     seq=51326 cb=pkts_acked pre_cwnd=163 post_cwnd=163 result=0
+     seq=51327 cb=cong_avoid pre_cwnd=163 post_cwnd=163 result=0
+     seq=51328 cb=pkts_acked pre_cwnd=163 post_cwnd=163 result=0
+======================================================================
+======================================================================
+MISMATCH  trace=raw/cubic_replay/primary/rep2.ccr  seq=75603  callback=cong_avoid  ts_ns=66874259999258  clock=CLOCK_AMBIGUOUS
+  shared PRE: snd_cwnd=170 snd_ssthresh=140 snd_cwnd_cnt=977 snd_cwnd_clamp=4294967295 is_cwnd_limited=1 snd_nxt=3471366292 snd_una=3471123028 lsndtime=16643546
+  private PRE: {'cnt': 17000, 'last_max_cwnd': 170, 'last_cwnd': 170, 'last_time': 16643539, 'bic_origin_point': 170, 'bic_K': 4316, 'delay_min': 40139, 'epoch_start': 16642537, 'ack_cnt': 301, 'tcp_cwnd': 150, 'sample_cnt': 8, 'found': 1, 'round_start': 2363381184, 'end_seq': 3368061628, 'last_ack': 2363390688, 'curr_rtt': 83364}
+  callback inputs: ack=3471123028 acked=2 new_state=0 cwnd_event=0 sample_rtt_us=0
+  clock_jiffies32_before=16643546 clock_jiffies32_after=16643547
+  expected: {'post_snd_cwnd': 170, 'post_snd_cwnd_cnt': 979, 'post_snd_ssthresh': 140, 'priv_post_cnt': 17000, 'priv_post_last_max_cwnd': 170, 'priv_post_last_cwnd': 170, 'priv_post_last_time': 16643539, 'priv_post_bic_origin_point': 170, 'priv_post_bic_K': 4316, 'priv_post_delay_min': 40139, 'priv_post_epoch_start': 16642537, 'priv_post_ack_cnt': 303, 'priv_post_tcp_cwnd': 150, 'priv_post_sample_cnt': 8, 'priv_post_found': 1, 'priv_post_round_start': 2363381184, 'priv_post_end_seq': 3368061628, 'priv_post_last_ack': 2363390688, 'priv_post_curr_rtt': 83364}
+  actual (recorded): {'post_snd_cwnd': 170, 'post_snd_cwnd_cnt': 979, 'post_snd_ssthresh': 140, 'priv_post_cnt': 17000, 'priv_post_last_max_cwnd': 170, 'priv_post_last_cwnd': 170, 'priv_post_last_time': 16643547, 'priv_post_bic_origin_point': 170, 'priv_post_bic_K': 4316, 'priv_post_delay_min': 40139, 'priv_post_epoch_start': 16642537, 'priv_post_ack_cnt': 303, 'priv_post_tcp_cwnd': 150, 'priv_post_sample_cnt': 8, 'priv_post_found': 1, 'priv_post_round_start': 2363381184, 'priv_post_end_seq': 3368061628, 'priv_post_last_ack': 2363390688, 'priv_post_curr_rtt': 83364}
+  differing fields: ['priv_post_last_time']
+  context [75597:75608):
+     seq=75598 cb=pkts_acked pre_cwnd=170 post_cwnd=170 result=0
+     seq=75599 cb=cong_avoid pre_cwnd=170 post_cwnd=170 result=0
+     seq=75600 cb=pkts_acked pre_cwnd=170 post_cwnd=170 result=0
+     seq=75601 cb=cong_avoid pre_cwnd=170 post_cwnd=170 result=0
+     seq=75602 cb=pkts_acked pre_cwnd=170 post_cwnd=170 result=0
+  >> seq=75603 cb=cong_avoid pre_cwnd=170 post_cwnd=170 result=0
+     seq=75604 cb=pkts_acked pre_cwnd=170 post_cwnd=170 result=0
+     seq=75605 cb=cong_avoid pre_cwnd=170 post_cwnd=170 result=0
+     seq=75606 cb=pkts_acked pre_cwnd=170 post_cwnd=170 result=0
+     seq=75607 cb=cong_avoid pre_cwnd=170 post_cwnd=170 result=0
+     seq=75608 cb=pkts_acked pre_cwnd=170 post_cwnd=170 result=0
+======================================================================
+======================================================================
+MISMATCH  trace=raw/cubic_replay/primary/rep3.ccr  seq=61729  callback=cong_avoid  ts_ns=66954100000182  clock=CLOCK_AMBIGUOUS
+  shared PRE: snd_cwnd=155 snd_ssthresh=140 snd_cwnd_cnt=55 snd_cwnd_clamp=4294967295 is_cwnd_limited=1 snd_nxt=2754626490 snd_una=2754404946 lsndtime=16663506
+  private PRE: {'cnt': 77, 'last_max_cwnd': 170, 'last_cwnd': 155, 'last_time': 16663499, 'bic_origin_point': 170, 'bic_K': 4316, 'delay_min': 40106, 'epoch_start': 16663260, 'ack_cnt': 259, 'tcp_cwnd': 142, 'sample_cnt': 8, 'found': 1, 'round_start': 2459148582, 'end_seq': 2670363026, 'last_ack': 2459158279, 'curr_rtt': 83094}
+  callback inputs: ack=2754404946 acked=2 new_state=0 cwnd_event=0 sample_rtt_us=0
+  clock_jiffies32_before=16663506 clock_jiffies32_after=16663507
+  expected: {'post_snd_cwnd': 155, 'post_snd_cwnd_cnt': 57, 'post_snd_ssthresh': 140, 'priv_post_cnt': 77, 'priv_post_last_max_cwnd': 170, 'priv_post_last_cwnd': 155, 'priv_post_last_time': 16663499, 'priv_post_bic_origin_point': 170, 'priv_post_bic_K': 4316, 'priv_post_delay_min': 40106, 'priv_post_epoch_start': 16663260, 'priv_post_ack_cnt': 261, 'priv_post_tcp_cwnd': 142, 'priv_post_sample_cnt': 8, 'priv_post_found': 1, 'priv_post_round_start': 2459148582, 'priv_post_end_seq': 2670363026, 'priv_post_last_ack': 2459158279, 'priv_post_curr_rtt': 83094}
+  actual (recorded): {'post_snd_cwnd': 156, 'post_snd_cwnd_cnt': 2, 'post_snd_ssthresh': 140, 'priv_post_cnt': 51, 'priv_post_last_max_cwnd': 170, 'priv_post_last_cwnd': 155, 'priv_post_last_time': 16663507, 'priv_post_bic_origin_point': 170, 'priv_post_bic_K': 4316, 'priv_post_delay_min': 40106, 'priv_post_epoch_start': 16663260, 'priv_post_ack_cnt': 261, 'priv_post_tcp_cwnd': 142, 'priv_post_sample_cnt': 8, 'priv_post_found': 1, 'priv_post_round_start': 2459148582, 'priv_post_end_seq': 2670363026, 'priv_post_last_ack': 2459158279, 'priv_post_curr_rtt': 83094}
+  differing fields: ['post_snd_cwnd', 'post_snd_cwnd_cnt', 'priv_post_cnt', 'priv_post_last_time']
+  context [61723:61734):
+     seq=61724 cb=pkts_acked pre_cwnd=155 post_cwnd=155 result=0
+     seq=61725 cb=cong_avoid pre_cwnd=155 post_cwnd=155 result=0
+     seq=61726 cb=pkts_acked pre_cwnd=155 post_cwnd=155 result=0
+     seq=61727 cb=cong_avoid pre_cwnd=155 post_cwnd=155 result=0
+     seq=61728 cb=pkts_acked pre_cwnd=155 post_cwnd=155 result=0
+  >> seq=61729 cb=cong_avoid pre_cwnd=155 post_cwnd=156 result=0
+     seq=61730 cb=pkts_acked pre_cwnd=156 post_cwnd=156 result=0
+     seq=61731 cb=cong_avoid pre_cwnd=156 post_cwnd=156 result=0
+     seq=61732 cb=pkts_acked pre_cwnd=156 post_cwnd=156 result=0
+     seq=61733 cb=cong_avoid pre_cwnd=156 post_cwnd=156 result=0
+     seq=61734 cb=pkts_acked pre_cwnd=156 post_cwnd=156 result=0
+======================================================================
+{
+  "gate": "R3A",
+  "pass": true,
+  "pass_including_clock_ambiguous": false,
+  "traces": [
+    "raw/cubic_replay/primary/rep1.ccr",
+    "raw/cubic_replay/primary/rep2.ccr",
+    "raw/cubic_replay/primary/rep3.ccr"
+  ],
+  "total_events_checked": 236088,
+  "total_fields_compared": 4485714,
+  "total_mismatches": 4,
+  "clock_stable_checked": 236042,
+  "clock_stable_mismatched": 0,
+  "clock_ambiguous_checked": 46,
+  "clock_ambiguous_mismatched": 4,
+  "first_mismatch": {
+    "trace": "raw/cubic_replay/primary/rep1.ccr",
+    "seq": 51323,
+    "callback": "cong_avoid",
+    "clock": "CLOCK_AMBIGUOUS",
+    "expected": {
+      "post_snd_cwnd": 163,
+      "post_snd_cwnd_cnt": 2,
+      "post_snd_ssthresh": 140,
+      "priv_post_cnt": 81,
+      "priv_post_last_max_cwnd": 170,
+      "priv_post_last_cwnd": 162,
+      "priv_post_last_time": 16612603,
+      "priv_post_bic_origin_point": 170,
+      "priv_post_bic_K": 4316,
+      "priv_post_delay_min": 40073,
+      "priv_post_epoch_start": 16612190,
+      "priv_post_ack_cnt": 222,
+      "priv_post_tcp_cwnd": 144,
+      "priv_post_sample_cnt": 8,
+      "priv_post_found": 1,
+      "priv_post_round_start": 2267611606,
+      "priv_post_end_seq": 1999762220,
+      "priv_post_last_ack": 2267621309,
+      "priv_post_curr_rtt": 83141
+    },
+    "actual": {
+      "post_snd_cwnd": 163,
+      "post_snd_cwnd_cnt": 2,
+      "post_snd_ssthresh": 140,
+      "priv_post_cnt": 163,
+      "priv_post_last_max_cwnd": 170,
+      "priv_post_last_cwnd": 163,
+      "priv_post_last_time": 16612604,
+      "priv_post_bic_origin_point": 170,
+      "priv_post_bic_K": 4316,
+      "priv_post_delay_min": 40073,
+      "priv_post_epoch_start": 16612190,
+      "priv_post_ack_cnt": 222,
+      "priv_post_tcp_cwnd": 144,
+      "priv_post_sample_cnt": 8,
+      "priv_post_found": 1,
+      "priv_post_round_start": 2267611606,
+      "priv_post_end_seq": 1999762220,
+      "priv_post_last_ack": 2267621309,
+      "priv_post_curr_rtt": 83141
+    },
+    "diff_fields": [
+      "priv_post_cnt",
+      "priv_post_last_cwnd",
+      "priv_post_last_time"
+    ]
+  },
+  "non_ambiguous_first_mismatch": null,
+  "per_trace": [
+    {
+      "trace": "raw/cubic_replay/primary/rep1.ccr",
+      "n_events_total": 78690,
+      "n_events_dominant": 78688,
+      "n_events_other": 2,
+      "n_checked": 78688,
+      "n_fields_compared": 1495086,
+      "mismatch_count": 2,
+      "per_callback_checked": {
+        "init": 1,
+        "pkts_acked": 41433,
+        "cong_avoid": 37183,
+        "cwnd_event": 15,
+        "set_state": 42,
+        "ssthresh": 14
+      },
+      "per_callback_mismatched": {
+        "cong_avoid": 2
+      },
+      "clock_stable_checked": 78670,
+      "clock_stable_mismatched": 0,
+      "clock_ambiguous_checked": 18,
+      "clock_ambiguous_mismatched": 2,
+      "first_mismatch": {
+        "trace": "raw/cubic_replay/primary/rep1.ccr",
+        "seq": 51323,
+        "callback": "cong_avoid",
+        "clock": "CLOCK_AMBIGUOUS",
+        "expected": {
+          "post_snd_cwnd": 163,
+          "post_snd_cwnd_cnt": 2,
+          "post_snd_ssthresh": 140,
+          "priv_post_cnt": 81,
+          "priv_post_last_max_cwnd": 170,
+          "priv_post_last_cwnd": 162,
+          "priv_post_last_time": 16612603,
+          "priv_post_bic_origin_point": 170,
+          "priv_post_bic_K": 4316,
+          "priv_post_delay_min": 40073,
+          "priv_post_epoch_start": 16612190,
+          "priv_post_ack_cnt": 222,
+          "priv_post_tcp_cwnd": 144,
+          "priv_post_sample_cnt": 8,
+          "priv_post_found": 1,
+          "priv_post_round_start": 2267611606,
+          "priv_post_end_seq": 1999762220,
+          "priv_post_last_ack": 2267621309,
+          "priv_post_curr_rtt": 83141
+        },
+        "actual": {
+          "post_snd_cwnd": 163,
+          "post_snd_cwnd_cnt": 2,
+          "post_snd_ssthresh": 140,
+          "priv_post_cnt": 163,
+          "priv_post_last_max_cwnd": 170,
+          "priv_post_last_cwnd": 163,
+          "priv_post_last_time": 16612604,
+          "priv_post_bic_origin_point": 170,
+          "priv_post_bic_K": 4316,
+          "priv_post_delay_min": 40073,
+          "priv_post_epoch_start": 16612190,
+          "priv_post_ack_cnt": 222,
+          "priv_post_tcp_cwnd": 144,
+          "priv_post_sample_cnt": 8,
+          "priv_post_found": 1,
+          "priv_post_round_start": 2267611606,
+          "priv_post_end_seq": 1999762220,
+          "priv_post_last_ack": 2267621309,
+          "priv_post_curr_rtt": 83141
+        },
+        "diff_fields": [
+          "priv_post_cnt",
+          "priv_post_last_cwnd",
+          "priv_post_last_time"
+        ]
+      },
+      "non_ambiguous_first_mismatch": null
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep2.ccr",
+      "n_events_total": 78770,
+      "n_events_dominant": 78768,
+      "n_events_other": 2,
+      "n_checked": 78768,
+      "n_fields_compared": 1496606,
+      "mismatch_count": 1,
+      "per_callback_checked": {
+        "init": 1,
+        "pkts_acked": 41460,
+        "cong_avoid": 37236,
+        "cwnd_event": 15,
+        "set_state": 42,
+        "ssthresh": 14
+      },
+      "per_callback_mismatched": {
+        "cong_avoid": 1
+      },
+      "clock_stable_checked": 78752,
+      "clock_stable_mismatched": 0,
+      "clock_ambiguous_checked": 16,
+      "clock_ambiguous_mismatched": 1,
+      "first_mismatch": {
+        "trace": "raw/cubic_replay/primary/rep2.ccr",
+        "seq": 75603,
+        "callback": "cong_avoid",
+        "clock": "CLOCK_AMBIGUOUS",
+        "expected": {
+          "post_snd_cwnd": 170,
+          "post_snd_cwnd_cnt": 979,
+          "post_snd_ssthresh": 140,
+          "priv_post_cnt": 17000,
+          "priv_post_last_max_cwnd": 170,
+          "priv_post_last_cwnd": 170,
+          "priv_post_last_time": 16643539,
+          "priv_post_bic_origin_point": 170,
+          "priv_post_bic_K": 4316,
+          "priv_post_delay_min": 40139,
+          "priv_post_epoch_start": 16642537,
+          "priv_post_ack_cnt": 303,
+          "priv_post_tcp_cwnd": 150,
+          "priv_post_sample_cnt": 8,
+          "priv_post_found": 1,
+          "priv_post_round_start": 2363381184,
+          "priv_post_end_seq": 3368061628,
+          "priv_post_last_ack": 2363390688,
+          "priv_post_curr_rtt": 83364
+        },
+        "actual": {
+          "post_snd_cwnd": 170,
+          "post_snd_cwnd_cnt": 979,
+          "post_snd_ssthresh": 140,
+          "priv_post_cnt": 17000,
+          "priv_post_last_max_cwnd": 170,
+          "priv_post_last_cwnd": 170,
+          "priv_post_last_time": 16643547,
+          "priv_post_bic_origin_point": 170,
+          "priv_post_bic_K": 4316,
+          "priv_post_delay_min": 40139,
+          "priv_post_epoch_start": 16642537,
+          "priv_post_ack_cnt": 303,
+          "priv_post_tcp_cwnd": 150,
+          "priv_post_sample_cnt": 8,
+          "priv_post_found": 1,
+          "priv_post_round_start": 2363381184,
+          "priv_post_end_seq": 3368061628,
+          "priv_post_last_ack": 2363390688,
+          "priv_post_curr_rtt": 83364
+        },
+        "diff_fields": [
+          "priv_post_last_time"
+        ]
+      },
+      "non_ambiguous_first_mismatch": null
+    },
+    {
+      "trace": "raw/cubic_replay/primary/rep3.ccr",
+      "n_events_total": 78634,
+      "n_events_dominant": 78632,
+      "n_events_other": 2,
+      "n_checked": 78632,
+      "n_fields_compared": 1494022,
+      "mismatch_count": 1,
+      "per_callback_checked": {
+        "init": 1,
+        "pkts_acked": 41404,
+        "cong_avoid": 37156,
+        "cwnd_event": 15,
+        "set_state": 42,
+        "ssthresh": 14
+      },
+      "per_callback_mismatched": {
+        "cong_avoid": 1
+      },
+      "clock_stable_checked": 78620,
+      "clock_stable_mismatched": 0,
+      "clock_ambiguous_checked": 12,
+      "clock_ambiguous_mismatched": 1,
+      "first_mismatch": {
+        "trace": "raw/cubic_replay/primary/rep3.ccr",
+        "seq": 61729,
+        "callback": "cong_avoid",
+        "clock": "CLOCK_AMBIGUOUS",
+        "expected": {
+          "post_snd_cwnd": 155,
+          "post_snd_cwnd_cnt": 57,
+          "post_snd_ssthresh": 140,
+          "priv_post_cnt": 77,
+          "priv_post_last_max_cwnd": 170,
+          "priv_post_last_cwnd": 155,
+          "priv_post_last_time": 16663499,
+          "priv_post_bic_origin_point": 170,
+          "priv_post_bic_K": 4316,
+          "priv_post_delay_min": 40106,
+          "priv_post_epoch_start": 16663260,
+          "priv_post_ack_cnt": 261,
+          "priv_post_tcp_cwnd": 142,
+          "priv_post_sample_cnt": 8,
+          "priv_post_found": 1,
+          "priv_post_round_start": 2459148582,
+          "priv_post_end_seq": 2670363026,
+          "priv_post_last_ack": 2459158279,
+          "priv_post_curr_rtt": 83094
+        },
+        "actual": {
+          "post_snd_cwnd": 156,
+          "post_snd_cwnd_cnt": 2,
+          "post_snd_ssthresh": 140,
+          "priv_post_cnt": 51,
+          "priv_post_last_max_cwnd": 170,
+          "priv_post_last_cwnd": 155,
+          "priv_post_last_time": 16663507,
+          "priv_post_bic_origin_point": 170,
+          "priv_post_bic_K": 4316,
+          "priv_post_delay_min": 40106,
+          "priv_post_epoch_start": 16663260,
+          "priv_post_ack_cnt": 261,
+          "priv_post_tcp_cwnd": 142,
+          "priv_post_sample_cnt": 8,
+          "priv_post_found": 1,
+          "priv_post_round_start": 2459148582,
+          "priv_post_end_seq": 2670363026,
+          "priv_post_last_ack": 2459158279,
+          "priv_post_curr_rtt": 83094
+        },
+        "diff_fields": [
+          "post_snd_cwnd",
+          "post_snd_cwnd_cnt",
+          "priv_post_cnt",
+          "priv_post_last_time"
+        ]
+      },
+      "non_ambiguous_first_mismatch": null
+    }
+  ]
+}

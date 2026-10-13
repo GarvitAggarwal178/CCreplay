@@ -1,0 +1,18 @@
+{
+  "commands": [
+    ".venv/bin/python user/replay_r1.py raw/r0/rep1.ccr raw/r0/rep1.meta.json raw/r0/rep2.ccr raw/r0/rep2.meta.json raw/r0/rep3.ccr raw/r0/rep3.meta.json",
+    ".venv/bin/python user/replay_r2.py raw/r0/rep1.ccr raw/r0/rep1.meta.json raw/r0/rep2.ccr raw/r0/rep2.meta.json raw/r0/rep3.ccr raw/r0/rep3.meta.json",
+    ".venv/bin/python user/replay_r3a.py raw/cubic_replay/primary/rep1.ccr raw/cubic_replay/primary/rep1.meta.json raw/cubic_replay/primary/rep2.ccr raw/cubic_replay/primary/rep2.meta.json raw/cubic_replay/primary/rep3.ccr raw/cubic_replay/primary/rep3.meta.json",
+    ".venv/bin/python user/replay_r3b.py raw/cubic_replay/primary/rep1.ccr raw/cubic_replay/primary/rep1.meta.json raw/cubic_replay/primary/rep2.ccr raw/cubic_replay/primary/rep2.meta.json raw/cubic_replay/primary/rep3.ccr raw/cubic_replay/primary/rep3.meta.json",
+    ".venv/bin/python user/replay_e2.py raw/covegas_replay/primary/rep1.ccr raw/covegas_replay/primary/rep1.meta.json raw/covegas_replay/primary/rep2.ccr raw/covegas_replay/primary/rep2.meta.json raw/covegas_replay/primary/rep3.ccr raw/covegas_replay/primary/rep3.meta.json",
+    ".venv/bin/python user/replay_e3.py raw/covegas_replay/primary/rep1.ccr raw/covegas_replay/primary/rep1.meta.json raw/covegas_replay/primary/rep2.ccr raw/covegas_replay/primary/rep2.meta.json raw/covegas_replay/primary/rep3.ccr raw/covegas_replay/primary/rep3.meta.json"
+  ],
+  "git_commit": "dba91fea6486ad622e99503add6599f1464c7728",
+  "dirty": "?? check_controllers.py\n?? docs/LIMITATIONS.zip\n?? results/",
+  "host": {
+    "uname_r": "6.18.33.2-microsoft-standard-WSL2",
+    "python": "Python 3.14.4"
+  },
+  "started": "2026-10-13T08:10:00Z",
+  "finished": "2026-10-13T08:19:30Z"
+}

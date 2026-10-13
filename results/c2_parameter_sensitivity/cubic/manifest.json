@@ -1,0 +1,11 @@
+{
+  "command": ".venv/bin/python results/c2_parameter_sensitivity/cubic/run.py",
+  "git_commit": "dba91fea6486ad622e99503add6599f1464c7728",
+  "dirty": "?? check_controllers.py\n?? docs/LIMITATIONS.zip\n?? results/\n?? scripts/lab/",
+  "host": {
+    "uname_r": "6.18.33.2-microsoft-standard-WSL2",
+    "python": "3.14.4"
+  },
+  "started": "2026-10-13T08:18:00Z",
+  "finished": "2026-10-13T08:19:30Z"
+}

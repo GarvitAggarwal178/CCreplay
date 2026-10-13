@@ -1,0 +1,16 @@
+param,value,trace_id,n_events,n_disagree,disagreement_rate,result_median_delta,post_snd_cwnd_median_delta,first_disagreement_seq
+BIC_SCALE,10,raw__cubic_replay__primary__rep1,78688,2273,0.02888623424156161,,1,2028
+BIC_SCALE,10,raw__cubic_replay__primary__rep2,78768,2277,0.028907678244972576,,1,2045
+BIC_SCALE,10,raw__cubic_replay__primary__rep3,78632,2280,0.028995828670261473,,1,2035
+BIC_SCALE,20,raw__cubic_replay__primary__rep1,78688,2273,0.02888623424156161,,1.0,2028
+BIC_SCALE,20,raw__cubic_replay__primary__rep2,78768,2277,0.028907678244972576,,1,2045
+BIC_SCALE,20,raw__cubic_replay__primary__rep3,78632,2280,0.028995828670261473,,1.0,2035
+BIC_SCALE,41,raw__cubic_replay__primary__rep1,78688,0,0.0,,,
+BIC_SCALE,41,raw__cubic_replay__primary__rep2,78768,0,0.0,,,
+BIC_SCALE,41,raw__cubic_replay__primary__rep3,78632,0,0.0,,,
+BIC_SCALE,82,raw__cubic_replay__primary__rep1,78688,2516,0.03197437982919886,,1.0,2028
+BIC_SCALE,82,raw__cubic_replay__primary__rep2,78768,2520,0.031992687385740404,,1.0,2045
+BIC_SCALE,82,raw__cubic_replay__primary__rep3,78632,2518,0.03202258622443789,,1,2035
+BIC_SCALE,164,raw__cubic_replay__primary__rep1,78688,2561,0.03254625864172428,,1.0,2028
+BIC_SCALE,164,raw__cubic_replay__primary__rep2,78768,2568,0.032602071907373555,,1.0,2045
+BIC_SCALE,164,raw__cubic_replay__primary__rep3,78632,2562,0.03258215484789907,,1,2035

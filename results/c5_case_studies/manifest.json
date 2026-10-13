@@ -1,0 +1,11 @@
+{
+  "command": ".venv/bin/python results/c5_case_studies/run.py",
+  "git_commit": "dba91fea6486ad622e99503add6599f1464c7728",
+  "dirty": " M backend/app.py\n M frontend/src/App.tsx\n?? docs/LIMITATIONS.zip\n?? frontend/src/pages/Lab.tsx\n?? results/\n?? scripts/lab/\n",
+  "host": {
+    "uname_r": "6.18.33.2-microsoft-standard-WSL2",
+    "python": "3.14.4"
+  },
+  "started": "2026-10-13T08:41:51Z",
+  "finished": "2026-10-13T08:41:57Z"
+}

@@ -1,0 +1,7 @@
+param,value,trace_id,n_events,n_disagree,disagreement_rate,result_median_delta,post_snd_cwnd_median_delta,first_disagreement_seq
+TCP_FRIENDLINESS,0,raw__cubic_replay__primary__rep1,78688,209,0.0026560593737291584,,,742
+TCP_FRIENDLINESS,0,raw__cubic_replay__primary__rep2,78768,210,0.0026660572821450334,,,752
+TCP_FRIENDLINESS,0,raw__cubic_replay__primary__rep3,78632,210,0.0026706684301556617,,,744
+TCP_FRIENDLINESS,1,raw__cubic_replay__primary__rep1,78688,0,0.0,,,
+TCP_FRIENDLINESS,1,raw__cubic_replay__primary__rep2,78768,0,0.0,,,
+TCP_FRIENDLINESS,1,raw__cubic_replay__primary__rep3,78632,0,0.0,,,

@@ -1,0 +1,93 @@
+{
+  "gate": "E2",
+  "pass": true,
+  "pass_jiffies_stable_only": true,
+  "pass_ktime_stable_only": true,
+  "traces": [
+    "raw/covegas_replay/primary/rep1.ccr",
+    "raw/covegas_replay/primary/rep2.ccr",
+    "raw/covegas_replay/primary/rep3.ccr"
+  ],
+  "total_events_checked": 190277,
+  "total_fields_compared": 4982990,
+  "total_mismatches": 0,
+  "jiffies_stable_checked": 190244,
+  "jiffies_stable_mismatched": 0,
+  "ktime_stable_checked": 0,
+  "ktime_stable_mismatched": 0,
+  "first_mismatch": null,
+  "per_trace": [
+    {
+      "trace": "raw/covegas_replay/primary/rep1.ccr",
+      "n_events_total": 63330,
+      "n_events_dominant": 63329,
+      "n_checked": 63329,
+      "n_fields_compared": 1658687,
+      "mismatch_count": 0,
+      "per_callback_checked": {
+        "init": 1,
+        "pkts_acked": 31971,
+        "cong_avoid": 31348,
+        "ssthresh": 9
+      },
+      "per_callback_mismatched": {},
+      "jiffies_stable_checked": 63320,
+      "jiffies_stable_mismatched": 0,
+      "jiffies_ambiguous_checked": 9,
+      "jiffies_ambiguous_mismatched": 0,
+      "ktime_stable_checked": 0,
+      "ktime_stable_mismatched": 0,
+      "ktime_ambiguous_checked": 63329,
+      "ktime_ambiguous_mismatched": 0,
+      "first_mismatch": null
+    },
+    {
+      "trace": "raw/covegas_replay/primary/rep2.ccr",
+      "n_events_total": 62900,
+      "n_events_dominant": 62899,
+      "n_checked": 62899,
+      "n_fields_compared": 1646859,
+      "mismatch_count": 0,
+      "per_callback_checked": {
+        "init": 1,
+        "pkts_acked": 31739,
+        "cong_avoid": 31151,
+        "ssthresh": 8
+      },
+      "per_callback_mismatched": {},
+      "jiffies_stable_checked": 62887,
+      "jiffies_stable_mismatched": 0,
+      "jiffies_ambiguous_checked": 12,
+      "jiffies_ambiguous_mismatched": 0,
+      "ktime_stable_checked": 0,
+      "ktime_stable_mismatched": 0,
+      "ktime_ambiguous_checked": 62899,
+      "ktime_ambiguous_mismatched": 0,
+      "first_mismatch": null
+    },
+    {
+      "trace": "raw/covegas_replay/primary/rep3.ccr",
+      "n_events_total": 64050,
+      "n_events_dominant": 64049,
+      "n_checked": 64049,
+      "n_fields_compared": 1677444,
+      "mismatch_count": 0,
+      "per_callback_checked": {
+        "init": 1,
+        "pkts_acked": 32356,
+        "cong_avoid": 31683,
+        "ssthresh": 9
+      },
+      "per_callback_mismatched": {},
+      "jiffies_stable_checked": 64037,
+      "jiffies_stable_mismatched": 0,
+      "jiffies_ambiguous_checked": 12,
+      "jiffies_ambiguous_mismatched": 0,
+      "ktime_stable_checked": 0,
+      "ktime_stable_mismatched": 0,
+      "ktime_ambiguous_checked": 64049,
+      "ktime_ambiguous_mismatched": 0,
+      "first_mismatch": null
+    }
+  ]
+}

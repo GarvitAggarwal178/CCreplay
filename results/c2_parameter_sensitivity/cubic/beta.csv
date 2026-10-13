@@ -1,0 +1,16 @@
+param,value,trace_id,n_events,n_disagree,disagreement_rate,result_median_delta,post_snd_cwnd_median_delta,first_disagreement_seq
+BETA,512,raw__cubic_replay__primary__rep1,78688,1759,0.022354107360715737,-40.0,,540
+BETA,512,raw__cubic_replay__primary__rep2,78768,1766,0.022420272191752997,-40.0,,540
+BETA,512,raw__cubic_replay__primary__rep3,78632,1767,0.02247176721945264,-40.0,,532
+BETA,614,raw__cubic_replay__primary__rep1,78688,1347,0.017118239121594145,-21.0,,604
+BETA,614,raw__cubic_replay__primary__rep2,78768,1352,0.01716433069266707,-20.5,,594
+BETA,614,raw__cubic_replay__primary__rep3,78632,1353,0.017206735171431477,-20.5,,612
+BETA,717,raw__cubic_replay__primary__rep1,78688,0,0.0,,,
+BETA,717,raw__cubic_replay__primary__rep2,78768,0,0.0,,,
+BETA,717,raw__cubic_replay__primary__rep3,78632,0,0.0,,,
+BETA,819,raw__cubic_replay__primary__rep1,78688,223,0.0028339772265148435,20.0,,742
+BETA,819,raw__cubic_replay__primary__rep2,78768,224,0.002843794434288036,20.5,,752
+BETA,819,raw__cubic_replay__primary__rep3,78632,224,0.002848712992166039,20.5,,744
+BETA,921,raw__cubic_replay__primary__rep1,78688,223,0.0028339772265148435,40.0,,742
+BETA,921,raw__cubic_replay__primary__rep2,78768,224,0.002843794434288036,40.5,,752
+BETA,921,raw__cubic_replay__primary__rep3,78632,224,0.002848712992166039,40.5,,744
