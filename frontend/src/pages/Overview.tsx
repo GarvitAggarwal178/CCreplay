@@ -16,6 +16,12 @@ export default function Overview() {
   const [health, setHealth] = useState<HealthInfo | null>(null)
   const [traces, setTraces] = useState<TraceSummary[]>([])
   const [controllers, setControllers] = useState<ControllerSummary[]>([])
+  // The library fetch (cold, on a freshly started server) can take several
+  // seconds -- see STUDIO_STATUS.md. Guided-demo buttons must stay disabled
+  // until it resolves, or a fast click races an empty `traces` array and
+  // fails with "trace not found" instead of running (found via this exact
+  // failure during e2e testing before this guard existed).
+  const [libraryLoading, setLibraryLoading] = useState(true)
   const [steps, setSteps] = useState<StepState[]>([
     { label: '1. Negative control (cubic vs cubic) → NO DIVERGENCE', status: 'idle' },
     { label: '2. Seeded bug (cubic vs cubic_bug_ssthresh) → seq 1,705', status: 'idle' },
@@ -26,8 +32,10 @@ export default function Overview() {
 
   useEffect(() => {
     api.health().then(setHealth).catch(() => void 0)
-    api.listTraces().then(setTraces).catch(() => void 0)
-    api.listControllers().then(setControllers).catch(() => void 0)
+    Promise.allSettled([
+      api.listTraces().then(setTraces),
+      api.listControllers().then(setControllers),
+    ]).finally(() => setLibraryLoading(false))
   }, [])
 
   function setStep(i: number, patch: Partial<StepState>) {
@@ -96,7 +104,10 @@ export default function Overview() {
     if (!tid) return setStep(3, { status: 'error', summary: 'cubic rep1 trace not found' })
     setStep(3, { status: 'running' })
     try {
-      const { id: candId } = await api.createParamController('cubic', `beta_0_8_${Date.now()}`, { BETA: 819 })
+      // Fixed name, not Date.now() -- save_param_variant overwrites by id, so
+      // repeated guided-demo rehearsals stay idempotent instead of filling
+      // the Controllers registry and every picker with one entry per click.
+      const { id: candId } = await api.createParamController('cubic', 'beta_0_8_demo', { BETA: 819 })
       const { id } = await api.createExperiment('diff', tid, 'cubic', candId)
       const exp = await pollExperiment(id)
       const seq = exp.result?.divergence?.first_divergent_event.seq
@@ -188,10 +199,15 @@ export default function Overview() {
       <div className="panel">
         <h2>Guided demo</h2>
         <p className="hint">Each button calls the real API and shows the real result inline — nothing here is hardcoded.</p>
+        {libraryLoading && <p className="hint">loading trace/controller library…</p>}
         {steps.map((s, i) => (
           <div key={i} className="field-row" style={{ alignItems: 'flex-start' }}>
-            <button className="btn btn-secondary" disabled={s.status === 'running'} onClick={() => runners[i]()}>
-              {s.status === 'running' ? 'Running…' : 'Run'}
+            <button
+              className="btn btn-secondary"
+              disabled={s.status === 'running' || libraryLoading}
+              onClick={() => runners[i]()}
+            >
+              {libraryLoading ? 'Loading…' : s.status === 'running' ? 'Running…' : 'Run'}
             </button>
             <div style={{ flex: 1 }}>
               <div>{s.label}</div>

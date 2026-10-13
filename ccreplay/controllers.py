@@ -96,11 +96,23 @@ def _recompute_cubic_derived(m: types.ModuleType):
     m.CUBE_FACTOR = (1 << (10 + 3 * m.BICTCP_HZ)) // (m.BIC_SCALE * 10)
 
 
+def _check_range(tunables: dict, key: str, value: int):
+    spec = tunables.get(key)
+    if spec is None:
+        return
+    if not (spec["min"] <= value <= spec["max"]):
+        raise ValueError(f"{key}={value} out of range [{spec['min']}, {spec['max']}]")
+
+
 def make_param(base: str, name: str, params: dict) -> types.ModuleType:
     if base == "reno":
         num = int(params.get("num", 1))
         den = int(params.get("den", 2))
         min_ssthresh = int(params.get("min_ssthresh", 2))
+        _check_range(RENO_TUNABLES, "num", num)
+        _check_range(RENO_TUNABLES, "den", den)
+        if den == 0:
+            raise ValueError("den must not be 0")
         m = clone_base("reno", name)
 
         # Real signature (user/reno_model.py): model_ssthresh(pre, private_state)
@@ -117,7 +129,9 @@ def make_param(base: str, name: str, params: dict) -> types.ModuleType:
             if k in params:
                 if not hasattr(m, k):
                     raise KeyError(k)
-                setattr(m, k, int(params[k]))
+                v = int(params[k])
+                _check_range(CUBIC_TUNABLES, k, v)
+                setattr(m, k, v)
         _recompute_cubic_derived(m)
         return m
     raise ValueError(f"no parameter variants defined for base {base!r}")

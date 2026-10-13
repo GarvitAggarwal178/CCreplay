@@ -77,6 +77,34 @@ def _sha256(p: pathlib.Path) -> str:
     return h.hexdigest()
 
 
+_sha256_cache = {}  # path -> (mtime, sha256) -- hashing a 40 MB file on every get_trace() call is wasted work once the mtime hasn't changed
+
+
+def _sha256_cached(p: pathlib.Path) -> str:
+    key = str(p)
+    mtime = p.stat().st_mtime
+    with _cache_lock:
+        cached = _sha256_cache.get(key)
+        if cached and cached[0] == mtime:
+            return cached[1]
+    digest = _sha256(p)
+    with _cache_lock:
+        _sha256_cache[key] = (mtime, digest)
+    return digest
+
+
+def _summary_from_events(dominant_events, CALLBACK_NAMES):
+    callback_counts = {}
+    for e in dominant_events:
+        name = CALLBACK_NAMES.get(e["callback_id"], str(e["callback_id"]))
+        callback_counts[name] = callback_counts.get(name, 0) + 1
+    duration_s = None
+    if dominant_events:
+        ts_values = [e["ts_ns"] for e in dominant_events]
+        duration_s = (max(ts_values) - min(ts_values)) / 1e9
+    return duration_s, callback_counts
+
+
 def _full_cached(path: pathlib.Path):
     """Full parsed (hdr, dominant_cookie, dominant_events, other_events,
     CALLBACK_NAMES) for one trace someone is actively viewing -- bounded LRU,
@@ -119,13 +147,7 @@ def _summary_cached(path: pathlib.Path):
     else:
         hdr, events, select_dominant_connection, CALLBACK_NAMES = _detect_version_and_parse(str(path))
         _cookie, dominant_events, other_events = select_dominant_connection(events)
-    callback_counts = {}
-    for e in dominant_events:
-        name = CALLBACK_NAMES.get(e["callback_id"], str(e["callback_id"]))
-        callback_counts[name] = callback_counts.get(name, 0) + 1
-    duration_s = None
-    if dominant_events:
-        duration_s = (dominant_events[-1]["ts_ns"] - dominant_events[0]["ts_ns"]) / 1e9
+    duration_s, callback_counts = _summary_from_events(dominant_events, CALLBACK_NAMES)
     result = (hdr, len(dominant_events), len(other_events), duration_s, callback_counts)
     with _cache_lock:
         _summary_cache[key] = (mtime,) + result
@@ -137,6 +159,21 @@ def resolve_id(trace_id: str) -> pathlib.Path:
         if _slug(_rel(p)) == trace_id:
             return p
     raise KeyError(f"unknown trace id: {trace_id}")
+
+
+def get_abi(trace_id: str) -> int:
+    """Reads ONLY the 144-byte header (not the full event body) to answer
+    "what Replay ABI is this trace" -- used for the pre-experiment ABI-
+    compatibility check, which previously went through get_trace() and so
+    paid for a full parse (now, after the get_trace()/_full_cached change,
+    an even more expensive one) just to read one integer. The header format
+    is identical across v0/v1/v2 (user/ccr_trace_v1.py and _v2.py both
+    import TraceHeader/HEADER_FMT from ccr_trace.py directly)."""
+    from user.ccr_trace import HEADER_SIZE, TraceHeader
+    p = resolve_id(trace_id)
+    with open(p, "rb") as f:
+        raw_hdr = f.read(HEADER_SIZE)
+    return TraceHeader(raw_hdr).trace_version
 
 
 def list_traces():
@@ -170,8 +207,16 @@ def list_traces():
 
 
 def get_trace(trace_id: str):
+    """Unlike list_traces() (which must not retain full events for every
+    trace in the library -- see the cache-split note above), get_trace() is
+    called for exactly ONE trace a user just clicked into, and the Trace
+    Explorer's series/events calls for that SAME trace follow immediately.
+    So this deliberately goes through _full_cached (not _summary_cached):
+    it warms the bounded LRU here instead of parsing the trace twice."""
     p = resolve_id(trace_id)
-    hdr, n_dominant, n_other, duration_s, callback_counts = _summary_cached(p)
+    hdr, dominant_cookie, dominant_events, other_events, CALLBACK_NAMES = _full_cached(p)
+    duration_s, callback_counts = _summary_from_events(dominant_events, CALLBACK_NAMES)
+    n_other = len(other_events)
     meta = _load_meta(p)
     return {
         "id": trace_id,
@@ -181,12 +226,12 @@ def get_trace(trace_id: str):
         "kernel_release": hdr.kernel_release,
         "reference_impl_id": hdr.reference_impl_id,
         "recorder_version": hdr.recorder_version,
-        "n_dominant_events": n_dominant,
+        "n_dominant_events": len(dominant_events),
         "n_other_events": n_other,
         "duration_s": duration_s,
         "callback_counts": callback_counts,
         "size_bytes": p.stat().st_size,
-        "sha256": _sha256(p),
+        "sha256": _sha256_cached(p),
         "meta": meta,
         "other_connections": {
             "n_other_events": n_other,

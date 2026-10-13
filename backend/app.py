@@ -8,6 +8,7 @@ import json
 import pathlib
 import subprocess
 import sys
+import threading
 import time
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
@@ -24,6 +25,22 @@ from ccreplay.diff import AbiMismatchError
 import backend.jobs as jobs
 
 app = FastAPI(title="CCReplay Studio")
+
+
+@app.on_event("startup")
+def _warm_trace_summary_cache():
+    """Parses every library trace once, in a background thread, right after
+    the server binds -- so the FIRST real request (a presenter's or a
+    visitor's) doesn't pay the ~4-5 s cold-parse cost measured in
+    STUDIO_STATUS.md. This only populates the lightweight summary cache
+    (ccreplay.traces._summary_cached), never the bounded full-event LRU, so
+    it does not reintroduce the memory problem that cache split fixed."""
+    def _warm():
+        try:
+            traces_mod.list_traces()
+        except Exception:
+            pass  # best-effort warmup; a real request will retry and surface any real error
+    threading.Thread(target=_warm, daemon=True).start()
 
 SEMANTIC_RULE = (
     "CCReplay answers what a congestion-control implementation computes at a "
@@ -187,7 +204,7 @@ class ExperimentRequest(BaseModel):
 
 
 def _check_abi_compat(trace_id, reference, candidate):
-    trace_abi = traces_mod.get_trace(trace_id)["abi"]
+    trace_abi = traces_mod.get_abi(trace_id)
     ref_abi = controllers_mod.abi_of(reference)
     cand_abi = controllers_mod.abi_of(candidate)
     if ref_abi != trace_abi or cand_abi != trace_abi:

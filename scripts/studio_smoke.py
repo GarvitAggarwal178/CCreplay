@@ -15,6 +15,8 @@ from ccreplay.diff import run_diff
 from ccreplay.checkpoint import run_checkpoint
 
 FAILURES = []
+CREATED_PARAM_IDS = []   # cleaned up at the end -- never a blanket wipe of studio_data/param_variants.json
+CREATED_USER_IDS = []    # cleaned up at the end -- never a blanket `rm controllers/user/user_*.py`
 
 
 def expect(name, cond, detail=""):
@@ -24,6 +26,32 @@ def expect(name, cond, detail=""):
         FAILURES.append(name)
 
 
+def save_param(base, name, params):
+    cid = controllers_mod.save_param_variant(base, name, params)
+    CREATED_PARAM_IDS.append(cid)
+    return cid
+
+
+def save_user(name, abi_base, code):
+    cid = controllers_mod.save_user_controller(name, abi_base, code)
+    CREATED_USER_IDS.append(cid)
+    return cid
+
+
+def cleanup():
+    """Removes exactly the controllers THIS RUN created -- never a blanket
+    wipe, which would delete real owner data in any session that has some
+    (see STUDIO_STATUS.md's note on this)."""
+    if CREATED_PARAM_IDS:
+        store = controllers_mod._param_store_load()
+        for cid in CREATED_PARAM_IDS:
+            store.pop(cid, None)
+        controllers_mod._param_store_save(store)
+    for cid in CREATED_USER_IDS:
+        (controllers_mod.USER_DIR / f"{cid}.py").unlink(missing_ok=True)
+        (controllers_mod.USER_DIR / f"{cid}.meta.json").unlink(missing_ok=True)
+
+
 def main():
     cubic_rep1 = None
     for t in traces_mod.list_traces():
@@ -31,7 +59,7 @@ def main():
             cubic_rep1 = t["id"]
     expect("cubic_rep1 found in library", cubic_rep1 is not None, str(cubic_rep1))
     if cubic_rep1 is None:
-        sys.exit(1)
+        return 1
 
     t = traces_mod.get_trace(cubic_rep1)
     expect("cubic_rep1 n_dominant_events == 78688", t["n_dominant_events"] == 78688, str(t["n_dominant_events"]))
@@ -57,11 +85,11 @@ def main():
     expect("checkpoint reproduced identical divergence", ck["reproduced_same_divergence"] is True,
            str(ck["reproduced_same_divergence"]))
 
-    cid = controllers_mod.save_param_variant("cubic", "beta_default_check", {})
+    cid = save_param("cubic", "beta_default_check", {})
     r = run_diff(cubic_rep1, "cubic", cid)
     expect("default-param clone == NO DIVERGENCE", r["result"] == "NO DIVERGENCE", r["result"])
 
-    cid2 = controllers_mod.save_param_variant("cubic", "beta_819", {"BETA": 819})
+    cid2 = save_param("cubic", "beta_819", {"BETA": 819})
     r = run_diff(cubic_rep1, "cubic", cid2)
     d = r.get("divergence") or {}
     seq = d.get("first_divergent_event", {}).get("seq")
@@ -78,11 +106,11 @@ def main():
             reno_rep1 = tr["id"]
     expect("reno r0 rep1 found", reno_rep1 is not None, str(reno_rep1))
     if reno_rep1:
-        cid_std = controllers_mod.save_param_variant("reno", "reno_std_1_2", {"num": 1, "den": 2})
+        cid_std = save_param("reno", "reno_std_1_2", {"num": 1, "den": 2})
         r = run_diff(reno_rep1, "reno", cid_std)
         expect("reno 1/2 (standard) == NO DIVERGENCE", r["result"] == "NO DIVERGENCE", r["result"])
 
-        cid_gentle = controllers_mod.save_param_variant("reno", "reno_3_4", {"num": 3, "den": 4})
+        cid_gentle = save_param("reno", "reno_3_4", {"num": 3, "den": 4})
         r = run_diff(reno_rep1, "reno", cid_gentle)
         expect("reno 3/4 (gentler) diverges", r["result"] == "DIVERGENCE", r["result"])
 
@@ -90,7 +118,7 @@ def main():
     # be a no-op (NO DIVERGENCE), OFFSET=1 must reproduce STUDIO_CONTEXT.md
     # SS8's verified "User override" row exactly.
     template = controllers_mod.get_template("cubic")
-    cid_unchanged = controllers_mod.save_user_controller("smoke_template_unchanged", "cubic", template)
+    cid_unchanged = save_user("smoke_template_unchanged", "cubic", template)
     v = controllers_mod.validate_controller(cid_unchanged)
     expect("template-unchanged controller validates OK", v["ok"], str(v))
     r = run_diff(cubic_rep1, "cubic", cid_unchanged)
@@ -98,7 +126,7 @@ def main():
 
     offset1_code = template.replace("OFFSET = 0", "OFFSET = 1")
     expect("OFFSET=1 substitution actually changed the source", offset1_code != template)
-    cid_offset1 = controllers_mod.save_user_controller("smoke_template_offset1", "cubic", offset1_code)
+    cid_offset1 = save_user("smoke_template_offset1", "cubic", offset1_code)
     r = run_diff(cubic_rep1, "cubic", cid_offset1)
     d = r.get("divergence") or {}
     seq = d.get("first_divergent_event", {}).get("seq")
@@ -110,7 +138,7 @@ def main():
     reno_template = controllers_mod.get_template("reno")
     expect("reno template contains the NUM/DEN no-op default", "NUM = 1" in reno_template and "DEN = 2" in reno_template,
            reno_template[:200])
-    cid_reno_unchanged = controllers_mod.save_user_controller("smoke_reno_template_unchanged", "reno", reno_template)
+    cid_reno_unchanged = save_user("smoke_reno_template_unchanged", "reno", reno_template)
     v = controllers_mod.validate_controller(cid_reno_unchanged)
     expect("reno template-unchanged validates OK", v["ok"], str(v))
     if reno_rep1:
@@ -118,20 +146,20 @@ def main():
         expect("reno template unchanged (1/2) == NO DIVERGENCE", r["result"] == "NO DIVERGENCE", r["result"])
 
         reno_3_4_code = reno_template.replace("NUM = 1", "NUM = 3").replace("DEN = 2", "DEN = 4")
-        cid_reno_3_4 = controllers_mod.save_user_controller("smoke_reno_template_3_4", "reno", reno_3_4_code)
+        cid_reno_3_4 = save_user("smoke_reno_template_3_4", "reno", reno_3_4_code)
         r = run_diff(reno_rep1, "reno", cid_reno_3_4)
         expect("reno template NUM=3,DEN=4 diverges", r["result"] == "DIVERGENCE", r["result"])
 
     # A controller file that doesn't define CONTROLLER must fail validation
     # with a readable reason (plan §3 A1 "missing CONTROLLER" done-when).
-    cid_no_controller = controllers_mod.save_user_controller("smoke_no_controller", "cubic", "x = 1\n")
+    cid_no_controller = save_user("smoke_no_controller", "cubic", "x = 1\n")
     v = controllers_mod.validate_controller(cid_no_controller)
     expect("missing-CONTROLLER module fails validation", v["ok"] is False, str(v))
     expect("missing-CONTROLLER reason names CONTROLLER",
            any("CONTROLLER" in c.get("detail", "") for c in v.get("checks", [])), str(v.get("checks")))
 
     # Broken Python must fail validation with a readable reason, never a fake PASS.
-    cid_broken = controllers_mod.save_user_controller("smoke_broken", "cubic", "this is not valid python +++")
+    cid_broken = save_user("smoke_broken", "cubic", "this is not valid python +++")
     v = controllers_mod.validate_controller(cid_broken)
     expect("broken controller validation ok == False", v["ok"] is False, str(v))
     expect("broken controller reason mentions syntax",
@@ -153,10 +181,14 @@ def main():
     print()
     if FAILURES:
         print(f"SMOKE TEST: {len(FAILURES)} FAILURE(S): {FAILURES}")
-        sys.exit(1)
+        return 1
     print("SMOKE TEST: ALL PASS")
-    sys.exit(0)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        code = main()
+    finally:
+        cleanup()
+    sys.exit(code)

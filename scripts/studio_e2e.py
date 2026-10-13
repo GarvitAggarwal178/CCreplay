@@ -51,6 +51,27 @@ def fetch_status(url):
         return e.code
 
 
+def cleanup_e2e_artifacts():
+    """Removes exactly the controllers THIS SCRIPT creates (name prefix
+    e2e_*, and legacy timestamped beta_0_8_* entries from before the guided
+    demo's step 4 used a fixed id) -- never a blanket wipe of
+    controllers/user/ or param_variants.json, which would delete real
+    owner data (see STUDIO_STATUS.md). The fixed-name param_beta_0_8_demo
+    entry (created by the guided demo's step 4) is deliberately left alone:
+    it is meant to persist and be reused, not cleaned up per run."""
+    user_dir = ROOT / "controllers" / "user"
+    for p in user_dir.glob("user_e2e_*"):
+        p.unlink(missing_ok=True)
+    store_path = ROOT / "studio_data" / "param_variants.json"
+    if store_path.exists():
+        import json
+        store = json.loads(store_path.read_text())
+        for cid in list(store.keys()):
+            if cid.startswith("param_e2e_") or (cid.startswith("param_beta_0_8_") and cid != "param_beta_0_8_demo"):
+                del store[cid]
+        store_path.write_text(json.dumps(store, indent=2, sort_keys=True))
+
+
 def main():
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -63,13 +84,32 @@ def main():
 
         page.goto(BASE_URL + "/")
         page.wait_for_selector("text=CCReplay Studio")
-        # Wait for the trace/controller library fetch to finish before interacting --
-        # clicking Run before /api/traces resolves races the step against an empty list.
+        expect("overview page loads", True)
+
+        # Cold-start race check: a presenter clicking Run before the library
+        # has loaded must never see "trace not found" -- the button must
+        # either be disabled until the library loads, or the click must
+        # succeed (found as a REAL failure during earlier e2e development:
+        # clicking immediately raced an empty `traces` array in Overview.tsx
+        # and showed "unexpected result ... trace not found" on screen).
+        first_run_button = page.locator(".panel:has-text('Guided demo') button:has-text('Run'), "
+                                         ".panel:has-text('Guided demo') button:has-text('Loading')").first
+        was_disabled_at_click_time = first_run_button.is_disabled()
+        first_run_button.click(force=True)  # force: clicking a disabled button is itself part of what we're checking
+        page.wait_for_timeout(2000)
+        cold_click_text = page.locator(".panel:has-text('Guided demo')").inner_text()
+        expect(
+            "clicking Run immediately on a cold page never shows 'trace not found'",
+            "trace not found" not in cold_click_text,
+            f"was_disabled_at_click_time={was_disabled_at_click_time}; {cold_click_text[:400]}",
+        )
+
+        # Wait for the trace/controller library fetch to finish before the
+        # rest of this script interacts with it.
         page.wait_for_function(
             "() => { const m = document.body.innerText.match(/library: (\\d+) traces/); return m && Number(m[1]) > 0; }",
             timeout=15000,
         )
-        expect("overview page loads", True)
         shot(page, "m6-overview")
 
         # Guided demo steps 1-5
@@ -105,17 +145,24 @@ def main():
         # All three ABIs must render their detail page without console errors
         # (plan §3 A3.2 done-when: "all three ABIs render without console
         # errors ... screenshot per ABI"), not only CUBIC.
+        # NOTE: this Plotly build renders 3 <svg class="main-svg"> elements per
+        # chart, so `svg.main-svg` count is not usable as a per-chart count
+        # (found by actually inspecting the DOM: .js-plotly-plot is the real
+        # one-per-chart container).
         abi_pages = [
             ("r0/rep1", "reno", 2),           # callback-mix bar, cwnd/ssthresh only (no RTT/W_max for Reno)
             ("cubic_replay/primary/rep1", "cubic", 4),   # + W_max/bic_K, RTT
             ("covegas_campaign/rep4", "covegas", 3),     # + RTT (no W_max/bic_K)
         ]
-        for path_fragment, abi_name, min_charts in abi_pages:
+        for path_fragment, abi_name, n_expected_charts in abi_pages:
             console_errors.clear()
             page.click(f"tr:has-text('{path_fragment}') a:has-text('Explore')")
             page.wait_for_timeout(2500)
-            n_charts = page.locator("svg.main-svg").count()
-            expect(f"{abi_name} trace detail renders >= {min_charts} charts", n_charts >= min_charts, str(n_charts))
+            n_charts = page.locator(".js-plotly-plot").count()
+            expect(f"{abi_name} trace detail renders exactly {n_expected_charts} charts",
+                   n_charts == n_expected_charts, str(n_charts))
+            n_bars = page.locator(".barlayer .trace.bars").count()
+            expect(f"{abi_name} callback-mix is a real bar chart (not a regressed table)", n_bars >= 1, str(n_bars))
             expect(f"{abi_name} trace detail has 0 console errors", len(console_errors) == 0, str(console_errors[:5]))
             shot(page, f"m3-trace-detail-{abi_name}")
             page.go_back()
@@ -302,15 +349,23 @@ def main():
 
         # Trace upload: a renamed copy of an existing small library trace is a
         # real .ccr file with a real magic/header, not manufactured evidence --
-        # it exercises the actual upload-parse-register path end to end.
+        # it exercises the actual upload-parse-register path end to end. The
+        # source copy lives OUTSIDE uploads/ (in a scratch dir) so the test
+        # proves the endpoint writes the file, rather than finding a copy
+        # that was already sitting in uploads/ before the upload happened.
         src = ROOT / "raw" / "r0" / "rep1.ccr"
-        upload_copy = ROOT / "uploads" / "e2e_upload_test.ccr"
-        upload_copy.parent.mkdir(exist_ok=True)
-        upload_copy.write_bytes(src.read_bytes())
+        scratch_dir = ROOT / "studio_data" / "e2e_tmp"
+        scratch_dir.mkdir(parents=True, exist_ok=True)
+        upload_src = scratch_dir / "e2e_upload_test.ccr"
+        upload_src.write_bytes(src.read_bytes())
+        uploaded_dest = ROOT / "uploads" / "e2e_upload_test.ccr"
+        uploaded_dest.unlink(missing_ok=True)
+        expect("upload destination does not exist before uploading", not uploaded_dest.exists())
+
         page.goto(BASE_URL + "/#/traces")
         page.wait_for_selector("text=Traces")
         page.wait_for_timeout(500)
-        page.locator("input[type=file]").first.set_input_files(str(upload_copy))
+        page.locator("input[type=file]").first.set_input_files(str(upload_src))
         page.click("button:has-text('Upload')")
         page.wait_for_function(
             "() => document.body.innerText.includes('uploaded:') || document.body.innerText.includes('failed:')",
@@ -320,12 +375,14 @@ def main():
         expect("upload reports success with correct ABI and event count",
                "uploaded:" in upload_msg and "Reno" in upload_msg and "37260" in upload_msg.replace(",", ""),
                [l for l in upload_msg.splitlines() if "uploaded" in l or "failed" in l])
+        expect("upload endpoint actually wrote the file to uploads/", uploaded_dest.exists())
         shot(page, "m3-traces-upload")
-        upload_copy.unlink(missing_ok=True)
+        upload_src.unlink(missing_ok=True)
+        uploaded_dest.unlink(missing_ok=True)
         (ROOT / "uploads" / "e2e_upload_test.meta.json").unlink(missing_ok=True)
 
         # Bad-magic upload must fail with a readable error, not a fake success.
-        bad_file = ROOT / "uploads" / "e2e_upload_bad.ccr"
+        bad_file = scratch_dir / "e2e_upload_bad.ccr"
         bad_file.write_bytes(b"not a real trace file")
         page.locator("input[type=file]").first.set_input_files(str(bad_file))
         page.click("button:has-text('Upload')")
@@ -333,6 +390,7 @@ def main():
         bad_upload_msg = page.locator("body").inner_text()
         expect("bad-magic upload fails with a readable error", "failed:" in bad_upload_msg)
         bad_file.unlink(missing_ok=True)
+        (ROOT / "uploads" / "e2e_upload_bad.ccr").unlink(missing_ok=True)
         # The bad-magic upload above deliberately triggers a 400 response,
         # which Chromium logs as a console error of its own accord (the fetch
         # network layer, not application code) -- that is the expected
@@ -347,10 +405,14 @@ def main():
     print()
     if FAILURES:
         print(f"E2E: {len(FAILURES)} FAILURE(S): {FAILURES}")
-        sys.exit(1)
+        return 1
     print("E2E: ALL PASS")
-    sys.exit(0)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        code = main()
+    finally:
+        cleanup_e2e_artifacts()
+    sys.exit(code)

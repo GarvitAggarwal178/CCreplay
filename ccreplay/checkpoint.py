@@ -11,7 +11,7 @@ from ccreplay.diff import AbiMismatchError
 
 def run_checkpoint(trace_id: str, ref_id: str, cand_id: str, interval: int) -> dict:
     trace_path = traces_mod.resolve_id(trace_id)
-    trace_abi = traces_mod.get_trace(trace_id)["abi"]
+    trace_abi = traces_mod.get_abi(trace_id)
     ref_abi = controllers_mod.abi_of(ref_id)
     cand_abi = controllers_mod.abi_of(cand_id)
     if ref_abi != trace_abi or cand_abi != trace_abi:
