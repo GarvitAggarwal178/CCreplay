@@ -201,6 +201,7 @@ class ExperimentRequest(BaseModel):
     reference: str
     candidate: str
     interval: int | None = None
+    mode: str | None = None  # "A" (event-local) or "B" (stateful) -- all_decisions only
 
 
 def _check_abi_compat(trace_id, reference, candidate):
@@ -228,12 +229,17 @@ def _check_abi_compat(trace_id, reference, candidate):
 
 @app.post("/api/experiments")
 def create_experiment(req: ExperimentRequest):
-    if req.type not in ("diff", "checkpoint"):
+    if req.type not in ("diff", "checkpoint", "all_decisions"):
         raise HTTPException(status_code=400, detail=f"unknown experiment type: {req.type}")
     _check_abi_compat(req.trace_id, req.reference, req.candidate)
     config = {"trace_id": req.trace_id, "reference": req.reference, "candidate": req.candidate}
     if req.type == "checkpoint":
         config["interval"] = req.interval or 500
+    if req.type == "all_decisions":
+        mode = req.mode or "A"
+        if mode not in ("A", "B"):
+            raise HTTPException(status_code=400, detail=f"mode must be 'A' or 'B', got {mode!r}")
+        config["mode"] = mode
     exp_id = jobs.create_experiment(req.type, config)
     return {"id": exp_id, "status": "queued"}
 
@@ -244,6 +250,56 @@ def get_experiment(exp_id: str):
     if exp is None:
         raise HTTPException(status_code=404, detail="unknown experiment id")
     return exp
+
+
+@app.get("/api/tunables/{base}")
+def get_tunables(base: str):
+    from ccreplay.sweep import TUNABLES_BY_BASE
+    spec = TUNABLES_BY_BASE.get(base)
+    if spec is None:
+        raise HTTPException(status_code=404, detail=f"no tunables for base: {base}")
+    return spec
+
+
+class SweepRequest(BaseModel):
+    base: str
+    param: str
+    values: list[int]
+    trace_ids: list[str]
+    reference_id: str | None = None
+
+
+@app.post("/api/sweeps")
+def create_sweep(req: SweepRequest):
+    from ccreplay.sweep import TUNABLES_BY_BASE
+    spec = TUNABLES_BY_BASE.get(req.base, {}).get(req.param)
+    if spec is None:
+        raise HTTPException(status_code=400, detail=f"unknown parameter {req.param!r} for base {req.base!r}")
+    out_of_range = [v for v in req.values if not (spec["min"] <= v <= spec["max"])]
+    if out_of_range:
+        raise HTTPException(status_code=400,
+                             detail=f"values {out_of_range} out of range [{spec['min']}, {spec['max']}] for {req.param}")
+    if not req.values:
+        raise HTTPException(status_code=400, detail="values must be non-empty")
+    if not req.trace_ids:
+        raise HTTPException(status_code=400, detail="trace_ids must be non-empty")
+    for tid in req.trace_ids:
+        try:
+            trace_abi = traces_mod.get_abi(tid)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"unknown trace: {tid}")
+        ref_id = req.reference_id or req.base
+        try:
+            ref_abi = controllers_mod.abi_of(ref_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"unknown controller: {ref_id}")
+        if trace_abi != ref_abi:
+            raise HTTPException(status_code=400, detail=(
+                f"ABI mismatch: trace {tid} is v{trace_abi}, reference={ref_id} is v{ref_abi}."))
+    config = {"base": req.base, "param": req.param, "values": req.values, "trace_ids": req.trace_ids,
+              "reference_id": req.reference_id}
+    exp_id = jobs.create_experiment("sweep", config)
+    return {"id": exp_id, "status": "queued"}
 
 
 @app.get("/api/experiments")

@@ -134,12 +134,66 @@ export interface CheckpointResult {
   reproduced_same_divergence?: boolean
 }
 
+export interface AllDecisionsDisagreement {
+  event_index: number
+  seq: number
+  callback: string
+  cascaded: boolean
+  diff_fields: string[]
+}
+
+export interface AllDecisionsResult {
+  trace_id: string
+  reference_id: string
+  candidate_id: string
+  mode: 'A' | 'B'
+  n_events: number
+  n_disagree: number
+  disagreement_rate: number
+  per_callback_checked: Record<string, number>
+  per_callback_disagree: Record<string, number>
+  first_disagreement_index: number | null
+  first_disagreement_seq: number | null
+  disagreements: AllDecisionsDisagreement[]
+  disagreements_truncated: boolean
+  delta_samples: { field: string; reference: number; candidate: number; delta: number }[]
+}
+
+export interface TunableSpec {
+  default: number
+  min: number
+  max: number
+  note: string
+}
+
+export interface SweepPoint {
+  param: string
+  value: number
+  trace_id: string
+  n_events?: number
+  n_disagree?: number
+  disagreement_rate?: number
+  median_abs_delta?: number | null
+  first_disagreement_seq?: number | null
+  error?: string
+}
+
+export interface SweepResult {
+  base: string
+  param: string
+  reference_id: string
+  default_value: number
+  values: number[]
+  trace_ids: string[]
+  points: SweepPoint[]
+}
+
 export interface Experiment {
   id: string
   type: string
   config: Record<string, unknown>
   status: 'queued' | 'running' | 'done' | 'error'
-  result: (DiffResult & CheckpointResult) | null
+  result: (DiffResult & CheckpointResult & AllDecisionsResult & SweepResult) | null
   error: string | null
   created_at: number
   started_at: number | null
@@ -183,11 +237,18 @@ export const api = {
       body: JSON.stringify({ name, abi_base: abiBase, code }),
     }),
   validateController: (id: string) => req<ValidationReport>(`/controllers/${id}/validate`, { method: 'POST' }),
-  createExperiment: (type: string, trace_id: string, reference: string, candidate: string, interval?: number) =>
+  createExperiment: (
+    type: string,
+    trace_id: string,
+    reference: string,
+    candidate: string,
+    interval?: number,
+    mode?: 'A' | 'B'
+  ) =>
     req<{ id: string; status: string }>('/experiments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, trace_id, reference, candidate, interval }),
+      body: JSON.stringify({ type, trace_id, reference, candidate, interval, mode }),
     }),
   getExperiment: (id: string) => req<Experiment>(`/experiments/${id}`),
   listExperiments: () => req<Experiment[]>('/experiments'),
@@ -197,6 +258,13 @@ export const api = {
       { method: 'POST' }
     ),
   exportUrl: (id: string, format: 'json' | 'md') => `${BASE}/experiments/${id}/export?format=${format}`,
+  getTunables: (base: string) => req<Record<string, TunableSpec>>(`/tunables/${base}`),
+  createSweep: (base: string, param: string, values: number[], trace_ids: string[], reference_id?: string) =>
+    req<{ id: string; status: string }>('/sweeps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ base, param, values, trace_ids, reference_id }),
+    }),
 }
 
 export async function pollExperiment(id: string, onUpdate?: (e: Experiment) => void): Promise<Experiment> {

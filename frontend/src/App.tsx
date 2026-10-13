@@ -5,6 +5,7 @@ import Traces from './pages/Traces'
 import TraceDetailPage from './pages/TraceDetail'
 import Controllers from './pages/Controllers'
 import Diff from './pages/Diff'
+import Sweep from './pages/Sweep'
 import History from './pages/History'
 
 const SEMANTIC_RULE =
@@ -37,6 +38,7 @@ export default function App() {
           <NavLink to="/traces">Traces</NavLink>
           <NavLink to="/controllers">Controllers</NavLink>
           <NavLink to="/diff">Diff</NavLink>
+          <NavLink to="/sweep">Sweep</NavLink>
           <NavLink to="/history">History</NavLink>
         </nav>
         <button className="theme-toggle" onClick={toggle}>
@@ -50,6 +52,7 @@ export default function App() {
           <Route path="/traces/:id" element={<TraceDetailPage />} />
           <Route path="/controllers" element={<Controllers />} />
           <Route path="/diff" element={<Diff />} />
+          <Route path="/sweep" element={<Sweep />} />
           <Route path="/history" element={<History />} />
         </Routes>
       </main>

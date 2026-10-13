@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { api, pollExperiment, type ControllerSummary, type Experiment, type TraceSummary } from '../api'
 import DivergenceCard from '../components/DivergenceCard'
 import ExportButtons from '../components/ExportButtons'
+import AllDecisionsPanel from '../components/AllDecisionsPanel'
 
 export default function Diff() {
   const [params] = useSearchParams()
@@ -16,6 +17,10 @@ export default function Diff() {
   const [exp, setExp] = useState<Experiment | null>(null)
   const [ckptExp, setCkptExp] = useState<Experiment | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [compareAll, setCompareAll] = useState(false)
+  const [allMode, setAllMode] = useState<'A' | 'B'>('A')
+  const [allExp, setAllExp] = useState<Experiment | null>(null)
+  const [allRunning, setAllRunning] = useState(false)
 
   useEffect(() => {
     api.listTraces().then(setTraces).catch((e) => setError(String(e)))
@@ -39,6 +44,7 @@ export default function Diff() {
     setError(null)
     setExp(null)
     setCkptExp(null)
+    setAllExp(null)
     if (!t || !r || !c) {
       setError('select a trace, reference, and candidate first')
       return
@@ -52,6 +58,23 @@ export default function Diff() {
       setError(String(e))
     } finally {
       setRunning(false)
+    }
+    if (compareAll) {
+      void runAllDecisions(t, r, c)
+    }
+  }
+
+  async function runAllDecisions(t = traceId, r = refId, c = candId) {
+    if (!t || !r || !c) return
+    setAllRunning(true)
+    try {
+      const { id } = await api.createExperiment('all_decisions', t, r, c, undefined, allMode)
+      const finished = await pollExperiment(id, setAllExp)
+      setAllExp(finished)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setAllRunning(false)
     }
   }
 
@@ -117,6 +140,16 @@ export default function Diff() {
           {running ? 'Running…' : 'Run diff'}
         </button>
         <p className="hint">{compatibleControllers.length} ABI-compatible controller(s) available for this trace.</p>
+        <div className="field-row">
+          <label>
+            <input type="checkbox" checked={compareAll} onChange={(e) => setCompareAll(e.target.checked)} />
+            {' '}Compare all decisions
+          </label>
+          <select value={allMode} onChange={(e) => setAllMode(e.target.value as 'A' | 'B')} disabled={!compareAll}>
+            <option value="A">Mode A (event-local)</option>
+            <option value="B">Mode B (stateful, cascaded)</option>
+          </select>
+        </div>
       </div>
 
       {error && <div className="error-box">{error}</div>}
@@ -160,6 +193,16 @@ export default function Diff() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {compareAll && allRunning && <p className="hint">Running all-decisions comparison…</p>}
+      {allExp?.status === 'error' && <div className="error-box">All-decisions comparison failed: {allExp.error}</div>}
+      {allExp?.status === 'done' && allExp.result && (
+        <div className="panel" data-testid="all-decisions-panel">
+          <h2>Compare all decisions</h2>
+          <AllDecisionsPanel result={allExp.result} />
+          <ExportButtons experimentId={allExp.id} />
         </div>
       )}
     </div>

@@ -277,6 +277,51 @@ def main():
             expect("incompatible-ABI controller option is disabled in the Diff picker", disabled is True, str(disabled))
         shot(page, "m3-diff-abi-refusal")
 
+        # M7: "Compare all decisions" toggle on the Diff page -- real engine
+        # call, exact precommitted values (see STUDIO_STATUS.md / scripts/
+        # studio_smoke.py for the same prediction verified at the engine level).
+        page.goto(BASE_URL + "/#/diff")
+        page.wait_for_timeout(500)
+        trace_select = page.locator("select").nth(0)
+        trace_select.select_option(label=cubic_rep1_label)
+        page.wait_for_timeout(300)
+        ref_select = page.locator("select").nth(1)
+        cubic_ref_label_m7 = next((o for o in ref_select.locator("option").all_inner_texts() if o.startswith("cubic ")), None)
+        ref_select.select_option(label=cubic_ref_label_m7)
+        page.wait_for_timeout(300)
+        cand_select = page.locator("select").nth(2)
+        bug_label = next((o for o in cand_select.locator("option").all_inner_texts() if "cubic_bug_ssthresh" in o), None)
+        expect("cubic_bug_ssthresh present in Diff candidate picker", bug_label is not None)
+        if bug_label:
+            cand_select.select_option(label=bug_label)
+        page.check("input[type=checkbox]")
+        page.wait_for_timeout(200)
+        page.click("button:has-text('Run diff')")
+        page.wait_for_selector("text=Compare all decisions", timeout=30000)
+        page.wait_for_timeout(1500)
+        all_decisions_text = page.locator("[data-testid=all-decisions-panel]").inner_text()
+        expect("all-decisions panel shows 14/78,688 disagreements",
+               "14" in all_decisions_text and "78,688" in all_decisions_text, all_decisions_text[:300])
+        expect("all-decisions panel shows ssthresh at 100% disagreement, others at 0%",
+               "ssthresh" in all_decisions_text and "100.00%" in all_decisions_text, all_decisions_text[:500])
+        shot(page, "m7-diff-all-decisions")
+
+        # M7: Sweep page -- real engine calls across 4 BETA values, default
+        # value (717) must show as a visible 0%-disagreement zero point.
+        page.goto(BASE_URL + "/#/sweep")
+        page.wait_for_selector("text=Sweep")
+        page.wait_for_timeout(800)
+        page.click("label:has-text('cubic_replay/primary/rep1')")
+        page.wait_for_timeout(300)
+        page.click("button:has-text('Run sweep')")
+        page.wait_for_selector("text=Table", timeout=30000)
+        page.wait_for_timeout(1000)
+        sweep_text = page.locator("body").inner_text()
+        expect("sweep table shows the default value marked explicitly", "(default)" in sweep_text, sweep_text[:500])
+        expect("sweep table shows BETA=819 -> seq 742 (matches the already-verified value)",
+               "742" in sweep_text, sweep_text[:500])
+        shot(page, "m7-sweep")
+
         # Controllers page: write a controller from the template, verify the
         # no-op default, then flip OFFSET and verify a real divergence (M4 done-when).
         page.goto(BASE_URL + "/#/controllers")
@@ -489,9 +534,13 @@ def main():
         # misleading "failed" or raise a bare 500 before this round's fixes.
         known_ids = {c["id"] for c in json.loads(fetch_text(BASE_URL + "/api/controllers"))}
         experiments = json.loads(fetch_text(BASE_URL + "/api/experiments"))
+        # Only diff/checkpoint/all_decisions configs have reference/candidate;
+        # sweep configs use a different schema (base/param/values/trace_ids)
+        # and are not controller-id references at all -- skip them here.
         dangling = [
             e["id"] for e in experiments
-            if e["config"].get("reference") not in known_ids or e["config"].get("candidate") not in known_ids
+            if "reference" in e["config"] and "candidate" in e["config"]
+            and (e["config"].get("reference") not in known_ids or e["config"].get("candidate") not in known_ids)
         ]
         expect("no pre-existing experiment references a deleted controller", len(dangling) == 0, str(dangling[:5]))
 
@@ -568,7 +617,8 @@ def main():
         experiments = json.loads(fetch_text(BASE_URL + "/api/experiments"))
         dangling = [
             e["id"] for e in experiments
-            if e["config"].get("reference") not in known_ids or e["config"].get("candidate") not in known_ids
+            if "reference" in e["config"] and "candidate" in e["config"]
+            and (e["config"].get("reference") not in known_ids or e["config"].get("candidate") not in known_ids)
         ]
         expect("no experiment references a deleted controller", len(dangling) == 0, str(dangling[:5]))
 

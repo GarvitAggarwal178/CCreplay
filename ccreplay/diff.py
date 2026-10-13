@@ -79,24 +79,25 @@ def _fields_for(ref_mod, v2_schema, cb, event, ref_computed):
     return ref_mod.COMPARISON_FIELDS[cb]
 
 
-def run_all_decisions(trace_id: str, ref_id: str, cand_id: str, mode: str = "A") -> dict:
-    """All-decisions comparison (M7, ADR-026): every event is compared, not
-    only up to the first divergence. Mode "A" (event-local): both ref and
-    cand run from the SAME recorded private PRE state for every event,
-    taken from the trace's ABI's built-in base module (not from either
-    controller's own copy -- see ADR-026). Mode "B" (stateful): each
-    controller's private state evolves from its own prior computed output,
-    same shape as diff_trace/ccreplay.diff.run_diff; every disagreement
-    after the first is labelled "cascaded" since Mode B does not reset
-    state at a divergence (ADR-026: this does not change ANY comparison
-    semantics from diff_trace, only whether the loop stops at the first
-    disagreement).
+def all_decisions_core(trace_path, trace_abi: int, ref_mod, cand_mod, mode: str) -> dict:
+    """The actual all-decisions event loop (M7, ADR-026): every event is
+    compared, not only up to the first divergence. Mode "A" (event-local):
+    both ref and cand run from the SAME recorded private PRE state for
+    every event, taken from the trace's ABI's built-in base module (not
+    from either controller's own copy -- see ADR-026). Mode "B" (stateful):
+    each controller's private state evolves from its own prior computed
+    output, same shape as diff_trace; every disagreement after the first is
+    labelled "cascaded" since Mode B does not reset state at a divergence.
+
+    Takes already-resolved/loaded `ref_mod`/`cand_mod` module objects
+    rather than controller ids, so it can be shared verbatim by
+    run_all_decisions (id-based, the normal path) and ccreplay.sweep
+    (which builds unregistered in-memory variants that have no id --
+    ADR-026/the sweep design explicitly keeps sweep variants out of the
+    controller registry, so there is nothing to look up by id).
     """
     if mode not in ("A", "B"):
         raise ValueError(f"mode must be 'A' or 'B', got {mode!r}")
-    trace_path, trace_abi = _resolve_and_check_abi(trace_id, ref_id, cand_id)
-    ref_mod = controllers_mod.load_controller(ref_id)
-    cand_mod = controllers_mod.load_controller(cand_id)
 
     hdr, events, select_dominant_connection, CALLBACK_NAMES = _detect_version_and_parse(str(trace_path))
     _, dominant_events, _ = select_dominant_connection(events)
@@ -112,7 +113,7 @@ def run_all_decisions(trace_id: str, ref_id: str, cand_id: str, mode: str = "A")
     cand_state = _initial_state(cand_mod) if mode == "B" else None
 
     n_events = len(dominant_events)
-    disagree_mask = [0] * n_events
+    n_disagree = 0
     per_callback_checked = {}
     per_callback_disagree = {}
     first_disagreement_index = None
@@ -139,7 +140,7 @@ def run_all_decisions(trace_id: str, ref_id: str, cand_id: str, mode: str = "A")
 
         per_callback_checked[cb_name] = per_callback_checked.get(cb_name, 0) + 1
         if diffs:
-            disagree_mask[idx] = 1
+            n_disagree += 1
             per_callback_disagree[cb_name] = per_callback_disagree.get(cb_name, 0) + 1
             cascaded = mode == "B" and first_disagreement_index is not None
             if first_disagreement_index is None:
@@ -154,11 +155,7 @@ def run_all_decisions(trace_id: str, ref_id: str, cand_id: str, mode: str = "A")
                     if isinstance(rv, (int, float)) and isinstance(cv, (int, float)) and not isinstance(rv, bool):
                         delta_samples.append({"field": f, "reference": rv, "candidate": cv, "delta": cv - rv})
 
-    n_disagree = sum(disagree_mask)
     return {
-        "trace_id": trace_id,
-        "reference_id": ref_id,
-        "candidate_id": cand_id,
         "mode": mode,
         "n_events": n_events,
         "n_disagree": n_disagree,
@@ -167,8 +164,25 @@ def run_all_decisions(trace_id: str, ref_id: str, cand_id: str, mode: str = "A")
         "per_callback_disagree": per_callback_disagree,
         "first_disagreement_index": first_disagreement_index,
         "first_disagreement_seq": dominant_events[first_disagreement_index]["seq"] if first_disagreement_index is not None else None,
-        "disagree_mask": disagree_mask,
+        # Sparse, not a dense per-event mask (which would be up to ~236k ints
+        # over the wire for a single response): "disagreements" already
+        # carries event_index/seq for every disagreement up to the cap,
+        # which is what the UI's strip chart plots.
         "disagreements": detailed,
         "disagreements_truncated": n_disagree > MAX_DETAILED_DISAGREEMENTS,
         "delta_samples": delta_samples,
     }
+
+
+def run_all_decisions(trace_id: str, ref_id: str, cand_id: str, mode: str = "A") -> dict:
+    """Id-based entry point: resolves trace/reference/candidate ids, checks
+    ABI compatibility, loads both controllers, then delegates to
+    all_decisions_core for the actual comparison (see its docstring)."""
+    trace_path, trace_abi = _resolve_and_check_abi(trace_id, ref_id, cand_id)
+    ref_mod = controllers_mod.load_controller(ref_id)
+    cand_mod = controllers_mod.load_controller(cand_id)
+    result = all_decisions_core(trace_path, trace_abi, ref_mod, cand_mod, mode)
+    result["trace_id"] = trace_id
+    result["reference_id"] = ref_id
+    result["candidate_id"] = cand_id
+    return result

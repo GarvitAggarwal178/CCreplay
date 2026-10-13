@@ -23,6 +23,12 @@ def main():
         if kind == "diff":
             from ccreplay.diff import run_diff
             result = run_diff(job["trace_id"], job["reference"], job["candidate"])
+        elif kind == "all_decisions":
+            from ccreplay.diff import run_all_decisions
+            result = run_all_decisions(job["trace_id"], job["reference"], job["candidate"], job.get("mode", "A"))
+        elif kind == "sweep":
+            from ccreplay.sweep import run_sweep
+            result = run_sweep(job["base"], job["param"], job["values"], job["trace_ids"], job.get("reference_id"))
         elif kind == "checkpoint":
             from ccreplay.checkpoint import run_checkpoint
             result = run_checkpoint(job["trace_id"], job["reference"], job["candidate"], job["interval"])

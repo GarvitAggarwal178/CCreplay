@@ -13,6 +13,7 @@ from ccreplay import traces as traces_mod
 from ccreplay import controllers as controllers_mod
 from ccreplay.diff import run_diff, run_all_decisions
 from ccreplay.checkpoint import run_checkpoint
+from ccreplay.sweep import run_sweep
 
 FAILURES = []
 CREATED_PARAM_IDS = []   # cleaned up at the end -- never a blanket wipe of studio_data/param_variants.json
@@ -197,6 +198,23 @@ def main():
     r = run_all_decisions(cubic_rep1, "cubic", cid_default, mode="A")
     expect("all-decisions BETA=717 (identical to the reference default): 0 disagreements",
            r["n_disagree"] == 0, str(r["n_disagree"]))
+
+    # Sweep: registry must stay untouched (sweep variants are in-memory only,
+    # never save_param_variant'd) -- checked by snapshotting both stores
+    # before and after a real sweep run.
+    params_before = dict(controllers_mod._param_store_load())
+    user_files_before = sorted(p.name for p in controllers_mod.USER_DIR.glob("*"))
+    sweep = run_sweep("cubic", "BETA", [512, 717, 819, 921], [cubic_rep1])
+    expect("sweep default value (717) == 0 disagreements (visible zero point)",
+           any(p["value"] == 717 and p["n_disagree"] == 0 for p in sweep["points"]), str(sweep["points"]))
+    expect("sweep BETA=819 matches the already-verified seq 742",
+           any(p["value"] == 819 and p["first_disagreement_seq"] == 742 for p in sweep["points"]),
+           str(sweep["points"]))
+    expect("sweep does not write to param_variants.json",
+           controllers_mod._param_store_load() == params_before, "registry changed after sweep")
+    expect("sweep does not write to controllers/user/",
+           sorted(p.name for p in controllers_mod.USER_DIR.glob("*")) == user_files_before,
+           "controllers/user/ changed after sweep")
 
     covegas_rep4 = None
     for tr in traces_mod.list_traces():
