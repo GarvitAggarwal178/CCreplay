@@ -1,0 +1,3 @@
+export default function Topology({ rate = 10, delay = 20, queue = 50000 }: { rate?: number; delay?: number; queue?: number }) {
+  return <div className="topology" aria-label="Sender through router to receiver"><div className="network-node"><b>Sender</b><span>Linux TCP socket</span></div><div className="network-link"><span>{delay} ms egress</span></div><div className="network-node router"><b>Bottleneck router</b><span>{rate} Mbit/s · {queue.toLocaleString()} bytes</span></div><div className="network-link"><span>{delay} ms ACK path</span></div><div className="network-node"><b>Receiver</b><span>Real TCP sink</span></div></div>
+}

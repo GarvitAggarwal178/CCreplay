@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Query
 from fastapi.responses import JSONResponse, PlainTextResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -102,7 +102,7 @@ def get_series(trace_id: str, fields: str, max_points: int = 4000,
 
 
 @app.get("/api/traces/{trace_id}/events")
-def get_events(trace_id: str, offset: int = 0, limit: int = 100, callback: str | None = None):
+def get_events(trace_id: str, offset: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500), callback: str | None = None):
     try:
         return traces_mod.get_events(trace_id, offset=offset, limit=limit, callback=callback)
     except KeyError as exc:
@@ -113,28 +113,18 @@ def get_events(trace_id: str, offset: int = 0, limit: int = 100, callback: str |
 async def upload_trace(file: UploadFile = File(...), meta: UploadFile | None = File(None)):
     if not file.filename.endswith(".ccr"):
         raise HTTPException(status_code=400, detail="file must have .ccr extension")
-    data = await file.read()
-    if data[:8] != b"CCRPLAY0":
-        raise HTTPException(status_code=400, detail="bad magic: not a CCReplay trace file")
-    safe_name = pathlib.Path(file.filename).name  # strip any directory components (path traversal)
-    if not safe_name or not safe_name.endswith(".ccr"):
-        raise HTTPException(status_code=400, detail="invalid filename")
-    dest = traces_mod.UPLOADS_DIR / safe_name
-    dest.write_bytes(data)
-    if meta is not None:
-        meta_data = await meta.read()
-        try:
-            json.loads(meta_data)
-        except Exception:
-            raise HTTPException(status_code=400, detail="meta file is not valid JSON")
-        (traces_mod.UPLOADS_DIR / (dest.stem + ".meta.json")).write_bytes(meta_data)
-    tid = traces_mod._slug(f"uploads/{safe_name}")
+    from ccreplay.recordings import import_bytes, MAX_UPLOAD
+    data = await file.read(MAX_UPLOAD + 1)
+    meta_data = await meta.read(131073) if meta else None
     try:
-        info = traces_mod.get_trace(tid)
+        if meta_data is not None and len(meta_data) > 131072:
+            raise ValueError("Metadata exceeds 128 KiB")
+        entry = import_bytes(data, meta_data, name=pathlib.Path(file.filename).name)
+        info = traces_mod.get_trace(entry["id"])
+        info.update(entry)
+        return info
     except Exception as exc:
-        dest.unlink(missing_ok=True)
-        raise HTTPException(status_code=400, detail=f"uploaded file failed to parse: {exc}")
-    return info
+        raise HTTPException(400, f"Upload rejected atomically: {exc}")
 
 
 @app.get("/api/controllers")
@@ -322,32 +312,13 @@ def rerun_experiment(exp_id: str):
     original = jobs.get_experiment(exp_id)
     if original is None:
         raise HTTPException(status_code=404, detail="unknown experiment id")
-    new_id = jobs.create_experiment(original["type"], original["config"])
-    deadline = time.time() + 130
-    while time.time() < deadline:
-        new_exp = jobs.get_experiment(new_id)
-        if new_exp["status"] in ("done", "error"):
-            break
-        time.sleep(0.2)
-    else:
-        new_exp = jobs.get_experiment(new_id)
-    same = (
-        original["status"] == "done" and new_exp["status"] == "done"
-        and original["result"] == new_exp["result"]
-    )
-    # same_as_original=false collapses two different situations the UI must
-    # not present identically: "both ran and produced different results" vs.
-    # "the rerun didn't finish/errored, so there's nothing to compare" (e.g.
-    # a controller deleted between the original run and the rerun). Surface
-    # the rerun's own error so the frontend can tell them apart -- showing
-    # "result differs from original" for a failed rerun would be exactly the
-    # fake-signal problem already fixed once for validation (ADR-025 spirit).
-    return {
-        "id": new_id,
-        "status": new_exp["status"],
-        "same_as_original": same,
-        "error": new_exp.get("error") if new_exp["status"] != "done" else None,
-    }
+    if original["type"] == "algorithm_workbench" and os.environ.get("CCREPLAY_DEMO_MODE") == "1":
+        raise HTTPException(403, "Custom algorithm execution requires the local application")
+    config = dict(original["config"])
+    if original["type"] == "algorithm_workbench" and original.get("result"):
+        config['_initialization_json'] = original['result'].get('initialization_json')
+    new_id = jobs.create_experiment(original["type"], config)
+    return {"id": new_id, "status": "queued", "same_as_original": None, "error": None}
 
 
 @app.get("/api/experiments/{exp_id}/export")
@@ -380,34 +351,22 @@ def export_experiment(exp_id: str, format: str = "json"):
     raise HTTPException(status_code=400, detail="format must be json or md")
 
 
-RESULTS_LAB_DIR = ROOT / "results" / "lab"
+from backend.algorithm_workbench import router as algorithm_workbench_router
+app.include_router(algorithm_workbench_router)
+from backend.replay import router as replay_router
+app.include_router(replay_router)
+from backend.lab import router as lab_router
+app.include_router(lab_router)
 
+@app.on_event("startup")
+def reconcile_jobs():
+    if os.geteuid() == 0:
+        raise RuntimeError("Studio must run as a normal user; only the separate lab agent runs as root")
+    jobs.reconcile()
 
-@app.get("/api/lab/capabilities")
-def lab_capabilities():
-    """Network Lab is deferred/unprivileged-only in this environment. This
-    always reports can_run_lab=false regardless of root status -- privileged
-    network operations (tc/ip netns/ethtool) are disabled here by explicit
-    project rule, not by a missing permission check. See
-    .autorun/SUDO_RUNBOOK.md for the manual steps a human owner would run.
-    Also lists any JSON result files already present under results/lab/ (a
-    real directory listing, not a fabricated one) so the Lab page's results
-    browser has something real to read without a second endpoint."""
-    is_root = os.geteuid() == 0
-    result_files: list[str] = []
-    if RESULTS_LAB_DIR.exists():
-        result_files = sorted(p.name for p in RESULTS_LAB_DIR.glob("*.json") if p.is_file())
-    return {
-        "is_root": is_root,
-        "can_run_lab": False,
-        "reason": (
-            "privileged network operations (tc, ip netns, ethtool) are disabled in this "
-            "environment regardless of root status; see .autorun/SUDO_RUNBOOK.md to run "
-            "them manually as a human operator"
-        ),
-        "result_files": result_files,
-    }
-
+@app.on_event("shutdown")
+def stop_workers():
+    jobs.shutdown()
 
 # --- static frontend (built by frontend/) -----------------------------------
 DIST_DIR = ROOT / "frontend" / "dist"

@@ -1,0 +1,7 @@
+# Apply LF to executable source on future additions/edits, not raw evidence.
+*.sh text eol=lf
+*.py text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf

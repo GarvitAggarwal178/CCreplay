@@ -1,99 +1,78 @@
-# CCReplay
+# CCReplay Studio
 
-## Deterministic Differential Replay for TCP Congestion Control
+Run real Linux TCP experiments, capture congestion-control callbacks and inspect exactly where two compatible controller revisions compute different results.
 
-CCReplay is a regression debugger for congestion-control implementations.
+**Live Network Lab** measures actual Linux sockets over owned namespaces/veth with NetEm, HTB and a FIFO queue. **Replay** computes controller decisions on fixed recorded inputs; it does not predict an alternate connection's throughput, RTT or queue trajectory.
 
-For the authoritative current project status and latest formal verdicts, see
-`docs/CURRENT_STATE.md`.
+The application uses the existing Python replay engine, FastAPI/SQLite and React/Vite. Four complete genuine recording families remain immediately usable offline. The interface contains Start, Network Lab, Replay, Controllers, Recordings, Runs and Advanced tools.
 
-A live Linux TCP connection is recorded at the congestion-control callback boundary. The trace contains the callback identity, relevant shared TCP boundary state, callback inputs, controller-private state where required, controller-visible time, and explicit callback results. A userspace engine then re-executes controller implementations against that recording.
+## Start from a normal-user checkout
 
-Instead of only showing that two versions produce different throughput or cwnd curves, CCReplay is designed to report:
-
-```text
-events 1..18,420  MATCH
-
-FIRST DIVERGENCE
-event:       18,421
-callback:    ssthresh
-
-reference result: 43
-candidate result: 31
-```
-
-## Architecture
-
-```text
-LIVE TCP CONNECTION
-        |
-        v
-CC callback boundary
-        |
-        v
-BPF wrapper / recorder
-        |
-        v
-versioned CCReplay trace
-        |
-        +-------------------+
-        |                   |
-        v                   v
-reference replay      candidate replay
-        |                   |
-        +---------+---------+
-                  |
-                  v
-       differential debugger
-                  |
-          first divergence
-```
-
-The kernel records the boundary that only the kernel can observe faithfully. Userspace performs replay and debugging because it offers repeatability, arbitrary state inspection, checkpoints, and fewer verifier constraints.
-
-## Important semantic boundary
-
-CCReplay replays a congestion-control implementation at its recorded Linux callback boundary. It does **not** replay the entire Linux TCP stack.
-
-Shared TCP state is injected from the trace at each callback. Controller-private state may evolve across callbacks in stateful replay.
-
-## What CCReplay does not predict
-
-Cross-implementation replay does not reconstruct an alternate network history. CCReplay does not claim alternate throughput, RTT, queue behavior, or that another CCA would have followed the replayed trajectory on a real connection.
-
-## Primary validation
-
-The central correctness requirement is:
-
-> **exact semantic self-replay under the declared Replay Contract and comparison oracle.**
-
-Reno is the first correctness target. CUBIC is the genericity gate because it introduces private historical state and controller-visible time.
-
-Start with `docs/PROJECT.md`, `docs/SEMANTICS.md`, `docs/REPLAY_ABI.md`, and `docs/GATES.md`.
-
-## Run CCReplay Studio
-
-CCReplay Studio is a local web app over the engine above: browse recorded traces, build a
-controller variant (parameters or Python code), diff it against a reference on real recorded
-inputs, see the first divergence, reproduce it from a checkpoint, and export the result. It does
-not change any replay semantics, model, or verdict above -- it only wraps `user/*.py` for
-interactive use (see ADR-025).
+Prerequisites: Python 3.12+ (verified here with 3.14.4), Node/npm compatible with `frontend/package-lock.json`, and the Python packages in `requirements-studio.txt`. Existing dependencies are already installed on this host. For a fresh checkout:
 
 ```sh
-python3 -m venv .venv && .venv/bin/pip install -r requirements-studio.txt
-cd frontend && npm ci && npm run build && cd ..
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-studio.txt
+(cd frontend && npm ci && npm run build)
+```
+
+Start Studio **without sudo**:
+
+```sh
 ./run_studio.sh
 # http://127.0.0.1:8000
 ```
 
-The backend binds `127.0.0.1` only. It should be run as a non-root user in normal use (the plan's
-"trusted local tool" posture assumes that); this development environment happens to run everything
-as `root` because the whole WSL session does, which is a property of the environment, not something
-the app enforces -- `./run_studio.sh` does not itself drop privileges or refuse to start as root.
-Controller code written in the editor
-runs locally in a child process with a timeout -- that bounds a slow/crashing run, it is not a
-security sandbox; the editor shows a one-time notice that it runs Python on your machine.
+For native networking/capture, in a second terminal from the original checkout:
 
-Smoke-check the engine wrappers without a browser: `.venv/bin/python scripts/studio_smoke.py`.
-End-to-end browser check (Playwright/Chromium, drives the real running app): `./run_studio.sh
---port 8765 --daemon && .venv/bin/python scripts/studio_e2e.py http://127.0.0.1:8765`.
+```sh
+sudo bash scripts/start_lab_agent.sh
+```
+
+The agent uses a private owner-only Unix socket. It creates and cleans only its own resources. The API, controller interpreter and custom traffic source run without root privileges. User Python is trusted local code, not a hostile-code sandbox.
+
+## This root-only WSL session
+
+This checkout lives under `/root` and no ordinary login account is configured. A prepared accessible copy is at `/var/tmp/ccreplay-studio`, owned by the existing non-root uid/gid 65534. No login account was created. From the current root terminal:
+
+```sh
+cd /var/tmp/ccreplay-studio
+setpriv --reuid=65534 --regid=65534 --clear-groups .venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
+```
+
+In a second root terminal:
+
+```sh
+cd /root/ccreplay
+CCREPLAY_OWNER_UID=65534 CCREPLAY_OWNER_GID=65534 bash scripts/start_lab_agent.sh
+```
+
+After source changes, refresh the prepared copy with:
+
+```sh
+cd /root/ccreplay
+.venv/bin/python scripts/prepare_unprivileged_workspace.py --uid 65534 --gid 65534 --dest /var/tmp/ccreplay-studio
+```
+
+**Canonical source is `/root/ccreplay`.** Edit and build there. The prepared copy is runtime only: new controller revisions live in `/var/tmp/ccreplay-studio/controllers/user/`, jobs/parameters in its `studio_data/`, and replay sessions, workloads and imported recordings in its `runtime/`. Agent capture artifacts live under `/tmp/ccreplay-lab-65534/session-*`. Refreshing preserves these owner files; do not edit the prepared source as a second authority.
+
+The helper copies known source and the existing environment, preserves destination saved runs, and leaves original owner data untouched. Run it while Studio is stopped. A changed replay dependency makes an old rerun refuse rather than silently substitute current code. A normal login user's home checkout is the preferred everyday setup; the numeric-uid route is the verified option for this existing root-only host.
+
+## Use the workbench
+
+- Start → investigate a controller change. Compare CUBIC with itself, then “Loss threshold +1.” Open the actual first difference and step through matched neighbors.
+- Controllers → **Compare two independent algorithms** opens `/#/algorithm-workbench`: import/edit two trusted Python policies using event-local or initialized stateful execution, supply synthetic or captured v0 callback inputs, and inspect computed decisions. Sources, compared inputs and initialization are saved with hashes; differences are neutral policy comparisons.
+- Controllers → edit a parameter or Python source → save a new immutable revision → compare it. Editing again never changes the earlier saved result.
+- Network Lab → start a native run; watch measured ACKed-data rate, cwnd, RTT and queue samples. Enable callback recording to qualify/run Recorded Reno, then open **that new recording** in Replay.
+- Save a traffic script in Network Lab to generate real single-flow TCP traffic. It is different from a replay controller script.
+- Runs → reopen results without execution, export identities and compare two separate native executions. Advanced retains parameter sweeps and all-decision statistics.
+
+See [demo](docs/DEMO.md), [development/setup/checks](docs/DEVELOPMENT.md), [architecture](docs/ARCHITECTURE.md), [contract](docs/REPLAY_CONTRACT.md), [validation/limits](docs/VALIDATION.md), and [provenance/archive restoration](docs/PROVENANCE.md).
+
+## Final review workflow
+
+Use Start → Network Lab → Runs & Compare for two separately executed native Reno/CUBIC runs. Capture must be off for native performance comparison. From a completed run, “Run the other algorithm with these settings” creates a draft; it never starts a second run automatically. Runs & Compare presents configured-condition checks before receiver goodput/retransmissions and all cursor-paged cwnd, RTT, ACKed-rate and queue samples.
+
+Use Recordings → Controllers → Replay for same-ABI revision investigation. Replay shows callback disagreement breadth, numeric magnitudes and computed timelines; first difference is a drill-down. Saved configuration and source hashes remain immutable. Advanced contains historical evidence, sweeps and the independent v0 policy sandbox.
+
+Start as a normal user with `bash run_studio.sh`; optionally start the owner-authorized network agent separately using `sudo bash scripts/start_lab_agent.sh`. Verify with `(cd frontend && npm run build && npm run lint)`, `.venv/bin/python -m pytest -q`, `.venv/bin/python scripts/studio_smoke.py`, `PATH="$PWD/.venv/bin:$PATH" bash scripts/demo/demo_00_run_all.sh`, and `.venv/bin/python scripts/studio_e2e.py http://127.0.0.1:8000`. Browser checks never initiate privileged live runs.

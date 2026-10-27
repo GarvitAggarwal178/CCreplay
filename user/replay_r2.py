@@ -80,6 +80,9 @@ def main():
         print(f"usage: {sys.argv[0]} <trace.ccr> <meta.json> [...]", file=sys.stderr)
         sys.exit(2)
 
+    from replay_scope import validation_scope
+    scope = validation_scope(args, 'r0')
+
     results = []
     for i in range(0, len(args), 2):
         results.append(run_r2_on_trace(args[i], args[i + 1]))
@@ -87,6 +90,7 @@ def main():
     overall_first_divergence = next((r["first_divergence"] for r in results if r["first_divergence"]), None)
 
     summary = {
+        "scope": scope,
         "gate": "R2",
         "pass": overall_first_divergence is None,
         "traces": [r["trace"] for r in results],

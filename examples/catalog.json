@@ -1,0 +1,422 @@
+{
+  "version": 1,
+  "recordings": [
+    {
+      "id": "raw__r0__rep1",
+      "path": "raw/r0/rep1.ccr",
+      "abi": 0,
+      "sha256": "933df98ca502d74154879b8857772c438df09501b3db8a7c33efc064c8e2f28f",
+      "family": [
+        {
+          "path": "raw/r0/rep1.ccr",
+          "sha256": "933df98ca502d74154879b8857772c438df09501b3db8a7c33efc064c8e2f28f",
+          "size_bytes": 3279024
+        },
+        {
+          "path": "raw/r0/rep1.meta.json",
+          "sha256": "0429de37a1d9cac1c3b101e162fb1bb32699ac539b152615f7d4924ecc761ae2",
+          "size_bytes": 482
+        },
+        {
+          "path": "raw/r0/rep1_bfifo_verify.json",
+          "sha256": "c8c2fe1b75bf86213407bfe757de3a2efe0480d26b2267ebc3ba23e63c77ae21",
+          "size_bytes": 211
+        },
+        {
+          "path": "raw/r0/rep1_bfifo_verify.txt",
+          "sha256": "08da2514eef929834a8f46ec801bc46bcf6b5bde6317f9318150a87e8a328e0d",
+          "size_bytes": 56
+        },
+        {
+          "path": "raw/r0/rep1_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/r0/rep1_iperf3.json",
+          "sha256": "427f985b674ef78a4e320a41d8fbec5d67c0490fb307fdf691e3aec1fac02c30",
+          "size_bytes": 13363
+        },
+        {
+          "path": "raw/r0/rep1_offloads.txt",
+          "sha256": "e1972b36e6efa7c9fd137a0410c7cb70df2b2e5850a226870d4119931ed62c44",
+          "size_bytes": 16058
+        },
+        {
+          "path": "raw/r0/rep1_qdisc_post.txt",
+          "sha256": "16efd515da19f99bca2e8a4d761453f88536601ff9f12f434b76417b6afd7410",
+          "size_bytes": 329
+        },
+        {
+          "path": "raw/r0/rep1_qdisc_setup.txt",
+          "sha256": "1b7f5798ec79b93ae71cbb06f130e27643ad3072b3b2b731330bf20a0c245bec",
+          "size_bytes": 1288
+        },
+        {
+          "path": "raw/r0/rep1_recorder_stderr.txt",
+          "sha256": "3c4f16347715346b2e9cacf81ea6ce454bed519f08d345c03f979f9c1d3fb655",
+          "size_bytes": 66
+        },
+        {
+          "path": "raw/r0/rep1_recorder_stdout.txt",
+          "sha256": "1482d81a1873599fad5107a72fa3cb8ab95e1afe411e3d821af198f41c3b2f7f",
+          "size_bytes": 9
+        },
+        {
+          "path": "raw/r0/rep1_server_start.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/r0/rep1_validation.json",
+          "sha256": "b3bf84a1d81f5ff9d250bb33a60458493b991729656bac192eaefe969389b28f",
+          "size_bytes": 1860
+        }
+      ]
+    },
+    {
+      "id": "raw__cubic_replay__primary__rep1",
+      "path": "raw/cubic_replay/primary/rep1.ccr",
+      "abi": 1,
+      "sha256": "795137b438ffbed1cf5d78e65ad03ba3bf243f5d54be9fda203739ac5d423a1b",
+      "family": [
+        {
+          "path": "raw/cubic_replay/primary/rep1.ccr",
+          "sha256": "795137b438ffbed1cf5d78e65ad03ba3bf243f5d54be9fda203739ac5d423a1b",
+          "size_bytes": 38400864
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1.meta.json",
+          "sha256": "285927962f57a5bb80b6b005db0758478f42869db40f2a0b6f3fa61d8a163281",
+          "size_bytes": 760
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_bfifo_verify.json",
+          "sha256": "c8c2fe1b75bf86213407bfe757de3a2efe0480d26b2267ebc3ba23e63c77ae21",
+          "size_bytes": 211
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_bfifo_verify.txt",
+          "sha256": "08da2514eef929834a8f46ec801bc46bcf6b5bde6317f9318150a87e8a328e0d",
+          "size_bytes": 56
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_iperf3.json",
+          "sha256": "499ee2759dfe12bdd21f6ee737dec788a57af66b5c50f5d7457fef6fd7b2ad1d",
+          "size_bytes": 13392
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_offloads.txt",
+          "sha256": "e1972b36e6efa7c9fd137a0410c7cb70df2b2e5850a226870d4119931ed62c44",
+          "size_bytes": 16058
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_qdisc_post.txt",
+          "sha256": "ac22b462881f0306c003d0d666a6d38152d9e20115e64cc24ee5ca9a6fa53ba7",
+          "size_bytes": 327
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_qdisc_setup.txt",
+          "sha256": "7ddb2ddb2b8ee8c9f2f03ef758a0c3de92b32e00c7147199041251af7fd9c295",
+          "size_bytes": 1290
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_recorder_stderr.txt",
+          "sha256": "795897294579fbe4cd398ab641e96c2c74fca8b790c0b5959bde9d142e685dda",
+          "size_bytes": 104
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_recorder_stdout.txt",
+          "sha256": "1482d81a1873599fad5107a72fa3cb8ab95e1afe411e3d821af198f41c3b2f7f",
+          "size_bytes": 9
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_server_start.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/cubic_replay/primary/rep1_validation.json",
+          "sha256": "ba4fe55d17191b4800ee7823cf58f775d612fc4df612b84114edadd8948b3629",
+          "size_bytes": 9220
+        }
+      ]
+    },
+    {
+      "id": "raw__covegas_replay__primary__rep1",
+      "path": "raw/covegas_replay/primary/rep1.ccr",
+      "abi": 2,
+      "sha256": "6440d6fe8b71ac9668aeac2d9fa7e7def2af4eaa4a08180f235cd9ff4d50457f",
+      "family": [
+        {
+          "path": "raw/covegas_replay/primary/rep1.ccr",
+          "sha256": "6440d6fe8b71ac9668aeac2d9fa7e7def2af4eaa4a08180f235cd9ff4d50457f",
+          "size_bytes": 39518064
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1.meta.json",
+          "sha256": "627d2710ec238b9a4491f3916cd1dccad2345434004a5bf9824a746fc1798d11",
+          "size_bytes": 723
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_bfifo_verify.json",
+          "sha256": "c8c2fe1b75bf86213407bfe757de3a2efe0480d26b2267ebc3ba23e63c77ae21",
+          "size_bytes": 211
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_bfifo_verify.txt",
+          "sha256": "08da2514eef929834a8f46ec801bc46bcf6b5bde6317f9318150a87e8a328e0d",
+          "size_bytes": 56
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_covegas_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_covegas_iperf3.json",
+          "sha256": "b2435b2f35dc56c63b088575871b404bf32ea54d5c1021b62a47af11789392f4",
+          "size_bytes": 76169
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep1_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep1_iperf3.json",
+          "sha256": "51fac285788cbb17525bacdb0bad7c9e7b7614c1e55158c11113b717aa533d6f",
+          "size_bytes": 14578
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep1_start_ts.txt",
+          "sha256": "1d936e2acb1070761739254909627049d6a6d82ca6dbec547257e46cbbcfcafe",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep1_stop_ts.txt",
+          "sha256": "e739232b2f65c143923dce2f8613a96380cbed241647e8a37d4b341be32a9297",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep2_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep2_iperf3.json",
+          "sha256": "f2cdb2a04ac96c426bf4a819db5ac8b100b136f312d401eb2afdb4d8cbe64898",
+          "size_bytes": 14551
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep2_start_ts.txt",
+          "sha256": "523870125d05fab046eb71a5cbe0ac70e648ca08627c1e698305ed148d477a09",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep2_stop_ts.txt",
+          "sha256": "333bde91736e09b71febde86b530204da3453d504feda101fae1ad81bb63d79a",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep3_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep3_iperf3.json",
+          "sha256": "3270d26bd653545bd0c76380efa30a8cf87412a747da9c73ec6e6c775af9f9f7",
+          "size_bytes": 14583
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep3_start_ts.txt",
+          "sha256": "556985c689b30f7f491a86153c377ea29b0414385fcbec00e2843cbc140d545a",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_cubic_rep3_stop_ts.txt",
+          "sha256": "54cd581e82b47e1bec748394311abb669ed8d696abfafa9777173864d6f8d72a",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_driver_log.txt",
+          "sha256": "3e5747a8a5f6833302738f836bfe44c26e1049d7068f9b547c531d4a90b6c4fc",
+          "size_bytes": 1000
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_offloads.txt",
+          "sha256": "e1972b36e6efa7c9fd137a0410c7cb70df2b2e5850a226870d4119931ed62c44",
+          "size_bytes": 16058
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_qdisc_setup.txt",
+          "sha256": "db2f1c7ad53d6fa1918e9c401140e416b79c64fc411330bae59e02fe57c00696",
+          "size_bytes": 1289
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_recorder_stderr.txt",
+          "sha256": "b3147c2381b0ef1d81cf4b7956a561d963afd29965fb4e8ba2c8325a26d3e4f7",
+          "size_bytes": 66
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_recorder_stdout.txt",
+          "sha256": "1482d81a1873599fad5107a72fa3cb8ab95e1afe411e3d821af198f41c3b2f7f",
+          "size_bytes": 9
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_server1_start.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_server2_start.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_replay/primary/rep1_validation.json",
+          "sha256": "ecbe08b7d1cb7e2e30daf6d7efcf11469d6e1efe077ac44a0fefd33c6946255b",
+          "size_bytes": 7248
+        }
+      ]
+    },
+    {
+      "id": "raw__covegas_campaign__rep4",
+      "path": "raw/covegas_campaign/rep4.ccr",
+      "abi": 2,
+      "sha256": "1aeabe0283e3f0a52936391dde18ec86093c524b4f90cad319b901ef067d65de",
+      "family": [
+        {
+          "path": "raw/covegas_campaign/rep4.ccr",
+          "sha256": "1aeabe0283e3f0a52936391dde18ec86093c524b4f90cad319b901ef067d65de",
+          "size_bytes": 42697344
+        },
+        {
+          "path": "raw/covegas_campaign/rep4.meta.json",
+          "sha256": "bfc846150356419a0948b21d031306ea48a12cfaf7094f238cf582330e742487",
+          "size_bytes": 724
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_bfifo_verify.json",
+          "sha256": "c8c2fe1b75bf86213407bfe757de3a2efe0480d26b2267ebc3ba23e63c77ae21",
+          "size_bytes": 211
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_bfifo_verify.txt",
+          "sha256": "08da2514eef929834a8f46ec801bc46bcf6b5bde6317f9318150a87e8a328e0d",
+          "size_bytes": 56
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_covegas_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_covegas_iperf3.json",
+          "sha256": "9842a433dfd80087fc6dcc63fed652c507e2f13d343376533f44deb68f87d51a",
+          "size_bytes": 76167
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep1_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep1_iperf3.json",
+          "sha256": "42b8417a929fb57474a9393bf81aaa34396242cb5791920b53f8eef04cd6e5d0",
+          "size_bytes": 14558
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep1_start_ts.txt",
+          "sha256": "8fd34797fdec6094d5ae85bb40a9c54ff4a42113a105f5e8fb52980f7ba48a87",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep1_stop_ts.txt",
+          "sha256": "f9f5f86df101daa8e395e65e4451c466bf53152adabb7563b5df760f78d97281",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep2_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep2_iperf3.json",
+          "sha256": "f97d031f5969b110c0f2273d71c509f36119b52a99d9e6f1e1f5e50d050094f0",
+          "size_bytes": 14558
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep2_start_ts.txt",
+          "sha256": "c117bdb22c3b708c02953fd094812926f6103085264225a15a805636edb9a123",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep2_stop_ts.txt",
+          "sha256": "6d318fdb153a17a8a42c04985ff0d1ef98c8933546b926eb7b9f028b0aca6c95",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep3_iperf3.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep3_iperf3.json",
+          "sha256": "1036fd986bd103f48f4f62fb55b1adc007cc4a282829756f36dc8a4fca847450",
+          "size_bytes": 14587
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep3_start_ts.txt",
+          "sha256": "00e044389db515bd343265513d55c8bcb218dacc6c6f10a853a5099d08f70aaf",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_cubic_rep3_stop_ts.txt",
+          "sha256": "42f0d98c7b43e9b2c491d12065287814eea7c2dac43e549daa76434a6e1014ef",
+          "size_bytes": 21
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_offloads.txt",
+          "sha256": "5231e1570209e1ac6fe6d96a419c0f0590047d57c87620a0885d99010f23a4d4",
+          "size_bytes": 14762
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_qdisc_setup.txt",
+          "sha256": "6833b390ede6ec3596a1e2d4735e95b0c93dd3e93750f1fd0c1ff5cc6c299167",
+          "size_bytes": 1289
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_recorder_stderr.txt",
+          "sha256": "99ace1c4ef76dbfcd5c98346e039b33466eb78c4b3c9c30ad48c2c7d96faf901",
+          "size_bytes": 66
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_recorder_stdout.txt",
+          "sha256": "1482d81a1873599fad5107a72fa3cb8ab95e1afe411e3d821af198f41c3b2f7f",
+          "size_bytes": 9
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_server1_start.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_server2_start.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size_bytes": 0
+        },
+        {
+          "path": "raw/covegas_campaign/rep4_validation.json",
+          "sha256": "bd89c85af4cc5858cf43f3ffffc5424e6b9f357f369bdfe04eaf07c566bf6604",
+          "size_bytes": 7261
+        }
+      ]
+    }
+  ]
+}

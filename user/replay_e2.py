@@ -128,6 +128,9 @@ def main():
         print(f"usage: {sys.argv[0]} <trace.ccr> <meta.json> [...]", file=sys.stderr)
         sys.exit(2)
 
+    from replay_scope import validation_scope
+    scope = validation_scope(args, 'covegas_replay/primary')
+
     results = [run_e2_on_trace(args[i], args[i + 1]) for i in range(0, len(args), 2)]
 
     total_checked = sum(r["n_checked"] for r in results)
@@ -140,6 +143,7 @@ def main():
     total_ktime_stable_mismatched = sum(r["ktime_stable_mismatched"] for r in results)
 
     summary = {
+        "scope": scope,
         "gate": "E2",
         "pass": total_mismatches == 0,
         "pass_jiffies_stable_only": total_jiffies_stable_mismatched == 0,

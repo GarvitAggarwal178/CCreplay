@@ -80,9 +80,9 @@ def main():
     expect("seeded bug kind == result (M2 done-when)", r.get("kind") == "result", str(r.get("kind")))
 
     ck = run_checkpoint(cubic_rep1, "cubic", "cubic_bug_ssthresh", 500)
-    expect("checkpoint @ event 1500", ck["nearest_checkpoint"]["event_index"] == 1500,
+    expect("checkpoint @ event 1500", ck["nearest_checkpoint"]["next_event_index"] == 1500,
            str(ck.get("nearest_checkpoint")))
-    expect("checkpoint suffix length 204", ck["suffix_length"] == 204, str(ck.get("suffix_length")))
+    expect("checkpoint suffix length 205 (1500..1704 inclusive)", ck["suffix_length"] == 205, str(ck.get("suffix_length")))
     expect("checkpoint reproduced identical divergence", ck["reproduced_same_divergence"] is True,
            str(ck["reproduced_same_divergence"]))
 

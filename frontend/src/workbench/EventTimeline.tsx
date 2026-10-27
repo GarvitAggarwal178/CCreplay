@@ -1,0 +1,4 @@
+import type { EventRow } from './api'
+export default function EventTimeline({events,selected,onSelect}:{events:EventRow[];selected:number;onSelect:(index:number)=>void}) {
+ return <section className="panel"><div className="controls"><h2>Exact nearby event timeline</h2><span className="hint">Callback lane · difference lane · selected underline</span></div><div className="event-timeline" role="group" aria-label="Exact computed callback timeline">{events.map(e=><button key={e.index} aria-pressed={e.index===selected} aria-label={`Recorded seq ${e.seq}, ${e.callback}, ${e.differs?'difference':'match'}`} onClick={()=>onSelect(e.index)}><span className="callback-tick">{e.callback}</span><span className={e.differs?'diff-tick':'match-tick'}>{e.differs?'≠ differs':'= match'}</span><span>{e.seq}</span></button>)}</div></section>
+}

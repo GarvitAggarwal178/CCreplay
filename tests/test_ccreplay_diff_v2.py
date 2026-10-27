@@ -140,12 +140,14 @@ class TestV2CheckpointReproducer(unittest.TestCase):
         self.assertEqual(first_div["callback"], "cong_avoid")
         D = first_div["event_index"]
         ck = nearest_checkpoint_at_or_before(ckpts, D)
-        self.assertLessEqual(ck["event_index"], D)
+        self.assertLessEqual(ck["next_event_index"], D)
         sd = replay_suffix_from_checkpoint(ck, dom, v4, v3, D)
         self.assertIsNotNone(sd)
         self.assertEqual(sd["event_index"], D)
         self.assertEqual(sd["seq"], first_div["seq"])
         self.assertEqual(sd["diff_fields"], first_div["diff_fields"])
+        from user.ccreplay_checkpoint import same_divergence
+        self.assertTrue(same_divergence(first_div, sd))
 
     def test_cubic_n6_checkpoint_regression_unchanged(self):
         import user.cubic_model as cubic
@@ -159,10 +161,12 @@ class TestV2CheckpointReproducer(unittest.TestCase):
         self.assertEqual(first_div["seq"], 1705)
         D = first_div["event_index"]
         ck = nearest_checkpoint_at_or_before(ckpts, D)
-        self.assertEqual(ck["event_index"], 1500)
+        self.assertEqual(ck["next_event_index"], 1500)
         sd = replay_suffix_from_checkpoint(ck, dom, cubic, bug, D)
         self.assertEqual(sd["event_index"], 1704)
-        self.assertEqual(D - ck["event_index"], 204)
+        # state before event 1500, resume 1500..1704 inclusive: 205 transitions,
+        # including the failing event (the former 204 skipped event 1500).
+        self.assertEqual(D - ck["next_event_index"] + 1, 205)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import ProvenanceTag from '../components/ProvenanceTag'
+import { Link, useParams } from 'react-router-dom'
 import type { Shape } from 'plotly.js-dist-min'
 import { api, type EventsResponse, type SeriesResponse, type TraceDetail as TraceDetailT } from '../api'
+import { request } from '../workbench/api'
 import Chart from '../components/Chart'
 import { fmtBytes, fmtDuration, fmtNum } from '../lib/format'
 
@@ -55,11 +57,17 @@ export default function TraceDetailPage() {
   const [drawer, setDrawer] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const pageSize = 25
+  const [recordedSeq,setRecordedSeq]=useState('')
+  const [lookupError,setLookupError]=useState('')
+  async function lookup(){setLookupError('');try{const row=await request<{index:number;event:Record<string,unknown>}>(`/traces/${id}/event?seq=${encodeURIComponent(recordedSeq)}`);setCallbackFilter('');setPage(Math.floor(row.index/pageSize));setDrawer(row.event)}catch(e){setLookupError(String(e))}}
 
   useEffect(() => {
     if (!id) return
     setDetail(null)
     setSeries(null)
+    setError(null)
+    setPage(0)
+    setDrawer(null)
     api.getTrace(id).then(setDetail).catch((e) => setError(String(e)))
   }, [id])
 
@@ -91,7 +99,7 @@ export default function TraceDetailPage() {
 
   return (
     <div>
-      <h1 className="mono">{detail.path}</h1>
+      <h1 className="mono">{detail.path}</h1><ProvenanceTag kind="recorded" text="dominant socket callback observations"/><p><Link className="button primary" to={'/replay?trace='+id}>Compare this recording</Link></p><p className="hint">Recording {detail.id} · {detail.integrity||(!detail.meta?'Integrity unknown · no sidecar':'See metadata integrity')} · {detail.n_dominant_events} dominant callbacks · {detail.duration_s??'unknown'} seconds. Recorded PRE and kernel POST are observations, separate from computed replay.</p>
       <div className="grid-2">
         <div className="panel">
           <h2>Trace metadata</h2>
@@ -132,12 +140,64 @@ export default function TraceDetailPage() {
           <p className="hint">{detail.other_connections?.note}</p>
         </div>
         <div className="panel">
-          <h2>meta.json</h2>
+          <details><summary>Raw metadata, drops and integrity</summary>
           <pre className="mono" style={{ fontSize: '0.78rem', overflow: 'auto', maxHeight: 260 }}>
             {JSON.stringify(detail.meta, null, 2)}
-          </pre>
+          </pre></details>
         </div>
       </div>
+
+      {series && (
+        <div className="panel">
+          <h2>cwnd / ssthresh vs time</h2>
+          <Chart
+            traces={[
+              { x: series.t, y: series.series['pre_snd_cwnd'], name: 'snd_cwnd' },
+              { x: series.t, y: ssthreshClipped || [], name: 'snd_ssthresh (clipped)' },
+            ]}
+            shapes={detail.abi === 2 ? modeShapes(series.t, series.series['priv_pre_mode'] || []) : undefined}
+            xLabel="t (s)"
+            yLabel="segments"
+            caption={`trace ${detail.id} · sha ${detail.sha256?.slice(0, 8)} · recorded data${hasInfinite ? ' · ssthresh shown as "∞" clipped to null before first loss' : ''}${detail.abi === 2 ? ' · shaded bands: DELAY (blue) / COMPETE (red)' : ''}`}
+          />
+          {detail.abi === 1 && (
+            <>
+              <details><summary>CUBIC private observations · W_max / bic_K</summary>
+              <Chart
+                traces={[
+                  { x: series.t, y: series.series['priv_pre_last_max_cwnd'] || [], name: 'last_max_cwnd (W_max)' },
+                  { x: series.t, y: series.series['priv_pre_bic_K'] || [], name: 'bic_K', yaxis: 'y2' },
+                ]}
+                xLabel="t (s)"
+                yLabel="W_max"
+                y2Label="bic_K"
+                caption={`trace ${detail.id} · recorded data`}
+              /></details>
+            </>
+          )}
+          {(detail.abi === 1 || detail.abi === 2) && (
+            <>
+              <h2>RTT samples</h2>
+              <Chart
+                traces={[
+                  {
+                    x: series.t,
+                    y:
+                      detail.abi === 1
+                        ? series.series['in_sample_rtt_us'] || []
+                        : (series.series['pre_srtt_us'] || []).map((v) => (v === null ? null : v >> SRTT_SHIFT)),
+                    name: detail.abi === 1 ? 'sample_rtt_us' : 'srtt_us (>>3)',
+                    mode: detail.abi === 1 ? 'markers' : 'lines',
+                  },
+                ]}
+                xLabel="t (s)"
+                yLabel="µs"
+                caption={`trace ${detail.id} · recorded data${detail.abi === 1 ? ' · only present on pkts_acked events with a real sample' : ' · raw tp->srtt_us is stored <<3; shown here right-shifted back to microseconds'}`}
+              />
+            </>
+          )}
+        </div>
+      )}
 
       <div className="panel">
         <h2>Callback mix</h2>
@@ -173,60 +233,8 @@ export default function TraceDetailPage() {
         </table>
       </div>
 
-      {series && (
-        <div className="panel">
-          <h2>cwnd / ssthresh vs time</h2>
-          <Chart
-            traces={[
-              { x: series.t, y: series.series['pre_snd_cwnd'], name: 'snd_cwnd' },
-              { x: series.t, y: ssthreshClipped || [], name: 'snd_ssthresh (clipped)' },
-            ]}
-            shapes={detail.abi === 2 ? modeShapes(series.t, series.series['priv_pre_mode'] || []) : undefined}
-            xLabel="t (s)"
-            yLabel="segments"
-            caption={`trace ${detail.id} · sha ${detail.sha256?.slice(0, 8)} · recorded data${hasInfinite ? ' · ssthresh shown as "∞" clipped to null before first loss' : ''}${detail.abi === 2 ? ' · shaded bands: DELAY (blue) / COMPETE (red)' : ''}`}
-          />
-          {detail.abi === 1 && (
-            <>
-              <h2>CUBIC W_max / bic_K</h2>
-              <Chart
-                traces={[
-                  { x: series.t, y: series.series['priv_pre_last_max_cwnd'] || [], name: 'last_max_cwnd (W_max)' },
-                  { x: series.t, y: series.series['priv_pre_bic_K'] || [], name: 'bic_K', yaxis: 'y2' },
-                ]}
-                xLabel="t (s)"
-                yLabel="W_max"
-                y2Label="bic_K"
-                caption={`trace ${detail.id} · recorded data`}
-              />
-            </>
-          )}
-          {(detail.abi === 1 || detail.abi === 2) && (
-            <>
-              <h2>RTT samples</h2>
-              <Chart
-                traces={[
-                  {
-                    x: series.t,
-                    y:
-                      detail.abi === 1
-                        ? series.series['in_sample_rtt_us'] || []
-                        : (series.series['pre_srtt_us'] || []).map((v) => (v === null ? null : v >> SRTT_SHIFT)),
-                    name: detail.abi === 1 ? 'sample_rtt_us' : 'srtt_us (>>3)',
-                    mode: detail.abi === 1 ? 'markers' : 'lines',
-                  },
-                ]}
-                xLabel="t (s)"
-                yLabel="µs"
-                caption={`trace ${detail.id} · recorded data${detail.abi === 1 ? ' · only present on pkts_acked events with a real sample' : ' · raw tp->srtt_us is stored <<3; shown here right-shifted back to microseconds'}`}
-              />
-            </>
-          )}
-        </div>
-      )}
-
       <div className="panel">
-        <h2>Events</h2>
+        <h2>Recorded callbacks</h2><form className="controls" onSubmit={e=>{e.preventDefault();void lookup()}}><label>Recorded sequence<input value={recordedSeq} onChange={e=>setRecordedSeq(e.target.value)}/></label><button>Inspect sequence</button></form>{lookupError&&<p role="alert" className="error">{lookupError}</p>}
         <div className="field-row">
           <label>Callback filter</label>
           <select value={callbackFilter} onChange={(e) => { setCallbackFilter(e.target.value); setPage(0) }}>
@@ -270,7 +278,7 @@ export default function TraceDetailPage() {
                 <td className="mono">{String(e.result)}</td>
                 <td>
                   <button className="btn btn-secondary" onClick={() => setDrawer(e)}>
-                    JSON
+                    Inspect PRE / input / POST
                   </button>
                 </td>
               </tr>
@@ -282,7 +290,7 @@ export default function TraceDetailPage() {
       {drawer && (
         <div className="panel" style={{ position: 'fixed', right: 20, bottom: 20, maxWidth: 420, maxHeight: '60vh', overflow: 'auto', zIndex: 20 }}>
           <div className="field-row">
-            <b>Event JSON</b>
+            <b>Recorded event · raw PRE / input / POST</b>
             <button className="btn btn-secondary" onClick={() => setDrawer(null)}>
               close
             </button>

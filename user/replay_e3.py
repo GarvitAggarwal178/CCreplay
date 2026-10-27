@@ -95,6 +95,9 @@ def main():
         print(f"usage: {sys.argv[0]} <trace.ccr> <meta.json> [...]", file=sys.stderr)
         sys.exit(2)
 
+    from replay_scope import validation_scope
+    scope = validation_scope(args, 'covegas_replay/primary')
+
     results = [run_e3_on_trace(args[i], args[i + 1]) for i in range(0, len(args), 2)]
 
     overall_first_divergence = next((r["first_divergence"] for r in results if r["first_divergence"]), None)
@@ -119,6 +122,7 @@ def main():
             clock_attribution = "NEITHER_AMBIGUOUS_UNEXPLAINED"
 
     summary = {
+        "scope": scope,
         "gate": "E3",
         "pass": overall_first_divergence is None,
         "traces": [r["trace"] for r in results],

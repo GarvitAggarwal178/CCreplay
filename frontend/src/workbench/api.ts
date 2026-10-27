@@ -1,0 +1,14 @@
+export const request = async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
+  const r = await fetch('/api' + path, init)
+  if (!r.ok) { const body = await r.json().catch(() => ({ detail: r.statusText })); throw new Error(typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)) }
+  return r.json()
+}
+export const post = <T,>(path: string, body: unknown = {}) => request<T>(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+export type Fields = Record<string, number | string | boolean | null>
+export type Revision = { id: string; abi: number; sha256: string; source: string; params?: unknown }
+export type Session = { id: string; status: string; error?: string; created_at: string; parent_run_id?: string; progress: { processed: number; total: number | null; phase: string }; config: { trace_id: string; trace_path?: string; trace_sha256: string; abi: number; mode: 'A' | 'B'; reference: Revision; candidate: Revision }; summary?: { n_events: number; n_disagree: number; matched_prefix: number; first_difference: { event_index: number; seq: string; callback: string } | null; callback_counts: Record<string, number>; differences_by_callback?: Record<string, number>; comparison_profile_v1?: {types: Record<string, number>; metrics: Record<string, {count:number;changed:number;min_delta:number;max_delta:number;mean_absolute_delta:number;max_absolute_delta:number;unit:string}>} } }
+export type EventRow = { index: number; seq: string; callback: string; t_s: number; differs: boolean; cascaded: boolean }
+export type EventDetail = { index: number; seq: string; callback: string; recorded: Fields; fields: string[]; diff_fields: string[]; cascaded: boolean; clock: Record<string, string>; reference: { computed: Fields; private_pre: Fields | null; private_post: Fields | null }; candidate: { computed: Fields; private_pre: Fields | null; private_post: Fields | null }; source: Record<'reference'|'candidate', { source: string; function: string; start_line: number; end_line: number; parameters?: unknown }> }
+export const label = (id: string) => ({ cubic: 'CUBIC · reference', reno: 'Reno · reference', covegas: 'CoVegas · reference', cubic_bug_ssthresh: 'Loss threshold +1 · seeded example', covegas_v3_latch: 'CoVegas · reconstructed v3' }[id] || id)
+export const traceName = (path: string) => path === 'raw/r0/rep1.ccr' ? 'Reno baseline' : path === 'raw/cubic_replay/primary/rep1.ccr' ? 'CUBIC loss-threshold example' : path === 'raw/covegas_campaign/rep4.ccr' ? 'CoVegas mode regression' : path === 'raw/covegas_replay/primary/rep1.ccr' ? 'CoVegas baseline' : path.split('/').slice(-2).join(' / ')
+export const active = (status: string) => ['queued','running','preparing','attaching','stopping','finalizing','validating'].includes(status)

@@ -20,7 +20,25 @@ def main():
 
     try:
         kind = job["type"]
-        if kind == "diff":
+        if job.get("_capsule"):
+            from ccreplay import controllers, revisions
+            from ccreplay.storage import digest
+            cap = job["_capsule"]
+            if digest(cap["trace_path"]) != cap["trace_sha256"]:
+                raise ValueError("Recording hash changed since submission")
+            previous_loader = controllers.load_controller
+            frozen = {job[side]: cap[side] for side in ("reference","candidate")}
+            controllers.load_controller = lambda cid: revisions.load(frozen[cid]) if cid in frozen else previous_loader(cid)
+        if kind == "algorithm_workbench":
+            from ccreplay.teaching_workbench import run_job
+            result = run_job(job)
+        elif kind == "replay":
+            from ccreplay.replay_session import run
+            result = run(job["session_id"])
+        elif kind == "session_checkpoint":
+            from ccreplay.replay_session import checkpoint
+            result = checkpoint(job["session_id"], job["interval"])
+        elif kind == "diff":
             from ccreplay.diff import run_diff
             result = run_diff(job["trace_id"], job["reference"], job["candidate"])
         elif kind == "all_decisions":

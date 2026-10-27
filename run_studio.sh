@@ -4,6 +4,12 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+if [[ "$(id -u)" == 0 ]]; then
+  echo 'Studio must run as a normal user. Only scripts/start_lab_agent.sh uses sudo.' >&2
+  echo 'This checkout is under /root; copy it to your normal user’s home before startup. See docs/DEVELOPMENT.md.' >&2
+  exit 2
+fi
+
 PORT=8000
 DAEMON=0
 STOP=0

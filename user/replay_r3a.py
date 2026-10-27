@@ -136,6 +136,9 @@ def main():
         print(f"usage: {sys.argv[0]} <trace.ccr> <meta.json> [...]", file=sys.stderr)
         sys.exit(2)
 
+    from replay_scope import validation_scope
+    scope = validation_scope(args, 'cubic_replay/primary')
+
     results = []
     for i in range(0, len(args), 2):
         results.append(run_r3a_on_trace(args[i], args[i + 1]))
@@ -152,6 +155,7 @@ def main():
     total_clock_ambiguous_mismatched = sum(r["clock_ambiguous_mismatched"] for r in results)
 
     summary = {
+        "scope": scope,
         "gate": "R3A",
         # PASS is defined over CLOCK_STABLE events, per the clock-window
         # hazard investigation (data/cubic_replay_capability_audit.md):

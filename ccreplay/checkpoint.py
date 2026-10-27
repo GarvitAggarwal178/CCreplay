@@ -2,6 +2,7 @@
 import ccreplay  # noqa: F401
 from user.ccreplay_checkpoint import (
     run_with_checkpoints, nearest_checkpoint_at_or_before, replay_suffix_from_checkpoint,
+    same_divergence, suffix_length,
 )
 
 from ccreplay import controllers as controllers_mod
@@ -52,16 +53,11 @@ def run_checkpoint(trace_id: str, ref_id: str, cand_id: str, interval: int) -> d
     D = first_divergence["event_index"]
     ckpt = nearest_checkpoint_at_or_before(checkpoints, D)
     suffix_divergence = replay_suffix_from_checkpoint(ckpt, dominant_events, ref_mod, cand_mod, D)
-    reproduced = (
-        suffix_divergence is not None
-        and suffix_divergence["event_index"] == D
-        and suffix_divergence["seq"] == first_divergence["seq"]
-        and suffix_divergence["diff_fields"] == first_divergence["diff_fields"]
-    )
+    reproduced = same_divergence(first_divergence, suffix_divergence)
     result.update({
         "result": "DIVERGENCE",
-        "nearest_checkpoint": {"event_index": ckpt["event_index"], "seq": ckpt["seq"]},
-        "suffix_length": D - ckpt["event_index"],
+        "nearest_checkpoint": {"next_event_index": ckpt["next_event_index"], "next_seq": ckpt["next_seq"]},
+        "suffix_length": suffix_length(ckpt, D),
         "suffix_replay_divergence": suffix_divergence,
         "reproduced_same_divergence": reproduced,
     })

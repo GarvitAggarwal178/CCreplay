@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import Plotly from 'plotly.js-dist-min'
+import { useEffect, useRef, useState } from 'react'
+
 import type { Data, Layout, Shape } from 'plotly.js-dist-min'
 
 export interface ChartTrace {
@@ -22,6 +22,7 @@ interface ChartProps {
   shapes?: Partial<Shape>[]
   caption?: string
   chartType?: 'scatter' | 'bar'
+  onSelectX?: (x:number)=>void
   xType?: 'category'
 }
 
@@ -40,11 +41,21 @@ export default function Chart({
   caption,
   chartType = 'scatter',
   xType,
+  onSelectX,
 }: ChartProps) {
   const ref = useRef<HTMLDivElement>(null)
 
+  const [themeVersion, setThemeVersion] = useState(0)
+  useEffect(() => {
+    const observer = new MutationObserver(() => setThemeVersion(v => v + 1))
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [])
   useEffect(() => {
     if (!ref.current) return
+    const element = ref.current
+    let cancelled = false
+    let dispose: (() => void) | undefined
     const dark = isDark()
     const fg = dark ? '#e7eaee' : '#15181c'
     const grid = dark ? '#2c333c' : '#e3e7eb'
@@ -90,11 +101,25 @@ export default function Chart({
       showlegend: traces.length > 1,
     }
 
-    Plotly.react(ref.current, data, layout, { responsive: true, displayModeBar: false })
-  }, [traces, title, xLabel, yLabel, y2Label, height, shapes, chartType, xType])
+    import('plotly.js-dist-min').then(({ default: Plotly }) => {
+      if (cancelled) return
+      Plotly.react(element, data, layout, { responsive: true, displayModeBar: false }).then(()=>{
+        if(!cancelled&&onSelectX)(element as unknown as {on:(event:string,cb:(e:{points:{x:number}[]})=>void)=>void}).on('plotly_click',e=>{const x=e.points[0]?.x;if(typeof x==='number')onSelectX(x)})
+      })
+      const observer = new ResizeObserver(() => {
+        // Collapsed Details panes and unmounted plots have no display box.
+        if (!cancelled && element.isConnected && element.offsetWidth > 0 && element.offsetHeight > 0) {
+          Plotly.Plots.resize(element)
+        }
+      })
+      observer.observe(element)
+      dispose = () => { observer.disconnect(); Plotly.purge(element) }
+    })
+    return () => { cancelled = true; dispose?.() }
+  }, [traces, title, xLabel, yLabel, y2Label, height, shapes, chartType, xType, themeVersion, onSelectX])
 
   return (
-    <div>
+    <div className="plot-wrapper">
       <div ref={ref} />
       {caption && <div className="hint">{caption}</div>}
     </div>

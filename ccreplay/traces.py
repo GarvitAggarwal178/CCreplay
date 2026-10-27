@@ -44,10 +44,30 @@ def _slug(rel_path: str) -> str:
 
 
 def _iter_trace_files():
-    for base in (RAW_DIR, UPLOADS_DIR):
-        if not base.exists():
+    # Restoring research evidence must not silently expand the default picker.
+    seen = set()
+    for catalog, allowed_root in (
+        (ROOT / "examples/catalog.json", RAW_DIR),
+        (ROOT / "runtime/lab/catalog.json", ROOT / "runtime/lab"),
+    ):
+        if not catalog.exists():
             continue
-        for p in sorted(base.rglob("*.ccr")):
+        for entry in json.loads(catalog.read_text())["recordings"]:
+            p = ROOT / entry["path"]
+            if not p.resolve().is_relative_to(allowed_root.resolve()) or p.suffix != ".ccr":
+                raise ValueError(f"invalid catalog path: {entry['path']}")
+            if p.is_file() and p not in seen:
+                seen.add(p)
+                yield p
+    from ccreplay.recordings import entries
+    for entry in entries().values():
+        p = ROOT / entry["path"]
+        if p.is_file() and p not in seen:
+            seen.add(p)
+            yield p
+    # Existing uploads are owner data published by the local upload endpoint.
+    for p in sorted(UPLOADS_DIR.rglob("*.ccr")):
+        if p not in seen:
             yield p
 
 
@@ -158,6 +178,11 @@ def resolve_id(trace_id: str) -> pathlib.Path:
     for p in _iter_trace_files():
         if _slug(_rel(p)) == trace_id:
             return p
+    # Explicit research CLI/history lookup may use a restored raw recording
+    # without registering it in the presentation catalog. No raw-tree scan.
+    p = ROOT / (trace_id.replace("__", "/") + ".ccr")
+    if p.resolve().is_relative_to(RAW_DIR.resolve()) and p.is_file() and _slug(_rel(p)) == trace_id:
+        return p
     raise KeyError(f"unknown trace id: {trace_id}")
 
 
@@ -202,6 +227,12 @@ def list_traces():
             "size_bytes": p.stat().st_size,
             "meta": meta,
         })
+    from ccreplay.recordings import entries
+    registered = entries()
+    for item in out:
+        item.update({k:v for k,v in registered.get(item["id"], {}).items() if k in ("name","origin","integrity","replayable","run_id")})
+        item.setdefault("integrity", "historical sidecar" if item.get("meta") else "unknown")
+        item.setdefault("replayable", bool(item.get("n_dominant_events")))
     out.sort(key=lambda t: t["path"])
     return out
 
@@ -254,7 +285,8 @@ def _json_safe_event(e: dict) -> dict:
             out[k] = v.hex()
             continue
         out[k] = v
-    return out
+    from ccreplay.storage import json_safe
+    return json_safe(out)
 
 
 def get_events(trace_id: str, offset: int = 0, limit: int = 100, callback: str | None = None):

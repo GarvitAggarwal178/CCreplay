@@ -26,6 +26,8 @@ export interface HealthInfo {
 }
 
 export interface TraceSummary {
+  origin?: string
+  integrity?: string
   id: string
   path: string
   abi: number
@@ -128,7 +130,7 @@ export interface CheckpointResult {
   n_checkpoints: number
   first_divergence_full_run: { event_index: number; seq: number; callback: string; diff_fields: string[] } | null
   result: 'NO DIVERGENCE' | 'DIVERGENCE'
-  nearest_checkpoint?: { event_index: number; seq: number }
+  nearest_checkpoint?: { next_event_index: number; next_seq: number }
   suffix_length?: number
   suffix_replay_divergence?: unknown
   reproduced_same_divergence?: boolean

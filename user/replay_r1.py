@@ -94,6 +94,9 @@ def main():
         print(f"usage: {sys.argv[0]} <trace.ccr> <meta.json> [...]", file=sys.stderr)
         sys.exit(2)
 
+    from replay_scope import validation_scope
+    scope = validation_scope(args, 'r0')
+
     results = []
     for i in range(0, len(args), 2):
         results.append(run_r1_on_trace(args[i], args[i + 1]))
@@ -104,6 +107,7 @@ def main():
     overall_first_mismatch = next((r["first_mismatch"] for r in results if r["first_mismatch"]), None)
 
     summary = {
+        "scope": scope,
         "gate": "R1",
         "pass": total_mismatches == 0,
         "traces": [r["trace"] for r in results],

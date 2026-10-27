@@ -136,25 +136,10 @@ def all_decisions_core(trace_path, trace_abi: int, ref_mod, cand_mod, mode: str)
     def _states_differ(a, b):
         return a != b
 
-    for idx, e in enumerate(dominant_events):
+    from ccreplay.transitions import iterate
+    for idx, e, ref_computed, cand_computed, ref_pre, cand_pre, ref_next, cand_next, fields, diffs, pre_state_diverged in iterate(dominant_events, ref_mod, cand_mod, base_mod, mode):
         cb = e["callback_id"]
         cb_name = CALLBACK_NAMES.get(cb, str(cb))
-
-        if mode == "A":
-            ref_pre = base_pre_fn(e) if base_pre_fn else None
-            cand_pre = base_pre_fn(e) if base_pre_fn else None
-        else:
-            ref_pre, cand_pre = ref_state, cand_state
-
-        pre_state_diverged = mode == "B" and _states_differ(ref_pre, cand_pre)
-
-        ref_computed, ref_next = ref_mod.transition(e, ref_pre)
-        cand_computed, cand_next = cand_mod.transition(e, cand_pre)
-        if mode == "B":
-            ref_state, cand_state = ref_next, cand_next
-
-        fields = _fields_for(ref_mod, v2_schema, cb, e, ref_computed)
-        diffs = [f for f in fields if ref_computed.get(f) != cand_computed.get(f)]
 
         per_callback_checked[cb_name] = per_callback_checked.get(cb_name, 0) + 1
         if diffs:

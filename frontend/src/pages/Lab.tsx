@@ -1,83 +1,33 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useResource } from '../hooks/useResource'
+import { useRunStream } from '../hooks/useLabRun'
+import type { LabRun,LabSample,LabLog } from '../hooks/useLabRun'
+import { active,post,request } from '../workbench/api'
+import Topology from '../workbench/Topology'
+import LiveTelemetry from '../workbench/LiveTelemetry'
+const TrafficEditor=lazy(()=>import('../workbench/TrafficEditor'))
+interface Capabilities {agent_connected:boolean;can_run_lab:boolean;reason?:string;kernel:string;uid:number;api_uid:number;native:{status:string;reason:string};recorders:Record<string,{status:string;reason:string;run_id?:string}>}
+interface Workload {id:string;name:string;kind:string;source:string|null;sha256:string|null}
+export default function Lab(){
+ const [params,setParams]=useSearchParams();const rid=params.get('run');const baseline=params.get('baseline');const clone=params.get('clone')
+ const [config,setConfig]=useState({controller:'reno',capture:false,duration_s:30,rate_mbit:10,delay_ms:20,queue_bytes:50000,loss_percent:0.0,workload_revision:'continuous'})
+ const [nonce,setNonce]=useState(0)
+ const {data:cap}=useResource<Capabilities>('/lab/capabilities?refresh='+nonce)
+ const {data:workloads}=useResource<Workload[]>('/workloads?refresh='+nonce)
+ const {data:run,error:loadError}=useResource<LabRun>(rid?'/lab/runs/'+rid:null,!!rid)
 
-interface LabCapabilities {
-  is_root: boolean
-  can_run_lab: boolean
-  reason: string
-  result_files: string[]
-}
-
-export default function Lab() {
-  const [caps, setCaps] = useState<LabCapabilities | null>(null)
-  const [capsError, setCapsError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/lab/capabilities')
-      .then((res) => {
-        if (!res.ok) throw new Error(res.statusText)
-        return res.json()
-      })
-      .then(setCaps)
-      .catch((e) => setCapsError(String(e)))
-  }, [])
-
-  return (
-    <div>
-      <h1>Network Lab</h1>
-      <p className="hint">
-        Network Lab experiments require privileged network operations (netns, tc, ethtool) that are
-        unavailable to this unprivileged part of Studio. This page never runs, claims to run, or
-        simulates those operations -- it only reports capability status and lists any JSON result
-        files already produced by a human operator running the scripts manually.
-      </p>
-
-      <div className="panel">
-        <h2>Capabilities</h2>
-        {capsError && <div className="error-box">{capsError}</div>}
-        {!caps && !capsError && <p className="hint">loading…</p>}
-        {caps && (
-          <>
-            <div className="field-row">
-              <label>Root in this process</label>
-              <span className="mono">{String(caps.is_root)}</span>
-            </div>
-            <div className="field-row">
-              <label>Can run lab here</label>
-              <span className="mono" data-testid="lab-can-run">
-                {String(caps.can_run_lab)}
-              </span>
-            </div>
-            <div className="error-box" data-testid="lab-disabled-reason">
-              Lab is disabled: {caps.reason}
-            </div>
-            <p className="hint">
-              Needs root -- see <span className="mono">.autorun/SUDO_RUNBOOK.md</span> for the exact
-              commands a human owner can run manually, outside of this app, to set up the validated
-              topology and execute one lab experiment.
-            </p>
-          </>
-        )}
-      </div>
-
-      <div className="panel">
-        <h2>Results</h2>
-        <p className="hint">
-          Any JSON result files already present under <span className="mono">results/lab/</span>,
-          produced by a human running <span className="mono">scripts/lab/lab_run.sh</span> outside this
-          app.
-        </p>
-        {!caps && !capsError && <p className="hint">checking results/lab/…</p>}
-        {caps && caps.result_files.length === 0 && <p className="hint">no lab results yet</p>}
-        {caps && caps.result_files.length > 0 && (
-          <ul>
-            {caps.result_files.map((f) => (
-              <li key={f} className="mono">
-                {f}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  )
+ const current=run?.id===rid?run:null
+ const running=!!current&&active(current.status)
+ const {items:samples,error:sampleError}=useRunStream<LabSample>(rid,'samples',running)
+ const {items:logs}=useRunStream<LabLog>(rid,'log',running)
+ const [error,setError]=useState('');const [busy,setBusy]=useState(false)
+ useEffect(()=>{if(!clone||rid)return;const abort=new AbortController();request<LabRun>('/lab/runs/'+encodeURIComponent(clone),{signal:abort.signal}).then(r=>{if(r.status==='completed'&&r.instrumentation==='native-uninstrumented'&&['reno','cubic'].includes(r.config.controller))setConfig({...r.config,controller:r.config.controller==='reno'?'cubic':'reno',capture:false});else setError('Only completed native Reno/CUBIC runs can prefill the other algorithm.')}).catch(e=>{if(!abort.signal.aborted)setError(String(e))});return()=>abort.abort()},[clone,rid])
+ const [elapsed,setElapsed]=useState(0)
+ useEffect(()=>{if(!current?.started_at)return;const start=Date.parse(current.started_at);const finish=current.finished_at?Date.parse(current.finished_at):null;const update=()=>setElapsed(Math.max(0,((finish||Date.now())-start)/1000));update();if(finish)return;const timer=setInterval(update,500);return()=>clearInterval(timer)},[current?.started_at,current?.finished_at])
+ async function start(){setError('');setBusy(true);try{const r=await post<LabRun>('/lab/runs',config);setParams({run:r.id,...(baseline?{baseline}: {})})}catch(e){setError(String(e))}finally{setBusy(false)}}
+ async function signal(kind:'stop'|'cancel'){try{await post(`/lab/runs/${rid}/${kind}`)}catch(e){setError(String(e))}}
+ const shown=current?.config||config
+ const recordingSupported=cap?.recorders[config.controller]?.status==='qualified'
+ return <><div className="eyebrow">Live Linux experiment</div><h1>Run TCP through a controlled network</h1><p className="lede">Real Linux sockets over owned virtual links. Configure a run, observe measurements, then investigate its finalized callback recording.</p><section className="panel statusbar"><span>Backend connected</span><b>Native TCP: {cap?.native.status??'checking'}</b><span>Agent: {cap?.agent_connected?'connected':'not connected'}</span><span>{shown.controller} recording: {cap?.recorders[shown.controller]?.status??'checking'}</span><button onClick={()=>setNonce(n=>n+1)}>Refresh preflight</button><details><summary>Host setup & diagnostics</summary>{!cap?.agent_connected&&<p>Start Studio as a normal user. In a second terminal: <code>sudo bash scripts/start_lab_agent.sh</code>. The root agent never evaluates controller scripts.</p>}<pre>{JSON.stringify(cap,null,2)}</pre></details></section>{cap&&!cap.agent_connected&&<p role="status" className="hint">Lab agent unavailable: {cap.reason}. In a separate terminal: <code>sudo bash scripts/start_lab_agent.sh</code>. <Link to="/runs">Browse saved runs</Link>.</p>}{(error||loadError)&&<p role="alert" className="error">{error||loadError}</p>}<div className="labgrid"><aside className="panel"><fieldset disabled={!!rid}><h2>{current?'New scenario (open a new run to edit)':'Scenario'}</h2><label>Live controller<select aria-label="Live controller" value={shown.controller} onChange={e=>setConfig({...config,controller:e.target.value})}><option value="reno">Reno</option><option value="cubic">CUBIC</option>{shown.capture&&<option value="covegas">Recorded CoVegas · qualification required</option>}</select></label><label className="checkbox"><input type="checkbox" checked={shown.capture} onChange={e=>setConfig({...config,capture:e.target.checked,controller:!e.target.checked&&shown.controller==='covegas'?'reno':shown.controller})}/>Record callback boundary</label><p><b>Execution: {shown.capture?`recorded ccr_${shown.controller} wrapper`:'native uninstrumented'}</b></p><p className="hint">{shown.capture?`Recording support: ${recordingSupported?'qualified':'must qualify on this host'}.`:null} Recording uses the active ccr_{shown.controller} wrapper. Unverified means this run must attach and pass self-replay before qualification.</p><div className="pair"><label>Duration · seconds<input type="number" min={2} max={180} value={shown.duration_s} onChange={e=>setConfig({...config,duration_s:Number(e.target.value)})}/></label><label>Bottleneck · Mbit/s<input type="number" min={1} max={1000} value={shown.rate_mbit} onChange={e=>setConfig({...config,rate_mbit:Number(e.target.value)})}/></label><label>Delay each endpoint · ms<input type="number" min={0} max={500} value={shown.delay_ms} onChange={e=>setConfig({...config,delay_ms:Number(e.target.value)})}/></label><label>Sender loss · %<input type="number" min={0} max={10} step={0.1} value={shown.loss_percent} onChange={e=>setConfig({...config,loss_percent:Number(e.target.value)})}/></label></div><label>FIFO queue cap · bytes<input type="number" min={1500} max={10000000} value={shown.queue_bytes} onChange={e=>setConfig({...config,queue_bytes:Number(e.target.value)})}/></label><label>Traffic workload<select value={shown.workload_revision} onChange={e=>setConfig({...config,workload_revision:e.target.value})}>{workloads?.map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></label><p className="hint">Delay applies on sender and receiver egress; loss applies on sender egress. Values are editable scenario presets.</p>{baseline&&<p className="hint">Independent comparison draft from run {baseline}. Start explicitly when ready.</p>}<button className="primary" disabled={!cap?.can_run_lab||busy||running||!!rid} onClick={()=>void start()}>{busy?'Checking and creating run…':'Start network run'}</button><p className="hint">The 50,000-byte presentation queue differs from the historical 250,000-byte research fixture.</p><details><summary>Edit a trusted traffic script</summary><Suspense fallback={<p>Loading editor…</p>}><TrafficEditor onSaved={revision=>{setConfig({...config,workload_revision:revision});setNonce(n=>n+1)}}/></Suspense></details></fieldset></aside><div><section className="panel"><h2>Lab layout schematic</h2><Topology rate={shown.rate_mbit} delay={shown.delay_ms} queue={shown.queue_bytes}/>{current?<><div className="context-strip"><b>Run {current.id.slice(0,10)}</b><span>{current.instrumentation} · {current.selected_controller||shown.controller}</span><span>Workload: {current.workload?.name} · revision {current.workload?.sha256?.slice(0,12)||'built-in iperf3'}</span></div><div className="controls"><span className="pill">{current.status}</span><b>{current.phase}</b><span>{elapsed.toFixed(1)} s elapsed · {current.samples_count} samples</span>{running&&<><button onClick={()=>void signal('stop')}>Stop & finalize</button><button onClick={()=>void signal('cancel')}>Cancel run</button></>}</div>{current.error&&<p role="alert" className="error">{current.error}</p>}<p className="hint">Observed controller: {current.observed_controllers?.join(', ')||'unknown'}. Stop preserves finalized/partial measurements; Cancel terminates this run and retains its evidence.</p></>:<p className="hint">Configuration schematic. No packet animation is used as measurement. Start a run to receive actual telemetry.</p>}</section><section className="panel"><h2>Measured Linux socket / qdisc samples</h2>{sampleError&&<p className="hint">{sampleError}</p>}<LiveTelemetry samples={samples}/></section>{current&&<><section className="panel"><h2>Run result & capture</h2><p>Final receiver throughput: <b>{current.summary?.receiver_throughput_bps==null?'Unavailable':(current.summary.receiver_throughput_bps/1e6).toFixed(3)+' Mbit/s'}</b></p><p>Sample coverage: {samples.length} loaded of {current.samples_count} saved; {samples.length<current.samples_count?'latest window only':'all saved samples loaded'}.</p><p>Retransmissions: {current.summary?.retransmits??'Unavailable'} · receiver bytes: {current.summary?.receiver_bytes?.toLocaleString()??'Unavailable'}</p>{current.recording?<><p>Callback integrity: <b>{current.recording.integrity}</b> · {current.recording.n_events?.toLocaleString()??'—'} selected events · self-replay {current.recording.self_replay?.verdict??'not available'}</p>{current.recording.reason&&<p>{current.recording.reason}</p>}{current.recording_id&&<div className="controls"><Link className="button primary" to={'/recordings/'+current.recording_id}>Inspect this recording</Link><Link className="button" to={'/replay?trace='+current.recording_id}>Replay this recording</Link></div>}</>:<p>No callback recording · native measurements only.</p>}{current.status==='completed'&&current.instrumentation==='native-uninstrumented'&&['reno','cubic'].includes(current.config.controller)&&<p><Link className="button primary" to={`/lab?clone=${current.id}&baseline=${current.id}`}>Run the other algorithm with these settings</Link></p>}{baseline&&current.status==='completed'&&<p><Link className="button primary" to={`/runs?left=${baseline}&right=${current.id}`}>Compare these runs</Link></p>}<div className="controls"><Link className="button" to="/lab">New network run</Link><a className="button" href={`/api/lab/runs/${rid}/export`}>Export run manifest</a>{current.recording_id&&<a className="button" href={`/api/lab/runs/${rid}/artifact/trace.ccr`}>Download .ccr</a>}<Link className="button" to="/runs">Saved runs & comparison</Link></div><details><summary>Actual config readback, artifact hashes and cleanup</summary><pre>{JSON.stringify({readback:current.actual_readback,artifacts:current.artifacts,cleanup:current.cleanup},null,2)}</pre></details></section><section className="panel"><details open={running}><summary>Executed commands & workload log · {logs.length} records loaded</summary><pre className="log">{logs.map(l=>`${l.t_s.toFixed(3)}s [${l.kind}] ${l.message}`).join('\n')}</pre></details></section></>}</div></div></>
 }

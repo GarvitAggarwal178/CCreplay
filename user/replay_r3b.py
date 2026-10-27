@@ -115,6 +115,9 @@ def main():
         print(f"usage: {sys.argv[0]} <trace.ccr> <meta.json> [...]", file=sys.stderr)
         sys.exit(2)
 
+    from replay_scope import validation_scope
+    scope = validation_scope(args, 'cubic_replay/primary')
+
     results = []
     for i in range(0, len(args), 2):
         results.append(run_r3b_on_trace(args[i], args[i + 1]))
@@ -129,6 +132,7 @@ def main():
         all_fields_changed |= set(r.get("fields_that_changed", []))
 
     summary = {
+        "scope": scope,
         "gate": "R3B",
         "pass": overall_first_divergence is None,
         "pass_first_divergence_is_only_clock_ambiguous": overall_first_divergence_is_clock_ambiguous,
