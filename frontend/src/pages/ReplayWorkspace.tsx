@@ -24,6 +24,14 @@ export default function ReplayWorkspace() {
  const [reference,setReference]=useState(params.get('reference')||'')
  const [candidate,setCandidate]=useState(params.get('candidate')||'')
  const [mode,setMode]=useState<'A'|'B'>(params.get('mode')==='A'?'A':'B')
+ const draftTrace=params.get('trace')||''
+ const draftReference=params.get('reference')||''
+ const draftCandidate=params.get('candidate')||''
+ const draftMode=params.get('mode')==='A'?'A':'B'
+ useEffect(()=>{
+  if(sid)return
+  setTrace(draftTrace);setReference(draftReference);setCandidate(draftCandidate);setMode(draftMode)
+ },[sid,draftTrace,draftReference,draftCandidate,draftMode])
  const {data:traces,error:traceError}=useResource<TraceSummary[]>('/traces')
  const {data:controllers,error:controllerError}=useResource<ControllerSummary[]>('/controllers')
  const {data:session,error:sessionError}=useResource<Session>(sid?'/replay/sessions/'+sid:null,!!sid)

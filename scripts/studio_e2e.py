@@ -231,7 +231,7 @@ def followup_demo(page):
 
 def main():
     """Core review workflows; never starts privileged live networking."""
-    errors=[]
+    errors=[]; checks=[]
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
         page=browser.new_page(viewport={'width':1366,'height':768},accept_downloads=True)
@@ -245,9 +245,9 @@ def main():
         for route,heading in [('/', 'Record TCP behavior. Compare controller code.'),('/lab','Run TCP through a controlled network'),('/recordings','Choose the evidence to inspect'),('/controllers','Make and validate a new controller revision'),('/replay','New controller comparison'),('/runs','Runs & Compare'),('/advanced','Advanced tools & evidence')]:
             page.goto(BASE+'/#'+route)
             expect(page.get_by_role('heading',name=heading,exact=True)).to_be_visible(timeout=30000)
-            layout(route.strip('/') or 'start')
+            layout(route.strip('/') or 'start');checks.append('route '+route+' at both review sizes')
         for old,new in [('diff','replay'),('history','runs'),('traces','recordings')]:
-            page.goto(BASE+'/#/'+old);page.wait_for_url('**/#/'+new)
+            page.goto(BASE+'/#/'+old);page.wait_for_url('**/#/'+new);checks.append('redirect '+old)
         print('PASS all routes, redirects, both review viewports',flush=True)
         # Explicit empty-catalog UI test; not a measured-result fixture.
         page.route('**/api/traces',lambda route:route.fulfill(json=[]))
@@ -255,11 +255,16 @@ def main():
         expect(page.get_by_role('heading',name='No replayable recordings')).to_be_visible()
         page.goto(BASE+'/#/replay')
         expect(page.get_by_role('heading',name='No replayable recordings')).to_be_visible()
+        checks.append('Start and Replay empty catalogs')
         page.unroute('**/api/traces')
+        # Same-route navigation retains the mounted resource; restore the real catalog.
+        page.reload()
         trace='raw__cubic_replay__primary__rep1'
         def run(candidate='cubic',mode='B'):
             page.goto(BASE+f'/#/replay?trace={trace}&candidate={candidate}&reference=cubic&mode={mode}')
             expect(page.get_by_role('button',name='Run comparison',exact=True)).to_be_enabled(timeout=30000)
+            expect(page.get_by_role('combobox',name='Candidate',exact=True)).to_have_value(candidate)
+            expect(page.get_by_role('combobox',name='Reference',exact=True)).to_have_value('cubic')
             with page.expect_response(lambda r:r.url.endswith('/api/replay/sessions') and r.request.method=='POST',timeout=30000) as created:
                 page.get_by_role('button',name='Run comparison',exact=True).click()
             sid=created.value.json()['id']
@@ -268,6 +273,7 @@ def main():
         sid,baseline=run()
         assert baseline['summary']['n_disagree']==0
         assert baseline['summary']['n_events']==78688
+        checks.append('full-recording self comparison')
         failing,result=run('cubic_bug_ssthresh')
         assert result['summary']['comparison_profile_v1']['types']['return_value']==14
         expect(page.get_by_role('heading',name='Recorded seq 1705',exact=False)).to_be_visible(timeout=30000)
@@ -280,7 +286,7 @@ def main():
         page.get_by_text('Checkpoint reproduction',exact=True).click()
         page.get_by_role('button',name='Reproduce from checkpoint').click()
         expect(page.get_by_text('"values_and_private_state_verified": true',exact=False)).to_be_visible(timeout=120000)
-        layout('replay')
+        layout('replay');checks.append('seeded computed outputs, source, navigation and checkpoint')
         count=len(http('/replay/sessions'));page.reload()
         expect(page.get_by_role('heading',name='Recorded seq 1705',exact=False)).to_be_visible(timeout=30000)
         assert len(http('/replay/sessions'))==count
@@ -290,6 +296,7 @@ def main():
         page.get_by_role('button',name='Use configuration for new comparison').click()
         expect(page.get_by_role('combobox',name='Candidate',exact=True)).to_have_value('cubic_bug_ssthresh')
         assert len(http('/replay/sessions'))==count
+        checks.append('immutable refresh, export and cloned draft')
         print('PASS actual full-stream agreement, behavior summary, source, checkpoint, immutable refresh/export/draft',flush=True)
         page.goto(BASE+'/#/controllers')
         page.get_by_label('Revision name',exact=True).fill('browser_beta_'+str(time.time_ns()))
@@ -312,31 +319,52 @@ def main():
         assert page.locator('.events .event-row').count()<=25
         page.get_by_role('button',name='Next difference',exact=True).click()
         expect(page.get_by_role('heading',name=f'Recorded seq {events[61]["seq"]}',exact=False)).to_be_visible()
+        checks.append('validated parameter revision and anchored navigation beyond 25 differences')
         print('PASS validated BETA edit, private-state divergence, anchored navigation beyond 25 differences',flush=True)
+        pending_templates=[]
+        page.route('**/api/controllers/templates/cubic',lambda route:pending_templates.append(route))
         page.goto(BASE+'/#/controllers')
         page.get_by_role('button',name='Edit Python source',exact=True).click()
+        expect(page.get_by_text('Loading controller source…',exact=True)).to_be_visible()
+        expect(page.get_by_role('button',name='Save source revision & validate',exact=True)).to_be_disabled()
+        expect(page.locator('.cm-content')).to_have_attribute('contenteditable','false')
+        assert len(pending_templates)==1
+        pending_templates[0].continue_()
+        page.unroute('**/api/controllers/templates/cubic')
+        checks.append('source editing and saving blocked until the real template loads')
         page.get_by_label('Revision name',exact=True).fill('browser_offset_'+str(time.time_ns()))
         template=urllib.request.urlopen(BASE+'/api/controllers/templates/cubic').read().decode()
         editor=page.locator('.cm-content').first
-        editor.fill(template.replace('OFFSET = 0','OFFSET = 1'))
+        expect(editor).to_have_attribute('contenteditable','true')
+        expect(editor).to_contain_text('OFFSET = 0')
+        edited=template.replace('OFFSET = 0','OFFSET = 1')
+        editor.click();page.keyboard.press('ControlOrMeta+a');page.keyboard.insert_text(edited)
         with page.expect_response(lambda r:'/api/controllers/user' in r.url and r.request.method=='POST',timeout=90000) as response:
             page.get_by_role('button',name='Save source revision & validate').click()
+        assert response.value.request.post_data_json['code']==edited
         custom=response.value.json()['id']
         expect(page.get_by_role('heading',name='Interface and sample replay checks passed')).to_be_visible(timeout=90000)
         custom_sid,_=run(custom)
         event=http(f'/replay/sessions/{custom_sid}/event/1704')
         assert (event['reference']['computed']['result'],event['candidate']['computed']['result'])==(145,144)
+        checks.append('trusted source edit and actual 145/144 computation')
         _,mode_a=run('cubic_bug_ssthresh','A')
         page.get_by_text('Checkpoint reproduction',exact=True).click()
         expect(page.get_by_role('button',name='Reproduce from checkpoint')).to_be_disabled()
         page.goto(BASE+f'/#/replay?trace={trace}&reference=reno&candidate=cubic')
         expect(page.get_by_role('button',name='Run comparison',exact=True)).to_be_disabled()
+        checks.append('Mode A checkpoint restriction and cross-ABI prevention')
         cap=http('/lab/capabilities')
         page.goto(BASE+'/#/lab')
         if not cap.get('can_run_lab'):
             expect(page.get_by_role('button',name='Start network run',exact=True)).to_be_disabled()
             page.get_by_text('Host setup & diagnostics',exact=True).click()
-            expect(page.get_by_text('sudo bash scripts/start_lab_agent.sh',exact=False)).to_be_visible()
+            if cap.get('api_uid')==0:
+                expect(page.get_by_text('The root development override enables Studio, but does not enable lab-agent access.',exact=False)).to_be_visible()
+            else:
+                expect(page.locator('main code').filter(has_text='sudo bash scripts/start_lab_agent.sh').first).to_be_visible()
+            expect(page.get_by_text('No experiment has started. No measured telemetry is available.',exact=True)).to_be_visible()
+            checks.append('disconnected lab disabled with setup guidance')
         runs=http('/lab/runs')
         native=[r for r in runs if r['status']=='completed' and r['instrumentation']=='native-uninstrumented']
         if len(native)>=2:
@@ -349,6 +377,7 @@ def main():
             page.goto(BASE+f'/#/lab?clone={left["id"]}&baseline={left["id"]}')
             expect(page.get_by_label('Live controller',exact=True)).to_have_value('cubic' if left['config']['controller']=='reno' else 'reno')
             assert len(http('/lab/runs'))==len(runs)
+            checks.append('saved native measurements and independent-run prefill')
             print('PASS saved actual native comparison, four metrics and independent prefill',flush=True)
         else:print('NOT VERIFIED measured native pair: no saved complete pair; no privileged runs started',flush=True)
         # Retain deeper sandbox regression as an explicitly requested optional rehearsal.
@@ -356,8 +385,10 @@ def main():
             followup_demo(page);algorithm_demo(page)
         page.goto(BASE+'/#/');page.get_by_role('button',name='Toggle color theme').click();layout('dark-start')
         assert not errors,errors
+        checks.append('dark theme, layout and no browser runtime errors')
         browser.close()
-    print('PASS core browser review; live networking requires separate owner qualification',flush=True)
+    print(f'PASS core browser review: {len(checks)} workflow checks; live networking requires separate owner qualification',flush=True)
+    (OUT/'review-checks.json').write_text(json.dumps({'passed':checks,'browser_errors':errors},indent=2))
     return 0
 
 
