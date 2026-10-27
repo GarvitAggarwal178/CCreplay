@@ -1,10 +1,11 @@
 """CCReplay Studio backend. FastAPI app serving /api/* and the built
-frontend (frontend/dist) at /. Binds 127.0.0.1 only; intended to run as a
-non-root user (this file does not itself enforce or check that -- see the
-README's "Run CCReplay Studio" section). No made-up output: every value
+frontend (frontend/dist) at /. The module launcher binds 127.0.0.1 only;
+root is refused unless explicitly enabled through that launcher for trusted
+local development. No made-up output: every value
 returned by /api comes from a real call into ccreplay/*.py, which wraps the
 existing user/*.py replay engine -- no hardcoded results."""
 import json
+import logging
 import os
 import pathlib
 import subprocess
@@ -361,7 +362,13 @@ app.include_router(lab_router)
 @app.on_event("startup")
 def reconcile_jobs():
     if os.geteuid() == 0:
-        raise RuntimeError("Studio must run as a normal user; only the separate lab agent runs as root")
+        if os.environ.get("CCREPLAY_ALLOW_ROOT") != "1":
+            raise RuntimeError("Studio must run as a normal user; trusted local development requires CCREPLAY_ALLOW_ROOT=1")
+        if not getattr(app.state, "root_loopback_launcher", False):
+            raise RuntimeError("Root override requires the loopback-only launcher: CCREPLAY_ALLOW_ROOT=1 bash run_studio.sh")
+        logging.getLogger('uvicorn.error').warning(
+            "CCREPLAY_ALLOW_ROOT=1: trusted localhost-only development on 127.0.0.1; "
+            "user Python code will have ROOT PRIVILEGES. Do not use for production.")
     jobs.reconcile()
 
 @app.on_event("shutdown")
@@ -379,3 +386,16 @@ if DIST_DIR.exists():
         if full_path and candidate.exists() and candidate.is_file():
             return FileResponse(str(candidate))
         return FileResponse(str(DIST_DIR / "index.html"))
+
+
+if __name__ == "__main__":
+    import argparse
+    import uvicorn
+
+    parser = argparse.ArgumentParser(description="Start Studio on 127.0.0.1 only")
+    parser.add_argument("--port", type=int, default=8000)
+    args = parser.parse_args()
+    # Only this fixed-binding entry point can authorize the root override.
+    # Direct ASGI/uvicorn launches cannot attest to their listening address.
+    app.state.root_loopback_launcher = True
+    uvicorn.run(app, host="127.0.0.1", port=args.port)

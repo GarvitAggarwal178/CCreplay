@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # One command: build the frontend if needed, start the backend, print the URL.
-# Binds 127.0.0.1 only; never run with sudo.
+# Binds 127.0.0.1 only; root requires an explicit development override.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-if [[ "$(id -u)" == 0 ]]; then
+if [[ "$(id -u)" == 0 && "${CCREPLAY_ALLOW_ROOT:-}" != 1 ]]; then
   echo 'Studio must run as a normal user. Only scripts/start_lab_agent.sh uses sudo.' >&2
-  echo 'This checkout is under /root; copy it to your normal user’s home before startup. See docs/DEVELOPMENT.md.' >&2
+  echo 'Trusted localhost-only development: CCREPLAY_ALLOW_ROOT=1 bash run_studio.sh' >&2
   exit 2
+fi
+
+if [[ "$(id -u)" == 0 ]]; then
+  echo 'WARNING: CCREPLAY_ALLOW_ROOT=1 is for trusted localhost-only development. User Python code will have ROOT PRIVILEGES. Do not use for production.' >&2
 fi
 
 PORT=8000
@@ -57,11 +61,11 @@ fi
 mkdir -p .autorun
 
 if [[ "$DAEMON" == "1" ]]; then
-  setsid nohup .venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port "$PORT" \
+  setsid nohup .venv/bin/python -m backend.app --port "$PORT" \
     > ".autorun/server-$PORT.log" 2>&1 &
   echo $! > "$PIDFILE"
   echo "started daemon pid $(cat "$PIDFILE") on http://127.0.0.1:$PORT"
 else
   echo "CCReplay Studio: http://127.0.0.1:$PORT"
-  exec .venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port "$PORT"
+  exec .venv/bin/python -m backend.app --port "$PORT"
 fi
